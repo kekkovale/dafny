@@ -3673,7 +3673,7 @@ namespace Microsoft.Dafny {
   public abstract class MemberDecl : Declaration {
     public abstract string WhatKind { get; }
     public readonly bool HasStaticKeyword;
-    public bool IsStatic {
+    public virtual bool IsStatic {
       get {
         return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
       }
@@ -3825,6 +3825,29 @@ namespace Microsoft.Dafny {
       EnclosingCtor = enclosingCtor;
       CorrespondingFormal = correspondingFormal;
     }
+  }
+  
+  public class ConstantField : SpecialField
+  {
+    public override string WhatKind { get { return "const field"; } }
+    public Function function;
+    public Type type;
+    public Expression constValue;
+    public override bool IsStatic {
+      get {
+        return true;
+      }
+    }
+    public ConstantField(IToken tok, string name, Expression constValue, bool isGhost, Type type, Attributes attributes)
+      : base(tok, name, name, "", "", isGhost, false, false, type, attributes)
+    {
+      this.type = type;
+      this.constValue = constValue;
+      this.function = new SpecialFunction(tok, name, true, false, false, new List<TypeParameter>(), new List<Formal>(),
+        type, new List<Expression>(), new List<FrameExpression>(), new List<Expression>(),
+        new Specification<Expression>(new List<Expression>(), null), null, null, null);
+    }
+
   }
 
   public class OpaqueTypeDecl : TopLevelDecl, TypeParameter.ParentType, RevealableTypeDecl
@@ -5193,6 +5216,29 @@ namespace Microsoft.Dafny {
           yield return arg;
         }
       }
+    }
+  }
+
+  public class RevealStmt : Statement
+  {
+    public readonly Expression Expr;
+    public readonly List<Statement> ResolvedStatements = new List<Statement>(); // contents filled in during resolution.
+
+    public override IEnumerable<Statement> SubStatements {
+      get { return ResolvedStatements; }
+    }
+
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Expr != null);
+    }
+
+    public RevealStmt(IToken tok, IToken endTok, Expression expr)
+      : base(tok, endTok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(expr != null);
+      this.Expr = expr;
     }
   }
 
@@ -7843,6 +7889,26 @@ namespace Microsoft.Dafny {
     {
       Function = fn;
       Args = args;
+    }
+  }
+
+  public class RevealExpr : Expression
+  {
+    public readonly Expression Expr;
+    public Expression ResolvedExpression; 
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (ResolvedExpression != null) {
+          yield return ResolvedExpression;
+        }
+      }
+    }
+
+    public RevealExpr(IToken tok, Expression expr) 
+      : base(tok)
+    {
+      this.Expr = expr;
     }
   }
 

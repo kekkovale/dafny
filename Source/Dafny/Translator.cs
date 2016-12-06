@@ -1811,16 +1811,27 @@ namespace Microsoft.Dafny {
         currentDeclaration = member;
         if (member is Field) {
           Field f = (Field)member;
-          if (f.IsMutable) {
-            Bpl.Constant fc = GetField(f);
-            sink.AddTopLevelDeclaration(fc);
+          if (f is ConstantField) {
+            // function QQ():int { 3 }
+            var cf = (ConstantField)f;
+            Function ff = ((ConstantField)cf).function;
+            var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(ff.ResultType)), false);
+            var func = new Bpl.Function(f.tok, ff.FullSanitizedName, new List<TypeVariable>(), new List<Bpl.Variable>(), res, null, new QKeyValue(f.tok, "inline", new List<object>(), null));
+            ExpressionTranslator etran = new ExpressionTranslator(this, predef, (Bpl.Expr)null);
+            func.Body = etran.TrExpr(cf.constValue);
+            sink.AddTopLevelDeclaration(func);
           } else {
-            Bpl.Function ff = GetReadonlyField(f);
-            if (ff != predef.ArrayLength)
-              sink.AddTopLevelDeclaration(ff);
-          }
+            if (f.IsMutable) {
+              Bpl.Constant fc = GetField(f);
+              sink.AddTopLevelDeclaration(fc);
+            } else {
+              Bpl.Function ff = GetReadonlyField(f);
+              if (ff != predef.ArrayLength)
+                sink.AddTopLevelDeclaration(ff);
+            }
 
-          AddAllocationAxiom(f, c);
+            AddAllocationAxiom(f, c);
+          }
 
         } else if (member is Function) {
           AddFunction_Top((Function)member);
@@ -2856,8 +2867,9 @@ namespace Microsoft.Dafny {
         } else {
           etranBody = etran.LimitedFunctions(f, ly);
         }
+        
         tastyVegetarianOption = BplAnd(CanCallAssumption(bodyWithSubst, etranBody),
-          Bpl.Expr.Eq(funcAppl, etranBody.TrExpr(bodyWithSubst)));
+          BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody),Bpl.Expr.Eq(funcAppl, etranBody.TrExpr(bodyWithSubst))));
       }
       QKeyValue kv = null;
       if (lits != null) {
@@ -2884,6 +2896,42 @@ namespace Microsoft.Dafny {
         comment += " (opaque)";
       }
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
+    }
+
+    Expr TrFunctionSideEffect(Expression expr, ExpressionTranslator etran) {
+      Expr e = Bpl.Expr.True;
+      if (expr is StmtExpr) {
+        // if there is a call to reveal_ lemma, we need to record its side effect.
+        var stmt = ((StmtExpr)expr).S;
+        foreach (var ss in stmt.SubStatements) {
+          if (ss is CallStmt) {
+            var call = (CallStmt)ss;
+            var m = call.Method;
+            if (IsOpaqueRevealLemma(m)) {
+              List<Expression> args = Attributes.FindExpressions(m.Attributes, "fuel");
+              if (args != null) {
+                MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
+                if (selectExpr != null) {
+                  Function f = selectExpr.Member as Function;
+                  FuelConstant fuelConstant = this.functionFuel.Find(x => x.f == f);
+                  if (fuelConstant != null) {
+                    Bpl.Expr startFuel = fuelConstant.startFuel;
+                    Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
+                    Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
+                    Bpl.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
+                    Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
+
+                    e = Bpl.Expr.Eq(startFuel, layer);
+                    e = BplAnd(e, Bpl.Expr.Eq(startFuelAssert, layerAssert));
+                    e = BplAnd(e, Bpl.Expr.Eq(this.FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr));
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return e;
     }
 
     /// <summary>
@@ -5393,6 +5441,9 @@ namespace Microsoft.Dafny {
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         return CanCallAssumption(e.ResolvedExpression, etran);
+      } else if (expr is RevealExpr) {
+        var e = (RevealExpr)expr;
+        return CanCallAssumption(e.ResolvedExpression, etran);
       } else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         return CanCallAssumption(e.Args, etran);
@@ -6382,6 +6433,11 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
+        CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
+        result = null;
+
+      } else if (expr is RevealExpr) {
+        var e = (RevealExpr)expr;
         CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
         result = null;
 
@@ -7686,8 +7742,7 @@ namespace Microsoft.Dafny {
                 AddEnsures(ens, Ensures(m.tok, true, Bpl.Expr.Eq(startFuelAssert, layerAssert), null, null));
 
                 AddEnsures(ens, Ensures(m.tok, true, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
-                AddEnsures(ens, Ensures(m.tok, true, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
-              }
+                }
             }
           }
         }
@@ -8314,6 +8369,13 @@ namespace Microsoft.Dafny {
         PrintStmt s = (PrintStmt)stmt;
         foreach (var arg in s.Args) {
           TrStmt_CheckWellformed(arg, builder, locals, etran, false);
+        }
+
+      } else if (stmt is RevealStmt) {
+        AddComment(builder, stmt, "reveal statement");
+        RevealStmt s = (RevealStmt)stmt;
+        foreach (var resolved in s.ResolvedStatements) {
+          TrStmt(resolved, builder, locals, etran);
         }
 
       } else if (stmt is BreakStmt) {
@@ -13243,6 +13305,10 @@ namespace Microsoft.Dafny {
           var e = (ConcreteSyntaxExpression)expr;
           return TrExpr(e.ResolvedExpression);
 
+        } else if (expr is RevealExpr) {
+          var e = (RevealExpr)expr;
+          return TrExpr(e.ResolvedExpression);
+
         } else if (expr is BoxingCastExpr) {
           BoxingCastExpr e = (BoxingCastExpr)expr;
           return translator.CondApplyBox(e.tok, TrExpr(e.E), e.FromType, e.ToType);
@@ -13268,7 +13334,13 @@ namespace Microsoft.Dafny {
           Expression arg = expr.Args[0];
           return TrToFunctionCall(expr.tok, "RightRotate_bv" + w, translator.BplBvType(w), TrExpr(expr.Receiver), translator.ConvertExpression(expr.tok, TrExpr(arg), arg.Type, expr.Type), false);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected special function
+          var args = new List<Bpl.Expr>();
+          for (int i = 0; i < expr.Args.Count; i++) {
+            Expression ee = expr.Args[i];
+            args.Add(TrExpr(ee));
+          }
+          var id = new Bpl.IdentifierExpr(expr.tok, expr.Function.FullSanitizedName, translator.TrType(expr.Type));
+          return new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(id), args);
         }
       }
       public Expr TrToFunctionCall(IToken tok, string function, Bpl.Type returnType, Bpl.Expr e0, Bpl.Expr e1, bool liftLit) {
@@ -14406,6 +14478,10 @@ namespace Microsoft.Dafny {
         var e = (ConcreteSyntaxExpression)expr;
         return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
 
+      } else if (expr is RevealExpr) {
+        var e = (RevealExpr)expr;
+        return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (e.Exact) {
@@ -15497,6 +15573,11 @@ namespace Microsoft.Dafny {
         } else if (expr is ConcreteSyntaxExpression) {
           var e = (ConcreteSyntaxExpression)expr;
           return Substitute(e.ResolvedExpression);
+
+        } else if (expr is RevealExpr) {
+          var e = (RevealExpr)expr;
+          return Substitute(e.ResolvedExpression);
+
         } else if (expr is BoogieFunctionCall) {
           var e = (BoogieFunctionCall)expr;
           bool anythingChanged = false;
