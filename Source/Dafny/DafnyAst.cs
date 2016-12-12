@@ -3470,6 +3470,11 @@ namespace Microsoft.Dafny {
     bool InferredDecreases { get; set; }
   }
 
+  public interface ITactic {
+    List<Formal> Ins { get; }
+    string Name { get; }
+  }
+
   public class DontUseICallable : ICallable
   {
     public string WhatKind { get { throw new cce.UnreachableException(); } }
@@ -3673,7 +3678,9 @@ namespace Microsoft.Dafny {
   public abstract class MemberDecl : Declaration {
     public abstract string WhatKind { get; }
     public readonly bool HasStaticKeyword;
-    public virtual bool IsStatic {
+    public bool CallsTactic = false; // filled in during resolution
+    public bool EvaluateTactic = false;
+    public bool IsStatic {
       get {
         return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
       }
@@ -4903,6 +4910,43 @@ namespace Microsoft.Dafny {
     }
   }
 
+   public class Tactic : Method, ITactic {
+    public override string WhatKind => "tactic";
+
+    List<Formal> ITactic.Ins => base.Ins;
+
+    public new string Name => base.Name;
+
+    public Tactic(IToken tok,
+                 string name,
+                 bool hasStaticKeyword,
+                 [Captured] List<TypeParameter> typeArgs,
+                 [Captured] List<Formal> ins,
+                 [Captured] List<Formal> outs,
+                 [Captured] List<MaybeFreeExpression> req,
+                 [Captured] Specification<FrameExpression> mod,
+                 [Captured] List<MaybeFreeExpression> ens,
+                 [Captured] Specification<Expression> decreases,
+                 [Captured] BlockStmt body,
+                 Attributes attributes,
+                IToken signatureEllipsis)
+        : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    }
+  }
+
+  public class TacticFunction : Function, ITactic {
+    public override string WhatKind => "tactic function";
+
+    public List<Formal> Ins => base.Formals;
+    public new string Name => base.Name;
+
+    public TacticFunction(IToken tok, string name, bool hasStaticKeyword, bool isProtected, bool isGhost,
+                    List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
+                    List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                    Expression body, Attributes attributes, IToken signatureEllipsis)
+        : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, new BoolType(),
+               req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureEllipsis) { }
+  }
   public class Constructor : Method
   {
     public override string WhatKind { get { return "constructor"; } }
@@ -5090,6 +5134,16 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public abstract class TStatement : Statement {
+    public TStatement(IToken tok, IToken endTok, Attributes attrs) : base(tok, endTok, attrs) {
+      
+    }
+
+    public TStatement(IToken tok, IToken endTok) : base(tok, endTok) {
+      
+    }
+  }
+
   public class LList<T>
   {
     public readonly T Data;
@@ -5193,7 +5247,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
     }
   }
-
+  
   public class PrintStmt : Statement {
     public readonly List<Expression> Args;
     [ContractInvariantMethod]
@@ -5219,8 +5273,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class RevealStmt : Statement
-  {
+  public class RevealStmt : Statement {
     public readonly Expression Expr;
     public readonly List<Statement> ResolvedStatements = new List<Statement>(); // contents filled in during resolution.
 
@@ -5319,6 +5372,104 @@ namespace Microsoft.Dafny {
       : base(tok, endTok, rhss) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
+    }
+  }
+
+   public abstract class TacticPredicateStmt : TStatement {
+ 
+    public readonly Expression Expr;
+    public bool IsObjectLevel = false;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Expr != null);
+    }
+ 
+    protected TacticPredicateStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs, bool objectLevel)
+        : base(tok, endTok, attrs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(expr != null);
+      this.Expr = expr;
+      this.IsObjectLevel = objectLevel;
+    }
+ 
+    protected TacticPredicateStmt(IToken tok, IToken endTok, Expression expr, bool objectLevel)
+        : this(tok, endTok, expr, null, objectLevel) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(expr != null);
+      this.Expr = expr;
+      this.IsObjectLevel = objectLevel;
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        yield return Expr;
+      }
+    }
+  }
+
+  public class TacticAssertStmt : TacticPredicateStmt {
+    public TacticAssertStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs, bool objectLevel)
+        : base(tok, endTok, expr, attrs, objectLevel) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(expr != null);
+    }
+  }
+ 
+  public class TacticAssumeStmt : TacticPredicateStmt {
+    public TacticAssumeStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs, bool objectLevel)
+        : base(tok, endTok, expr, attrs, objectLevel) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(expr != null);
+    }
+  }
+ 
+  public class TacticInvariantStmt : TacticPredicateStmt {
+    public TacticInvariantStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs, bool objectLevel)
+        : base(tok, endTok, expr, attrs, objectLevel) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(expr != null);
+    }
+  }
+ 
+ 
+  public class TacticVarDeclStmt : TStatement {
+    public readonly List<LocalVariable> Locals;
+    public readonly ConcreteUpdateStatement Update;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(cce.NonNullElements(Locals));
+      Contract.Invariant(Locals.Count != 0);
+    }
+ 
+    public TacticVarDeclStmt(IToken tok, IToken endTok, List<LocalVariable> locals, ConcreteUpdateStatement update)
+        : base(tok, endTok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(locals.Count != 0);
+ 
+      Locals = locals;
+      Update = update;
+    }
+ 
+    public override IEnumerable<Statement> SubStatements {
+      get { if (Update != null) { yield return Update; } }
+    }
+ 
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var v in Locals) {
+          foreach (var e in Attributes.SubExpressions(v.Attributes)) {
+            yield return e;
+          }
+        }
+      }
     }
   }
 
@@ -5915,6 +6066,65 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class TacnyBlockStmt : TStatement {
+    public readonly Expression Guard;
+    public readonly BlockStmt Body;
+    public virtual string WhatKind => "BlockStmt";
+ 
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      //Contract.Invariant(Guard != null);
+      Contract.Invariant(Body != null);
+    }
+ 
+    public TacnyBlockStmt(IToken tok, IToken endTok, Expression guard, BlockStmt body)
+        : base(tok, endTok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(body != null);
+ 
+      this.Guard = guard;
+      this.Body = body;
+    }
+
+    public TacnyBlockStmt(IToken tok, IToken endTok, Expression guard, Attributes attrs, BlockStmt body)
+        : base(tok, endTok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(body != null);
+ 
+      this.Guard = guard;
+      this.Body = body;
+      this.Attributes = attrs;
+    }
+
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        yield return Body;
+      }
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        if (Guard != null) {
+          yield return Guard;
+        }
+      }
+    }
+  }
+ 
+  public class TacnyCasesBlockStmt : TacnyBlockStmt {
+	public virtual string WhatKind { get { return "cases"; } }
+	public TacnyCasesBlockStmt(IToken tok, IToken endTok, Expression guard, Attributes attrs, BlockStmt body)
+		: base(tok, endTok, guard, attrs, body) {
+		Contract.Requires(tok != null);
+		Contract.Requires(endTok != null);
+		Contract.Requires(guard != null);
+		Contract.Requires(body != null);
+
+	}
+  }
+
   public class IfStmt : Statement {
     public readonly bool IsExistentialGuard;
     public readonly Expression Guard;
@@ -6072,7 +6282,8 @@ namespace Microsoft.Dafny {
   public class WhileStmt : LoopStmt
   {
     public readonly Expression Guard;
-    public readonly BlockStmt Body;
+    public BlockStmt Body;
+    public Statement TacAps; // Tacny tactic application
 
     public WhileStmt(IToken tok, IToken endTok, Expression guard,
                      List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
@@ -8092,6 +8303,56 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       Contract.Requires(toType != null);
       ToType = toType;
+    }
+  }
+
+  public class TacnyBinaryExpr : BinaryExpr {
+    public enum TacnyOpcode {
+      TacnyOr,
+    }
+
+    public enum TacnyResolvedOpcode {
+      TacnyOr,
+    }
+
+    public readonly TacnyOpcode Op;
+
+    public static TacnyOpcode ResolvedOp2SyntacticOp(TacnyResolvedOpcode rop) {
+      switch (rop) {
+        case TacnyResolvedOpcode.TacnyOr: return TacnyOpcode.TacnyOr;
+        default:
+          Contract.Assert(false);  // unexpected ResolvedOpcode
+          return TacnyOpcode.TacnyOr;  // please compiler
+      }
+    }
+
+    public static Opcode TacnyOp2DafnyOp(TacnyOpcode op) {
+      switch (op) {
+        case TacnyOpcode.TacnyOr: return Opcode.Or;
+        default:
+          Contract.Assert(false);  // unexpected ResolvedOpcode
+          return Opcode.Or;  // please compiler
+      }
+    }
+    public static string OpcodeString(TacnyOpcode op) {
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      switch (op) {
+        case TacnyOpcode.TacnyOr: return "|||";
+        default:
+          Contract.Assert(false);  // unexpected ResolvedOpcode
+          return "";
+
+      }
+    }
+
+    public TacnyBinaryExpr(IToken tok, TacnyOpcode op, Expression e0, Expression e1)
+            : base(tok, TacnyOp2DafnyOp(op), e0, e1) {
+      Contract.Requires(tok != null);
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      this.Op = op;
+
     }
   }
 

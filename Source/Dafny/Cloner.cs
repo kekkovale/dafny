@@ -515,7 +515,15 @@ namespace Microsoft.Dafny
         var s = (AssumeStmt)stmt;
         r = new AssumeStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), null);
 
-      } else if (stmt is PrintStmt) {
+      } else if (stmt is TacticInvariantStmt) {
+        var s = (TacticInvariantStmt)stmt;
+        r = new TacticInvariantStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), null, s.IsObjectLevel);
+
+      } else if (stmt is TacticAssertStmt) {
+        var s = (TacticAssertStmt)stmt;
+        r = new TacticAssertStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), null, s.IsObjectLevel);
+
+      }  else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
         r = new PrintStmt(Tok(s.Tok), Tok(s.EndTok), s.Args.ConvertAll(CloneExpr));
 
@@ -557,6 +565,7 @@ namespace Microsoft.Dafny
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
         r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
+        ((WhileStmt)r).TacAps = s.TacAps;
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
@@ -607,6 +616,34 @@ namespace Microsoft.Dafny
         var body = s.Body == null ? null : CloneBlockStmt(s.Body);
         r = new ModifyStmt(Tok(s.Tok), Tok(s.EndTok), mod.Expressions, mod.Attributes, body);
 
+      } else if (stmt is TacnyCasesBlockStmt) {
+        var s = (TacnyCasesBlockStmt)stmt;
+        var guard = CloneExpr(s.Guard);
+        var body = s.Body == null ? null : CloneBlockStmt(s.Body);
+        var attrs = s.Attributes == null ? null : CloneAttributes(s.Attributes);
+        r = new TacnyCasesBlockStmt(Tok(s.Tok), Tok(s.EndTok), guard, attrs, body);
+      
+      } else if (stmt is TacnyChangedBlockStmt) {
+        var s = (TacnyChangedBlockStmt)stmt;
+        var body = s.Body == null ? null : CloneBlockStmt(s.Body);
+        r = new TacnyChangedBlockStmt(Tok(s.Tok), Tok(s.EndTok), body);
+      
+      } else if (stmt is TacnySolvedBlockStmt) {
+        var s = (TacnySolvedBlockStmt)stmt;
+        var body = s.Body == null ? null : CloneBlockStmt(s.Body);
+        r = new TacnySolvedBlockStmt(Tok(s.Tok), Tok(s.EndTok), body);
+      
+      } else if (stmt is TacnyTryCatchBlockStmt) {
+        var s = (TacnyTryCatchBlockStmt)stmt;
+        var body = s.Body == null ? null : CloneBlockStmt(s.Body);
+        var c = s.Ctch == null ? null : CloneBlockStmt(s.Ctch);
+        r = new TacnyTryCatchBlockStmt(Tok(s.Tok), Tok(s.EndTok), body, c);
+      
+      } else if (stmt is TacticVarDeclStmt) {
+        var s = (TacticVarDeclStmt)stmt;
+        var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
+        r = new TacticVarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
+      
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -685,6 +722,9 @@ namespace Microsoft.Dafny
       } else if (f is TwoStateFunction) {
         return new TwoStateFunction(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null, f);
+	  } else if (f is TacticFunction) {
+        return new TacticFunction(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals, CloneType(f.ResultType),
+            req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       } else {
         return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null, f);
@@ -720,6 +760,9 @@ namespace Microsoft.Dafny
         var two = (TwoStateLemma)m;
         return new TwoStateLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
+      } else if (m is Tactic) {
+        return new Tactic(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+            req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else {
         return new Method(Tok(m.tok), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
