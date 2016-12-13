@@ -4286,8 +4286,8 @@ namespace Microsoft.Dafny
     #region CheckTypeInference
     private void CheckTypeInference_Member(MemberDecl member) {
       if (member is ITactic) {
-                return;
-      } else(member is ConstantField) {
+        return;
+      } else if (member is ConstantField) {
         var field = (ConstantField) member;
         CheckTypeInference(field.constValue, new NoContext(member.EnclosingClass.Module));
       } else if (member is Method) {

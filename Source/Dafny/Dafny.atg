@@ -319,7 +319,9 @@ bool IsMulOp() {
 bool IsQSep() {
   return la.kind == _doublecolon || la.kind == _bullet;
 }
-
+bool IsTacnyOrOp() {
+  return la.val == "|||";
+}
 bool IsNonFinalColon() {
   return la.kind == _colon && scanner.Peek().kind != _rbracket;
 }
@@ -1295,6 +1297,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      bool isConstructor = false;
      bool isIndLemma = false;
      bool isCoLemma = false;
+	 bool isTactic = false;
      IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
@@ -1897,9 +1900,6 @@ TacticStmt<out Statement/*!*/ s>
     | "tinvariant"  (.x = t;.)    TacticInvariantStmt<out s, x>
     | "invariant"   (.x = t;.)    TacticInvariantStmt<out s, x, true>
     | "tassert"     (.x = t;.)    TacticAssertStmt<out s, x>
-    | TacnySolvedBlockStmt<out s>
-    | TacnyChangedBlockStmt<out s>
-    | TacnyTryCatchBlockStmt<out s>
   )  
 . 
 
@@ -1989,13 +1989,14 @@ TacnyCasesBlockStmt<out Statement/*!*/ tacnyCasesStmt, IToken x>
      BlockStmt/*!*/ thn;      Attributes attrs = null;
      IToken bodyStart, bodyEnd, endTok;
      List<GuardedAlternative> alternatives;
+	 bool usesOptionalBraces;
      tacnyCasesStmt = dummyStmt;  // to please the compiler
   .)
   
   (
     IF(IsAlternative())
-    AlternativeBlock<true, out alternatives, out endTok>
-    (. tacnyCasesStmt = new AlternativeStmt(x, endTok, alternatives); .)
+    AlternativeBlock<true, out alternatives, out usesOptionalBraces, out endTok>
+    (. tacnyCasesStmt = new AlternativeStmt(x, endTok, alternatives, usesOptionalBraces); .)
   |
     ( Guard<out guard>
     | "..."                  (. guardEllipsis = t; .)
@@ -2008,49 +2009,6 @@ TacnyCasesBlockStmt<out Statement/*!*/ tacnyCasesStmt, IToken x>
          tacnyCasesStmt = new TacnyCasesBlockStmt(x, endTok, guard, attrs, thn);
        }
     .)
-  )
-  .
-
-TacnySolvedBlockStmt<out Statement/*!*/ tacnySolvedStatement>
-= (. Contract.Ensures(Contract.ValueAtReturn(out tacnySolvedStatement) != null); IToken/*!*/ x;
-     BlockStmt/*!*/ body;
-     IToken bodyStart, bodyEnd, endTok;
-     tacnySolvedStatement = dummyStmt;  // to please the compiler
-  .)
-  "solved"                       (. x = t; .)
-  (
-    BlockStmt<out body, out bodyStart, out bodyEnd>    (. endTok = body.EndTok; .)
-    (. tacnySolvedStatement = new TacnySolvedBlockStmt(x, endTok, body); .)
-  )
-  .
-
-TacnyChangedBlockStmt<out Statement/*!*/ tacnyChangedStatement>
-= (. Contract.Ensures(Contract.ValueAtReturn(out tacnyChangedStatement) != null); IToken/*!*/ x;
-     BlockStmt/*!*/ body;
-     IToken bodyStart, bodyEnd, endTok;
-     tacnyChangedStatement = dummyStmt;  // to please the compiler
-  .)
-  "changed"                       (. x = t; .)
-  (
-    BlockStmt<out body, out bodyStart, out bodyEnd>    (. endTok = body.EndTok; .)
-    (. tacnyChangedStatement = new TacnyChangedBlockStmt(x, endTok, body); .)
-  )
-  .
-
-TacnyTryCatchBlockStmt<out Statement/*!*/ tacnyTryCatchStatement>
-= (. Contract.Ensures(Contract.ValueAtReturn(out tacnyTryCatchStatement) != null); IToken/*!*/ x;
-     BlockStmt/*!*/ body;
-     BlockStmt/*!*/ ctch = null;
-     IToken bodyStart, bodyEnd, endTok;
-     tacnyTryCatchStatement = dummyStmt;  // to please the compiler
-  .)
-  "try"                       (. x = t; .)
-  (
-    BlockStmt<out body, out bodyStart, out bodyEnd>    (. endTok = body.EndTok; .)
-    [ "catch"
-      BlockStmt<out ctch, out bodyStart, out bodyEnd> (. endTok = ctch.EndTok; .)
-    ]
-    (. tacnyTryCatchStatement = new TacnyTryCatchBlockStmt(x, endTok, body, ctch); .)
   )
   .
 
@@ -2837,10 +2795,10 @@ LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allo
         RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
       }
 	| TacnyOrOp /*  ########### TACNY OR ########## */        (. x = t; .)
-      RelationalExpression<out e1, allowSemi, allowLambda>    (. e0 = new TacnyBinaryExpr(x, TacnyBinaryExpr.TacnyOpcode.TacnyOr, e0, e1); .)
+      RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>    (. e0 = new TacnyBinaryExpr(x, TacnyBinaryExpr.TacnyOpcode.TacnyOr, e0, e1); .)
        { IF(IsTacnyOrOp())  /* read a disjunction as far as possible */
         TacnyOrOp                                                  (. x = t; .)
-        RelationalExpression<out e1, allowSemi, allowLambda>  (. e0 = new TacnyBinaryExpr(x, TacnyBinaryExpr.TacnyOpcode.TacnyOr, e0, e1); .)
+        RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new TacnyBinaryExpr(x, TacnyBinaryExpr.TacnyOpcode.TacnyOr, e0, e1); .)
       }
     | OrOp                                                    (. x = t; .)
       RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)

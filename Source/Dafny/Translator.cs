@@ -106,7 +106,7 @@ namespace Microsoft.Dafny {
     }
 
     [NotDelayed]
-    public Translator(ErrorReporter reporter, TranslatorFlags flags = null) {
+    public Translator(ErrorReporter reporter, TranslatorFlags flags = null, ErrorReporterDelegate tacnyDelegate = null) {
       this.reporter = reporter;
       if (flags == null) {
         flags = new TranslatorFlags();
@@ -117,7 +117,7 @@ namespace Microsoft.Dafny {
         sink = boogieProgram;
         predef = FindPredefinedDecls(boogieProgram);
       }
-      tacnyDelegate = tacnyDelegate;
+      _tacnyDelegate = tacnyDelegate;
     }
 
     public void SetReporter(ErrorReporter reporter) {
@@ -711,15 +711,15 @@ namespace Microsoft.Dafny {
         return p.RawModules().Where(ShouldVerifyModule);
     }
 
-    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
+    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program p, ErrorReporter reporter, Resolver r, TranslatorFlags flags = null) {
       Contract.Requires(p != null);
       Contract.Requires(p.ModuleSigs.Count > 0);
-
       Type.ResetScopes();
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
 
         var translator = new Translator(reporter, flags);
+        translator.r = r;
 
         if (translator.sink == null || translator.sink == null) {
           // something went wrong during construction, which reads the prelude; an error has
@@ -1856,7 +1856,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(mem is Method);
 
       if (mem is Method) {
-        if (TacticEvaluationIsEnabled && m.CallsTactic) {
+        if (TacticEvaluationIsEnabled && mem.CallsTactic) {
          mem = Tacny.Interpreter.FindAndApplyTactic(program, (Method)mem, _tacnyDelegate, r) as Method;
         }
         AddMethod_Top((Method)mem);

@@ -11,8 +11,6 @@ using System.Text;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Tacny.Language;
-//using LiteralExpr = Microsoft.Dafny.LiteralExpr;
-using Dafny = Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
 using Type = Microsoft.Dafny.Type;
 
@@ -316,7 +314,7 @@ namespace Tacny {
         endTok.line = TACNY_CODE_TOK_LINE;
 
         if(predicate is AssertStmt) {
-          newPredicate = new AssertStmt(tok, endTok, resultExpression, predicate.Attributes);
+          newPredicate = new AssertStmt(tok, endTok, resultExpression, null, predicate.Attributes);
         } else {
           newPredicate = new AssumeStmt(tok, endTok, resultExpression, predicate.Attributes);
         }
@@ -419,15 +417,15 @@ namespace Tacny {
               } else {
                 var enumerator = result as IList;
                 if(enumerator != null)
-                  yield return new Dafny.LiteralExpr(op.tok, enumerator.Count);
+                  yield return new Microsoft.Dafny.LiteralExpr(op.tok, enumerator.Count);
               }
               yield break;
             case UnaryOpExpr.Opcode.Not:
-              if(result is Dafny.LiteralExpr) {
-                var lit = (Dafny.LiteralExpr)result;
+              if(result is Microsoft.Dafny.LiteralExpr) {
+                var lit = (Microsoft.Dafny.LiteralExpr)result;
                 if(lit.Value is bool) {
                   // inverse the bool value
-                  yield return new Dafny.LiteralExpr(op.tok, !(bool)lit.Value);
+                  yield return new Microsoft.Dafny.LiteralExpr(op.tok, !(bool)lit.Value);
                 } else {
                   Contract.Assert(false);
                   //TODO: error message
@@ -520,10 +518,10 @@ namespace Tacny {
             foreach(var result in EvalTacnyExpression(state, aps)) {
               state.AddTacnyVar(declaration.Locals[index], result);
             }
-          } else if(exprRhs?.Expr is Dafny.LiteralExpr) {
-            state.AddTacnyVar(declaration.Locals[index], (Dafny.LiteralExpr)exprRhs?.Expr);
-          } else if(exprRhs?.Expr is Dafny.NameSegment) {
-            var name = ((Dafny.NameSegment)exprRhs.Expr).Name;
+          } else if(exprRhs?.Expr is Microsoft.Dafny.LiteralExpr) {
+            state.AddTacnyVar(declaration.Locals[index], (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);
+          } else if(exprRhs?.Expr is Microsoft.Dafny.NameSegment) {
+            var name = ((Microsoft.Dafny.NameSegment)exprRhs.Expr).Name;
             if(state.ContainTacnyVal(name))
               // in the case that referring to an exisiting tvar, dereference it
               state.AddTacnyVar(declaration.Locals[index], state.GetTacnyVarValue(name));
@@ -549,8 +547,8 @@ namespace Tacny {
           foreach(var result in EvalTacnyExpression(state, aps)) {
             state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, result);
           }
-        } else if(exprRhs?.Expr is Dafny.LiteralExpr) {
-          state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, (Dafny.LiteralExpr)exprRhs?.Expr);
+        } else if(exprRhs?.Expr is Microsoft.Dafny.LiteralExpr) {
+          state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);
         } else {
           state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, exprRhs?.Expr);
         }

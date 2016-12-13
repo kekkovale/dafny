@@ -48,9 +48,11 @@ namespace Tacny {
       _topLevelClasses = new List<TopLevelClassDeclaration>();
       Reporter = reporter;
 
+      var files = new List<DafnyFile>();
+      files.Add(new DafnyFile(program.FullName));
       //note the differences between this ParseCheck and the one at the top level. This function only parses but the other one resolves.
-      var err = Parser.ParseOnly(new List<string>() { program.FullName }, program.Name, out _original);
-      if (err != null)
+      var err = Main.Parse(files, program.Name, program.reporter, out _original);
+      if(err != null)
         reporter.Error(MessageSource.Tacny, program.DefaultModuleDef.tok, $"Error parsing a fresh Tacny program: {err}");
     
       // fill state

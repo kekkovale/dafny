@@ -102,7 +102,7 @@ namespace Tacny {
             return body;
           }
         } else if (stmt is IfStmt) {
-          body.Body[i] = InsertCodeIfStmt((IfStmt)stmt, code, tacticCall);
+          /*body.Body[i] = InsertCodeIfStmt((IfStmt)stmt, code, tacticCall);*/
         } else if (stmt is WhileStmt) {
           ((WhileStmt)stmt).Body = InsertCodeInternal(((WhileStmt)stmt).Body, code, tacticCall);
         } else if (stmt is MatchStmt) {
@@ -113,7 +113,7 @@ namespace Tacny {
       }
       return body;
     }
-
+/*
     private static IfStmt InsertCodeIfStmt(IfStmt stmt, List<Statement> code, UpdateStmt tacticCall) {
       Contract.Requires<ArgumentNullException>(stmt != null, "stmt");
       Contract.Requires<ArgumentNullException>(code != null, "code");
@@ -127,7 +127,7 @@ namespace Tacny {
       }
       return stmt;
     }
-
+*/
     public static bool Compare(IToken a, IToken b) {
       Contract.Requires<ArgumentNullException>(a != null, "a");
       Contract.Requires<ArgumentNullException>(b != null, "b");
@@ -155,7 +155,7 @@ namespace Tacny {
       }
       return result;
     }
-
+ /*
     public static Program GenerateDafnyProgram(ProofState state, List<MemberDecl> newMembers) {
       var prog = state.GetDafnyProgram();
       var tld = prog.DefaultModuleDef.TopLevelDecls.FirstOrDefault(x => x.Name == state.TargetMethod.EnclosingClass.Name) as ClassDecl;
@@ -172,10 +172,12 @@ namespace Tacny {
       var printer = new Printer(tw);
       printer.PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0, filePath);
       tw.Close();
+      string err = Parse(files, programName, prog.reporter, out program);
+
       Parser.ParseOnly(new List<string>() { filePath}, prog.Name, out prog);
       return prog;
     }
-
+*/
     public static string FreshMemberName(MemberDecl original, List<MemberDecl> context) {
       Contract.Requires<ArgumentNullException>(original != null, "original");
       Contract.Requires<ArgumentNullException>(context != null, "context");
@@ -259,16 +261,19 @@ namespace Tacny {
     public static bool VerifyResolvedProg(Program program, ErrorReporterDelegate er) {
       Contract.Requires<ArgumentNullException>(program != null);
       
-      var boogieProg = Translate(program, program.Name, er);
+      var boogieProg = Translator.Translate(program, program.reporter, null);
+
       PipelineStatistics stats;
       List<ErrorInformation> errorList;
 
-      //Console.WriteLine("call verifier in Tacny !!!");
-      PipelineOutcome tmp = BoogiePipeline(boogieProg,
-        new List<string> { program.Name }, program.Name, er,
-        out stats, out errorList, program);
+      foreach (var prog in boogieProg){
+        PipelineOutcome tmp = BoogiePipeline(prog.Item2,
+          new List<string> { program.Name }, program.Name, er,
+          out stats, out errorList, program);
+        if (errorList.Count != 0) return false;
+      }
 
-      return errorList.Count == 0;
+      return true;
     }
     /*
     public static bool ResolveAndVerify(Program program, ErrorReporterDelegate er) {
@@ -297,17 +302,15 @@ namespace Tacny {
       return errorList.Count == 0;
     }
     */
-    public static Bpl.Program Translate(Program dafnyProgram, string uniqueIdPrefix, ErrorReporterDelegate er) {
+ /*   public static Bpl.Program Translate(Program dafnyProgram, string uniqueIdPrefix, ErrorReporterDelegate er) {
       Contract.Requires<ArgumentNullException>(dafnyProgram != null, "dafnyProgram");
       Contract.Requires<ArgumentNullException>(uniqueIdPrefix != null, "uniqueIdPrefix");
       Contract.Ensures(Contract.Result<Bpl.Program>() != null);
-      var translator = new Translator(dafnyProgram.reporter, er) {
-        InsertChecksums = true,
-        UniqueIdPrefix = uniqueIdPrefix
-      };
+      var translator = new Translator(dafnyProgram.reporter, new Translator.TranslatorFlags() { InsertChecksums = true }, er);
+
       return translator.Translate(dafnyProgram);
     }
-
+  */
 
     /// <summary>
     /// Pipeline the boogie program to Dafny where it is valid
@@ -369,13 +372,13 @@ namespace Tacny {
       S = s;
     }
   }
-
+/*
 #region Parser
   public static class Parser {
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
-    public static string ParseOnly(IList<string/*!*/>/*!*/ fileNames, string/*!*/ programName, out Program program) {
+    public static string ParseOnly(IList<string> fileNames, string programName, out Program program) {
       Contract.Requires(programName != null);
       Contract.Requires(fileNames != null);
       program = null;
@@ -451,9 +454,10 @@ namespace Tacny {
       }
       return null; // Success
     }
+ 
 #endregion
   }
-
+*/
 
   public static class ObjectExtensions {
     private static readonly MethodInfo CloneMethod = typeof(Object).GetMethod("MemberwiseClone", BindingFlags.NonPublic | BindingFlags.Instance);

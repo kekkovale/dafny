@@ -133,8 +133,14 @@
     <Reference Include="BoogieBasetypes">
       <HintPath>..\..\..\boogie\Binaries\BoogieBasetypes.dll</HintPath>
     </Reference>
+    <Reference Include="BoogieConcurrency">
+      <HintPath>..\..\..\boogie\Binaries\BoogieConcurrency.dll</HintPath>
+    </Reference>
     <Reference Include="BoogieCore">
       <HintPath>..\..\..\boogie\Binaries\BoogieCore.dll</HintPath>
+    </Reference>
+    <Reference Include="BoogieExecutionEngine">
+      <HintPath>..\..\..\boogie\Binaries\BoogieExecutionEngine.dll</HintPath>
     </Reference>
     <Reference Include="BoogieParserHelper">
       <HintPath>..\..\..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
@@ -148,6 +154,23 @@
   <ItemGroup>
     <Compile Include="Cloner.cs" />
     <Compile Include="Reporting.cs" />
+    <Compile Include="Tacny\Atomic\Atomic.cs" />
+    <Compile Include="Tacny\Atomic\Explore.cs" />
+    <Compile Include="Tacny\Atomic\SuchThatAtomic.cs" />
+    <Compile Include="Tacny\BaseTactic.cs" />
+    <Compile Include="Tacny\EAtomic\EAtomic.cs" />
+    <Compile Include="Tacny\EAtomic\Lemmas.cs" />
+    <Compile Include="Tacny\EAtomic\Params.cs" />
+    <Compile Include="Tacny\EAtomic\Variables.cs" />
+    <Compile Include="Tacny\ExpressionTree.cs" />
+    <Compile Include="Tacny\Interpreter.cs" />
+    <Compile Include="Tacny\Language\FlowControlStmt.cs" />
+    <Compile Include="Tacny\Language\IfStmt.cs" />
+    <Compile Include="Tacny\Language\Match.cs" />
+    <Compile Include="Tacny\ProofState.cs" />
+    <Compile Include="Tacny\SearchFramework.cs" />
+    <Compile Include="Tacny\tcce.cs" />
+    <Compile Include="Tacny\Util.cs" />
     <Compile Include="Triggers\QuantifiersCollection.cs" />
     <Compile Include="Triggers\QuantifierSplitter.cs" />
     <Compile Include="Triggers\TriggerExtensions.cs" />

@@ -85,15 +85,16 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
-    public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, ErrorReporter reporter, out Program program)
+    public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, ErrorReporter reporter, out Program program, out Resolver r)
       //modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
     {
       string err = Parse(files, programName, reporter, out program);
-      if (err != null) {
+      if (err != null){
+        r = null;
         return err;
       }
 
-      return Resolve(program, reporter);
+      return Resolve(program, reporter, out r);
     }
 
     public static string Parse(IList<DafnyFile> files, string programName, ErrorReporter reporter, out Program program)
@@ -139,11 +140,11 @@ namespace Microsoft.Dafny {
       return null; // success
     }
 
-    public static string Resolve(Program program, ErrorReporter reporter)
+    public static string Resolve(Program program, ErrorReporter reporter, out Resolver r)
     {
-      if (Bpl.CommandLineOptions.Clo.NoResolve || Bpl.CommandLineOptions.Clo.NoTypecheck) { return null; }
+      if (Bpl.CommandLineOptions.Clo.NoResolve || Bpl.CommandLineOptions.Clo.NoTypecheck){r = null; return null; }
 
-      Dafny.Resolver r = new Dafny.Resolver(program);
+      r = new Dafny.Resolver(program);
       r.ResolveProgram(program);
       MaybePrintProgram(program, DafnyOptions.O.DafnyPrintResolvedFile, true);
 

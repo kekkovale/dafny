@@ -3680,7 +3680,7 @@ namespace Microsoft.Dafny {
     public readonly bool HasStaticKeyword;
     public bool CallsTactic = false; // filled in during resolution
     public bool EvaluateTactic = false;
-    public bool IsStatic {
+    public virtual bool IsStatic {
       get {
         return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
       }
@@ -8476,6 +8476,21 @@ namespace Microsoft.Dafny {
     public ResolvedOpcode ResolvedOp_PossiblyStillUndetermined {  // offer a way to return _theResolveOp -- for experts only!
       get { return _theResolvedOp; }
     }
+
+    public static bool IsEqualityOp(Opcode op) {
+      switch(op) {
+        case Opcode.Eq:
+        case Opcode.Neq:
+        case Opcode.Ge:
+        case Opcode.Gt:
+        case Opcode.Le:
+        case Opcode.Lt:
+          return true;
+        default:
+          return false;
+      }
+    }
+
     public static bool IsEqualityOp(ResolvedOpcode op) {
       switch (op) {
         case ResolvedOpcode.EqCommon:

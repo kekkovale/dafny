@@ -623,7 +623,7 @@ namespace Microsoft.Dafny
         var attrs = s.Attributes == null ? null : CloneAttributes(s.Attributes);
         r = new TacnyCasesBlockStmt(Tok(s.Tok), Tok(s.EndTok), guard, attrs, body);
       
-      } else if (stmt is TacnyChangedBlockStmt) {
+/*      } else if (stmt is TacnyChangedBlockStmt) {
         var s = (TacnyChangedBlockStmt)stmt;
         var body = s.Body == null ? null : CloneBlockStmt(s.Body);
         r = new TacnyChangedBlockStmt(Tok(s.Tok), Tok(s.EndTok), body);
@@ -638,7 +638,7 @@ namespace Microsoft.Dafny
         var body = s.Body == null ? null : CloneBlockStmt(s.Body);
         var c = s.Ctch == null ? null : CloneBlockStmt(s.Ctch);
         r = new TacnyTryCatchBlockStmt(Tok(s.Tok), Tok(s.EndTok), body, c);
-      
+*/      
       } else if (stmt is TacticVarDeclStmt) {
         var s = (TacticVarDeclStmt)stmt;
         var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));

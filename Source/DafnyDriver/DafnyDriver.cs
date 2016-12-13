@@ -170,15 +170,16 @@ namespace Microsoft.Dafny
       }
       
       Dafny.Program dafnyProgram;
+      Resolver r;
       string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the program";
-      string err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
+      string err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram, out r);
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;
         ExecutionEngine.printer.ErrorWriteLine(Console.Out, err);
       } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck
           && DafnyOptions.O.DafnyVerify) {
 
-        var boogiePrograms = Translate(dafnyProgram);
+        var boogiePrograms = Translate(dafnyProgram, r);
 
         Dictionary<string, PipelineStatistics> statss;
         PipelineOutcome oc;
@@ -204,11 +205,11 @@ namespace Microsoft.Dafny
       return Path.Combine(dirName, baseName + "_" + suffix + Path.GetExtension(printFile));
     }
 
-    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program dafnyProgram) {
+    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program dafnyProgram, Resolver r) {
       var nmodules = Translator.VerifiableModules(dafnyProgram).Count();
 
 
-      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.reporter)) {
+      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.reporter, r)) {
 
         if (CommandLineOptions.Clo.PrintFile != null) {
 
