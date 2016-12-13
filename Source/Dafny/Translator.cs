@@ -12,6 +12,7 @@ using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
 using Microsoft.Boogie;
+using Tacny;
 
 namespace Microsoft.Dafny {
 
@@ -96,6 +97,8 @@ namespace Microsoft.Dafny {
     ErrorReporter reporter;
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
     public bool UseOptimizationInZ3 { get; set; }
+    public static bool TacticEvaluationIsEnabled = true;
+    private ErrorReporterDelegate _tacnyDelegate; 
 
     public class TranslatorFlags {
       public bool InsertChecksums = 0 < CommandLineOptions.Clo.VerifySnapshots;
@@ -114,6 +117,7 @@ namespace Microsoft.Dafny {
         sink = boogieProgram;
         predef = FindPredefinedDecls(boogieProgram);
       }
+      tacnyDelegate = tacnyDelegate;
     }
 
     public void SetReporter(ErrorReporter reporter) {
@@ -162,6 +166,7 @@ namespace Microsoft.Dafny {
     FuelContext fuelContext = null;
     IsAllocContext isAllocContext = null;
     Program program;
+    private Resolver r;
 
     [ContractInvariantMethod]
     void ObjectInvariant()
@@ -1807,6 +1812,8 @@ namespace Microsoft.Dafny {
       }
 
       foreach (MemberDecl member in c.Members.FindAll(VisibleInScope)) {
+        if (member is ITactic)
+            continue;
         Contract.Assert(isAllocContext == null);
         currentDeclaration = member;
         if (member is Field) {
@@ -1849,6 +1856,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(mem is Method);
 
       if (mem is Method) {
+        if (TacticEvaluationIsEnabled && m.CallsTactic) {
+         mem = Tacny.Interpreter.FindAndApplyTactic(program, (Method)mem, _tacnyDelegate, r) as Method;
+        }
         AddMethod_Top((Method)mem);
       }
 

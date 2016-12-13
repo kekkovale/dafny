@@ -724,9 +724,10 @@ Everything) {
         method is CoLemma ? "colemma" :
         method is Lemma ? "lemma" :
         method is TwoStateLemma ? "twostate lemma" :
+        method is Tactic ? "tactic" :
         "method";
       if (method.HasStaticKeyword) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is TwoStateLemma) && !(method is FixpointLemma)) { k = "ghost " + k; }
+      if (method.IsGhost && !(method is Tactic) && !(method is Lemma) && !(method is TwoStateLemma) && !(method is FixpointLemma)) { k = "ghost " + k; }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {
@@ -933,6 +934,26 @@ Everything) {
           wr.Write(";");
         }
 
+        wr.Write(";");
+      } else if (stmt is TacticPredicateStmt) {
+        var s = stmt as TacticPredicateStmt;
+        Expression expr = ((TacticPredicateStmt)stmt).Expr;
+        if (s.IsObjectLevel) {
+          if (s is TacticAssertStmt) {
+            wr.Write("assert");
+          } else if (s is TacticInvariantStmt) {
+            wr.Write("invariant");
+          }
+        } else {
+          if (s is TacticAssertStmt) {
+            wr.Write("tactic assert");
+          } else if (s is TacticInvariantStmt) {
+            wr.Write("tactic invariant");
+          }
+        }
+        wr.Write(" ");
+        PrintExpression(expr, true);
+        wr.Write(";");
       } else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         wr.Write("print");
@@ -978,6 +999,11 @@ Everything) {
         PrintRhs(s.Rhs);
         wr.Write(";");
 
+      } else if (stmt is TacnyCasesBlockStmt) {
+        TacnyCasesBlockStmt tcbs = stmt as TacnyCasesBlockStmt;
+        wr.Write("cases ");
+        PrintExpression(tcbs.Guard, false);
+        PrintStatement(tcbs.Body, indent);
       } else if (stmt is BlockStmt) {
         wr.WriteLine("{");
         int ind = indent + IndentAmount;
@@ -1167,7 +1193,25 @@ Everything) {
           PrintUpdateRHS(s.Update);
         }
         wr.Write(";");
-
+      } else if (stmt is TacticVarDeclStmt) {
+        var s = (TacticVarDeclStmt)stmt;
+        wr.Write("tactic ");
+        wr.Write("var");
+        string sep = "";
+        foreach (var local in s.Locals) {
+          wr.Write(sep);
+          if (local.Attributes != null) {
+            PrintAttributes(local.Attributes);
+          }
+          wr.Write(" {0}", local.DisplayName);
+          PrintType(": ", local.OptionalType);
+          sep = ",";
+        }
+        if (s.Update != null) {
+          PrintUpdateRHS(s.Update);
+        }
+        wr.Write(";");
+      
       } else if (stmt is LetStmt) {
         var s = (LetStmt)stmt;
         wr.Write("var");

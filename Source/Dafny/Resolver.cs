@@ -4285,7 +4285,9 @@ namespace Microsoft.Dafny
     // ------------------------------------------------------------------------------------------------------
     #region CheckTypeInference
     private void CheckTypeInference_Member(MemberDecl member) {
-      if (member is ConstantField) {
+      if (member is ITactic) {
+                return;
+      } else(member is ConstantField) {
         var field = (ConstantField) member;
         CheckTypeInference(field.constValue, new NoContext(member.EnclosingClass.Module));
       } else if (member is Method) {
@@ -4704,6 +4706,9 @@ namespace Microsoft.Dafny
     TailRecursionStatus CheckTailRecursive(Statement stmt, Method enclosingMethod, ref CallStmt tailCall, bool reportErrors) {
       Contract.Requires(stmt != null);
       if (stmt.IsGhost) {
+        return TailRecursionStatus.NotTailRecursive;
+      }
+      if (stmt is TStatement) {
         return TailRecursionStatus.NotTailRecursive;
       }
       if (stmt is PrintStmt) {
@@ -5450,6 +5455,9 @@ namespace Microsoft.Dafny
       public void Visit(Statement stmt, bool mustBeErasable) {
         Contract.Requires(stmt != null);
         Contract.Assume(!codeContext.IsGhost || mustBeErasable);  // (this is really a precondition) codeContext.IsGhost ==> mustBeErasable
+          if (stmt is TStatement) {
+              return;
+          }
 
         if (stmt is PredicateStmt) {
           stmt.IsGhost = true;
@@ -6714,7 +6722,8 @@ namespace Microsoft.Dafny
         SetupMinimumSignatureScope(m, t => 
           reporter.Error(MessageSource.Resolver, m.tok, "The signature of method {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", m.Name, t.ToString()));
         currentMethod = m;
-
+        if (m is Tactic)
+            return;
         bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
         bool warnShadowing = false;
         // take care of the warnShadowing attribute
@@ -6800,6 +6809,31 @@ namespace Microsoft.Dafny
       } finally {
         currentMethod = null;
       }
+    }
+
+    /// <summary>
+    /// For tacny use, set the current class, so that, when resolving types, resover can refer to the right definition. 
+    /// This is not a ideal solution.
+    /// </summary>
+    /// <param name="cl"></param>
+    public void SetCurClass(ClassDecl cl){
+      currentClass = cl;
+    }
+    /// <summary>
+    /// For tacny use, when a new method is generated, tacny need to resove that method only
+    /// more need to be done for 1, pushing type parameters 2, pre and post rewrite ?
+    /// </summary>
+    /// <param name="m"></param>
+    public void ResolveMethodBody(Method m){
+      scope.PushMarker();
+      if(m.IsStatic) {
+        scope.AllowInstance = false;
+      }
+      foreach(Formal p in m.Ins) {
+        scope.Push(p.Name, p);
+      }
+      ResolveBlockStatement(m.Body, m);
+      scope.PopMarker();
     }
 
     void ResolveCtorSignature(DatatypeCtor ctor, List<TypeParameter> dtTypeArguments) {
@@ -7141,6 +7175,26 @@ namespace Microsoft.Dafny
         LastComponent = lastComponent;
       }
     }
+
+    /// <summary>
+    /// Ignore types from Tacny, just for now, a proper fix should be adding thoes types in DanyAst
+    /// 
+    /// </summary>
+    /// <param name="typeN"></param>
+    /// <returns></returns>
+    private bool isTacnyTypes(string typeN){
+      var ret = false;
+      switch(typeN) {
+        case "Element":
+        case "Term":
+          ret = true;
+          break;
+        default:
+          break;
+      }
+      return ret;
+    }
+
     /// <summary>
     /// See ResolveTypeOption for a description of the option/defaultTypeArguments parameters.
     /// One more thing:  if "allowDanglingDotName" is true, then if the resolution would have produced
@@ -7159,6 +7213,8 @@ namespace Microsoft.Dafny
         builtIns.Bitwidths.Add(t.Width);
       } else if (type is BasicType) {
         // nothing to resolve
+      } else if(isTacnyTypes(type.ToString())) {
+
       } else if (type is MapType) {
         var mt = (MapType)type;
         var errorCount = reporter.Count(ErrorLevel.Error);
@@ -8460,6 +8516,25 @@ namespace Microsoft.Dafny
       }
       ResolveAttributes(s.Attributes, s, new ResolveOpts(codeContext, true));
     }
+
+     bool IsTacticCall(UpdateStmt us) {
+      var er = us.Rhss[0] as ExprRhs;
+      Contract.Assert(er != null);
+
+      if (!(er.Expr is ApplySuffix)) return false;
+
+      var name = (er.Expr as ApplySuffix).Lhs.tok.val;
+      Dictionary<string, MemberDecl> members;
+      MemberDecl member = null;
+      if (currentClass != null && classMembers.TryGetValue(currentClass, out members) &&
+          members.TryGetValue(name, out member)) {
+        return member is ITactic;
+      }
+
+
+      return false;
+    }
+
     /// <summary>
     /// Resolve the RHSs and entire UpdateStmt (LHSs should already have been checked by the caller).
     /// errorCountBeforeCheckingLhs is passed in so that this method can determined if any resolution errors were found during
@@ -8471,6 +8546,13 @@ namespace Microsoft.Dafny
       IToken firstEffectfulRhs = null;
       MethodCallInformation methodCallInfo = null;
       var j = 0;
+      if (IsTacticCall(update)) {
+        // ignore tactic application
+        if (codeContext is Method) {
+          ((Method)codeContext).CallsTactic = true;
+        }
+        return;
+      }
       foreach (var rhs in update.Rhss) {
         bool isEffectful;
         if (rhs is TypeRhs) {
@@ -8634,6 +8716,13 @@ namespace Microsoft.Dafny
 
       var callee = s.Method;
       Contract.Assert(callee != null);  // follows from the invariant of CallStmt
+       // ignore tactic application
+      if (callee is ITactic) {
+        if (codeContext is Method) {
+          ((Method)codeContext).CallsTactic = true;
+        }
+        return;
+      }
       if (!isInitCall && callee is Constructor) {
         reporter.Error(MessageSource.Resolver, s, "a constructor is allowed to be called only when an object is being allocated");
       }
