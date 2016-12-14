@@ -582,17 +582,17 @@ public class Scanner {
 			case "break": t.kind = 102; break;
 			case "match": t.kind = 103; break;
 			case "assert": t.kind = 104; break;
-			case "tvar": t.kind = 105; break;
-			case "tmatch": t.kind = 106; break;
-			case "tinvariant": t.kind = 107; break;
-			case "tassert": t.kind = 108; break;
-			case "where": t.kind = 110; break;
-			case "return": t.kind = 111; break;
-			case "if": t.kind = 112; break;
-			case "while": t.kind = 113; break;
-			case "by": t.kind = 114; break;
-			case "print": t.kind = 115; break;
-			case "forall": t.kind = 116; break;
+			case "forall": t.kind = 105; break;
+			case "tvar": t.kind = 106; break;
+			case "tmatch": t.kind = 107; break;
+			case "tinvariant": t.kind = 108; break;
+			case "tassert": t.kind = 109; break;
+			case "where": t.kind = 111; break;
+			case "return": t.kind = 112; break;
+			case "if": t.kind = 113; break;
+			case "while": t.kind = 114; break;
+			case "by": t.kind = 115; break;
+			case "print": t.kind = 116; break;
 			case "parallel": t.kind = 117; break;
 			case "modify": t.kind = 118; break;
 			case "exists": t.kind = 137; break;
@@ -987,9 +987,9 @@ public class Scanner {
 				if (ch == '&') {AddCh(); goto case 86;}
 				else {t.kind = 144; break;}
 			case 106:
-				recEnd = pos; recKind = 109;
+				recEnd = pos; recKind = 110;
 				if (ch == '|') {AddCh(); goto case 89;}
-				else {t.kind = 109; break;}
+				else {t.kind = 110; break;}
 			case 107:
 				recEnd = pos; recKind = 154;
 				if (ch == '.') {AddCh(); goto case 52;}

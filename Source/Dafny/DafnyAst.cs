@@ -6066,7 +6066,86 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class TacnyBlockStmt : TStatement {
+    // This should really just be TacnyBlockStmt
+    public class TacnyForallStmt : TStatement
+    {
+        public readonly BlockStmt Body;
+        public readonly Expression Spec;
+
+        public virtual string WhatKind => "ForallStmt";
+
+
+        [ContractInvariantMethod]
+        void ObjectInvariant()
+        {
+            Contract.Invariant(Body != null);
+            Contract.Invariant(Spec != null);
+        }
+
+        public TacnyForallStmt(IToken tok, IToken endTok, Expression e, BlockStmt body)
+        : base(tok, endTok)
+        {
+            Contract.Requires(tok != null);
+            Contract.Requires(endTok != null);
+            Contract.Requires(body != null);
+            Contract.Requires(e != null);
+
+            this.Body = body;
+            this.Spec = e;
+        }
+
+        public TacnyForallStmt(IToken tok, IToken endTok, Expression e, BlockStmt body, Attributes attrs)
+        : base(tok, endTok)
+        {
+            Contract.Requires(tok != null);
+            Contract.Requires(endTok != null);
+            Contract.Requires(body != null);
+            Contract.Requires(e != null);
+
+            this.Body = body;
+            this.Spec = e;
+            this.Attributes = attrs;
+        }
+
+    }
+
+    // This should really just be TacnyBlockStmt
+    public class TacnyBasicBlockStmt : TStatement
+    {
+        public readonly BlockStmt Body;
+        public virtual string WhatKind => "BasicBlockStmt";
+
+
+        [ContractInvariantMethod]
+        void ObjectInvariant()
+        {
+            Contract.Invariant(Body != null);
+        }
+
+        public TacnyBasicBlockStmt(IToken tok, IToken endTok, BlockStmt body)
+        : base(tok, endTok) {
+            Contract.Requires(tok != null);
+            Contract.Requires(endTok != null);
+            Contract.Requires(body != null);
+
+            this.Body = body;
+        }
+
+        public TacnyBasicBlockStmt(IToken tok, IToken endTok, Attributes attrs, BlockStmt body)
+        : base(tok, endTok) {
+            Contract.Requires(tok != null);
+            Contract.Requires(endTok != null);
+            Contract.Requires(body != null);
+
+            this.Body = body;
+            this.Attributes = attrs;
+        }
+
+    }
+
+
+    // GG: why is this a blcokStmt (why not SingleCase or something?)
+    public class TacnyBlockStmt : TStatement {
     public readonly Expression Guard;
     public readonly BlockStmt Body;
     public virtual string WhatKind => "BlockStmt";

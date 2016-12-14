@@ -1884,16 +1884,17 @@ OneStmt<out Statement/*!*/ s>
 
 TacticStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  IToken/*!*/ id;  string label = null;
+     BlockStmt/*!*/ bs; IToken/*!*/ bodyStart; IToken/*!*/ bodyEnd;
      s = dummyStmt;  /* to please the compiler */
   .)
   SYNC
-
-  ("tactic" (
-     
+  ("tactic" (.x = t;.) (
      "var"          (.x = t;.)    TacticVarDeclStmt<out s, x>         
     | "match"       (.x = t;.)    TacnyCasesBlockStmt<out s, x> 
     | "invariant"   (.x = t;.)    TacticInvariantStmt<out s, x>  
-    | "assert"      (.x = t;.)    TacticAssertStmt<out s, x>  
+    | "assert"      (.x = t;.)    TacticAssertStmt<out s, x> 
+	| BlockStmt<out bs, out bodyStart, out bodyEnd>  (.s = new TacnyBasicBlockStmt(x,bodyEnd,bs); .) 
+	| "forall" (.x = t;.) TacticForallStmt<out s,x>
     )
     | "tvar"        (.x = t;.)    TacticVarDeclStmt<out s, x>        
     | "tmatch"      (.x = t;.)    TacnyCasesBlockStmt<out s, x>
@@ -1902,6 +1903,20 @@ TacticStmt<out Statement/*!*/ s>
     | "tassert"     (.x = t;.)    TacticAssertStmt<out s, x>
   )  
 . 
+
+TacticForallStmt<out Statement/*!*/ s, IToken x, bool isObject = false>
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
+     Expression e = dummyExpr; Attributes attrs = null;
+	 BlockStmt/*!*/ bs; IToken/*!*/ bodyStart; IToken/*!*/ bodyEnd; 
+	 IToken/*!*/ st;
+  .)
+  (. st = t; .)
+  { IF(IsAttribute()) Attribute<ref attrs> } 
+  Expression<out e, false, false>
+  BlockStmt<out bs, out bodyStart, out bodyEnd>
+  
+  (. s = new TacnyForallStmt(st,bodyEnd,e,bs,attrs); .)
+  .
 
 TacticInvariantStmt<out Statement/*!*/ s, IToken x, bool isObject = false>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
@@ -2276,8 +2291,10 @@ AlternativeBlockCase<.bool allowExistentialGuards, out GuardedAlternative alt.>
   ( IF(allowExistentialGuards && IsExistentialGuard())
     ExistentialGuard<out e, false >  (. isExistentialGuard = true; .)  // NB: don't allow lambda here
   | Expression<out e, true, false> // NB: don't allow lambda here
+  | "*"                             (. e = null; .) /* TACTICS: this is added to allow non-deterministic choices for tactics: not tested elsewhere
+                                                         TODO: could guard it so only support for tactic mode. Change to e = new WildcardExpr(t); ??? */
   )
-  "=>"
+  "=>" 
   (. body = new List<Statement>(); .)
   SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
           * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
