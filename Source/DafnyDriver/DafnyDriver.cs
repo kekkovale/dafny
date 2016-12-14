@@ -8,6 +8,8 @@
 //       - main program for taking a Dafny program and verifying it
 //---------------------------------------------------------------------------------------------
 
+using Tacny;
+
 namespace Microsoft.Dafny
 {
   using System;
@@ -208,8 +210,8 @@ namespace Microsoft.Dafny
     public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program dafnyProgram, Resolver r) {
       var nmodules = Translator.VerifiableModules(dafnyProgram).Count();
 
-
-      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.reporter, r)) {
+      Interpreter.ResetTacnyResultList();
+      foreach(var prog in Translator.Translate(dafnyProgram, dafnyProgram.reporter, r)) {
 
         if (CommandLineOptions.Clo.PrintFile != null) {
 

@@ -933,8 +933,6 @@ Everything) {
         } else {
           wr.Write(";");
         }
-
-        wr.Write(";");
       } else if (stmt is TacticPredicateStmt) {
         var s = stmt as TacticPredicateStmt;
         Expression expr = ((TacticPredicateStmt)stmt).Expr;

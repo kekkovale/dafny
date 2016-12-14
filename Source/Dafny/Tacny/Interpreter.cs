@@ -78,9 +78,9 @@ namespace Tacny {
       watch.Start();
       _i = new Interpreter(program);
       _errorReporterDelegate = erd;
-
+      Type.BackupScopes();
       var result = _i.EvalTacticApplication(target, r);
-
+      Type.RestoreScopes();
       var p = new Printer(Console.Out);
       p.PrintMembers(new List<MemberDecl>() { result }, 0, "");
 
