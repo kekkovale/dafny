@@ -6833,6 +6833,7 @@ namespace Microsoft.Dafny
         scope.Push(p.Name, p);
       }
       ResolveBlockStatement(m.Body, m);
+      SolveAllTypeConstraints();
       scope.PopMarker();
     }
 

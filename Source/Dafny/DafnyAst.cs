@@ -539,6 +539,7 @@ namespace Microsoft.Dafny {
 
     [ThreadStatic]
     private static List<VisibilityScope> scopes = new List<VisibilityScope>();
+    private static List<VisibilityScope> scopesBackup;
 
     [ThreadStatic]
     private static bool scopesEnabled = false;
@@ -552,6 +553,13 @@ namespace Microsoft.Dafny {
       scopesEnabled = false;
     }
 
+    public static void RestoreScopes(){
+      scopes = scopesBackup;
+    }
+
+    public static void BackupScopes (){
+      scopesBackup = scopes;
+    }
 
     public static void PopScope() {
       Contract.Assert(scopes.Count > 0);

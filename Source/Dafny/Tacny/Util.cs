@@ -234,13 +234,13 @@ namespace Tacny {
       }
 
 #if _TACTIC_DEBUG
-      Console.WriteLine("*********************Verifying Tacny Generated Prog*****************");
+      Console.WriteLine("*********************Verifying Tacny Generated Stmts*****************");
       var printer = new Printer(Console.Out);
       //printer.PrintProgram(prog, false);
       foreach(var stmt in state.GetGeneratedCode()) {
         printer.PrintStatement(stmt, 0);
       }
-      Console.WriteLine("\n*********************Prog END*****************");
+      Console.WriteLine("\n*********************Stmts END*****************");
 #endif
 
       dest_md.CallsTactic = false;
@@ -260,7 +260,14 @@ namespace Tacny {
 
     public static bool VerifyResolvedProg(Program program, ErrorReporterDelegate er) {
       Contract.Requires<ArgumentNullException>(program != null);
-      
+/*
+#if _TACTIC_DEBUG
+      var printer = new Printer(Console.Out);
+      Console.WriteLine("*********************Verifying Tacny Generated Prog*****************");
+      printer.PrintProgram(program, true);
+      Console.WriteLine("\n*********************Prog END*****************");
+#endif
+*/
       var boogieProg = Translator.Translate(program, program.reporter, null);
 
       PipelineStatistics stats;
