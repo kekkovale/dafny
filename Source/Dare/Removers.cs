@@ -38,24 +38,31 @@ namespace Dare
             var programCopy = SimpleCloner.CloneProgram(program);
             var resolver = new Resolver(programCopy);
             resolver.ResolveProgram(programCopy);
-            var boogieProgram = translator.Translate(programCopy);
+
+            var boogieProgram = Translator.Translate(programCopy, programCopy.reporter, resolver);
+
             var stats = new PipelineStatistics();
             var programId = "main_program_id";
             var bplFileName = "bplFile";
             LinearTypeChecker ltc;
             CivlTypeChecker ctc;
 
-            var oc = ExecutionEngine.ResolveAndTypecheck(boogieProgram, bplFileName, out ltc, out ctc);
+          foreach (var prog in boogieProgram){
+            
+            var oc = ExecutionEngine.ResolveAndTypecheck(prog.Item2, bplFileName, out ltc, out ctc);
             if (oc != PipelineOutcome.ResolvedAndTypeChecked) return false;
-            ExecutionEngine.EliminateDeadVariables(boogieProgram);
-            ExecutionEngine.CollectModSets(boogieProgram);
-            ExecutionEngine.CoalesceBlocks(boogieProgram);
-            ExecutionEngine.Inline(boogieProgram);
+            ExecutionEngine.EliminateDeadVariables(prog.Item2);
+            ExecutionEngine.CollectModSets(prog.Item2);
+            ExecutionEngine.CoalesceBlocks(prog.Item2);
+            ExecutionEngine.Inline(prog.Item2);
 
-            oc = ExecutionEngine.InferAndVerify(boogieProgram, stats, programId, errorDelegate);
+            oc = ExecutionEngine.InferAndVerify(prog.Item2, stats, programId, errorDelegate);
             var allOk = stats.ErrorCount == 0 && stats.InconclusiveCount == 0 && stats.TimeoutCount == 0 &&
                         stats.OutOfMemoryCount == 0;
-            return oc == PipelineOutcome.VerificationCompleted && allOk;
+            if(!(oc == PipelineOutcome.VerificationCompleted && allOk))
+              return false;
+          }
+          return true;
         }
     }
 
@@ -1774,7 +1781,7 @@ namespace Dare
                 : originalWrap.ParentList.IndexOf(originalWrap.Removable);
             var assert = originalWrap.Removable as AssertStmt;
             if (assert != null) {
-                return new Wrap<T>((T) (object) new AssertStmt(binExpr.tok, assert.EndTok, subExpr, assert.Attributes),
+                return new Wrap<T>((T) (object) new AssertStmt(binExpr.tok, assert.EndTok, subExpr, null, assert.Attributes),
                     originalWrap.ParentList, index);
             }
             var invariant = originalWrap.Removable as MaybeFreeExpression;
@@ -1805,7 +1812,7 @@ namespace Dare
         {
             var assert = originalItem as AssertStmt;
             if (assert != null) {
-                return (T) (object) new AssertStmt(assert.Tok, assert.EndTok, expr, assert.Attributes);
+                return (T) (object) new AssertStmt(assert.Tok, assert.EndTok, expr, null, assert.Attributes);
             }
             var invariant = originalItem as MaybeFreeExpression;
             if (invariant != null) {
