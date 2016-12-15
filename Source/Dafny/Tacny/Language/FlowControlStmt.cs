@@ -14,7 +14,7 @@ namespace Tacny.Language {
   public class FlowControlMng{
 
     public static bool IsFlowControl(Statement stmt) {
-      return stmt is IfStmt || stmt is WhileStmt || stmt is TacnyCasesBlockStmt;
+      return stmt is IfStmt || stmt is WhileStmt || stmt is TacnyCasesBlockStmt || stmt is AlternativeStmt;
     }
 
     public static bool IsFlowControlFrame(ProofState state) {

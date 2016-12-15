@@ -271,6 +271,10 @@ namespace Tacny {
           if(stmt is TacnyCasesBlockStmt) {
             enumerable = new Match().EvalInit(stmt, state);
           }
+          else if (OrChoiceStmt.IsNonDeterministic(stmt))
+          {
+            enumerable = new OrChoiceStmt().Eval(stmt, state);
+          }
           //TODO: to implement if and while control flow
         } else {
           enumerable = DefaultAction(stmt, state);
