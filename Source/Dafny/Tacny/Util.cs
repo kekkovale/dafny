@@ -141,7 +141,7 @@ namespace Tacny {
       Contract.Requires<ArgumentNullException>(bodies != null, "bodies");
       var result = new Dictionary<ProofState, MemberDecl>();
       var cl = new Cloner();
-      foreach (var body in bodies) {
+      foreach(var body in bodies) {
         var md = cl.CloneMember(state.TargetMethod) as Method;
         md.Body.Body.Clear();
         md.Body.Body.AddRange(body.Value.Body);
