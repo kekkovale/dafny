@@ -1,5 +1,5 @@
 ﻿/*
- * Implementation of Huet's Zipper 
+ * Implementation of Huet's Zipper: work in progress... 
 */
 
 using System;
@@ -36,10 +36,19 @@ namespace Microsoft.Dafny.Tacny {
 
         // return false if failing
         public bool GoLeft() {
+
             return false;
         }
 
         public bool GoRight() {
+            return false;
+        }
+
+        public bool GoDown() {
+            return false;
+        }
+
+        public bool GoUp() {
             return false;
         }
 

@@ -8,10 +8,18 @@ using Tacny;
 using Formal = Microsoft.Dafny.Formal;
 using Type = Microsoft.Dafny.Type;
 using Microsoft.Dafny;
+using Microsoft.Dafny.Tacny;
 
 
 namespace Tacny.Language
 {
+    /*
+     * TODO: instead of storing all the information in the frame. Why doesn't these just inherit some atomicLang interface
+     * and we push that to the frame?
+     * Same will happen for while/if/match etc
+     * Domain specific stuff can then be stored in the object
+     * 
+     */
     class ForallStmt
     {
         /*
@@ -35,17 +43,40 @@ namespace Tacny.Language
             return false;
         }
 
+        public static IEnumerable<ProofState> EvalNext(Statement statement, ProofState state0) {
+
+            yield break;
+        }
+
         public static IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
             Contract.Requires(statement != null);
             Contract.Requires(statement is TacnyForallStmt);
 
+            IToken newtok = TokenGenerator.NextToken();
+
             var stmt = statement as TacnyForallStmt;
             var e = stmt.Spec;
             var attr = stmt.Attributes;
-            
+            var nms = new List<String>();
+            if (attr.Name == "") {
+                var nms_args = attr.Args; // need to extract name SHould we fail otherwise?
+                foreach (Expression ee in nms_args) {
+                    if (ee is StringLiteralExpr) {
+                        var st = ee as StringLiteralExpr;
+                        nms.Add(st.AsStringLiteral());
+                    }
+                }
+            }
+
             Contract.Assert(e != null && IsForallShape(e));
-            
-            return null;
+
+            // var body = new Microsoft.Dafny.ForallStmt();
+            //q = new ForallExpr(x, bvars, range, body, attrs);
+            //s = new ForallStmt(x, tok, bvars, attrs, range, ens, block);
+
+            var state = state0.Copy();
+
+            yield return state;
         }
     }
 }
