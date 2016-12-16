@@ -190,6 +190,7 @@
     <Compile Include="Tacny\ProofState.cs" />
     <Compile Include="Tacny\SearchFramework.cs" />
     <Compile Include="Tacny\tcce.cs" />
+    <Compile Include="Tacny\TokenGenerator.cs" />
     <Compile Include="Tacny\Util.cs" />
     <Compile Include="Tacny\Zipper.cs" />
     <Compile Include="Triggers\QuantifiersCollection.cs" />
