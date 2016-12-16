@@ -191,6 +191,7 @@
     <Compile Include="Tacny\SearchFramework.cs" />
     <Compile Include="Tacny\tcce.cs" />
     <Compile Include="Tacny\Util.cs" />
+    <Compile Include="Tacny\Zipper.cs" />
     <Compile Include="Triggers\QuantifiersCollection.cs" />
     <Compile Include="Triggers\QuantifierSplitter.cs" />
     <Compile Include="Triggers\TriggerExtensions.cs" />
