@@ -1,3 +1,5 @@
+﻿//#define DEBUGTHROW
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -12,6 +14,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using DafnyLanguage.Refactoring;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
@@ -105,7 +108,7 @@ namespace DafnyLanguage
       ITagAggregator<IDafnyResolverTag> tagAggregator = AggregatorFactory.CreateTagAggregator<IDafnyResolverTag>(buffer);
       // create a single tagger for each buffer.
       Func<ITagger<T>> sc = delegate() { return new ProgressTagger(buffer, _serviceProvider, tagAggregator, _textDocumentFactory) as ITagger<T>; };
-      return buffer.Properties.GetOrCreateSingletonProperty<ITagger<T>>(sc);
+      return buffer.Properties.GetOrCreateSingletonProperty<ITagger<T>>(typeof(ProgressTagger), sc);
     }
   }
 
@@ -214,7 +217,8 @@ namespace DafnyLanguage
       }
     }
 
-    bool verificationInProgress;  // this field is protected by "this".  Invariant:  !verificationInProgress ==> bufferChangesPreVerificationStart.Count == 0
+    internal bool verificationInProgress;  // this field is protected by "this".  Invariant:  !verificationInProgress ==> bufferChangesPreVerificationStart.Count == 0
+    //System.Threading.Tasks.Task verificationTask;
     public bool VerificationDisabled { get; private set; }
     bool isDiagnosingTimeouts;
     string lastRequestId;
@@ -229,7 +233,7 @@ namespace DafnyLanguage
     /// </summary>
     public void UponIdle(object sender, EventArgs args) {
       lock (this) {
-        if (verificationInProgress) {
+        if (verificationInProgress || DeadAnnotationTagger.IsCurrentlyActive) {
           // This UponIdle message came at an inopportune time--we've already kicked off a verification.
           // Just back off.
           resolver.UpdateErrorList(resolver.Snapshot);
@@ -349,7 +353,7 @@ namespace DafnyLanguage
       }
     }
 
-    void RunVerifier(Dafny.Program program, ITextSnapshot snapshot, string requestId, ResolverTagger errorListHolder, bool diagnoseTimeouts) {
+    private void RunVerifier(Dafny.Program program, ITextSnapshot snapshot, string requestId, ResolverTagger errorListHolder, bool diagnoseTimeouts) {
       Contract.Requires(program != null);
       Contract.Requires(snapshot != null);
       Contract.Requires(requestId != null);
@@ -368,35 +372,53 @@ namespace DafnyLanguage
       }
 
       DafnyDriver.SetDiagnoseTimeouts(diagnoseTimeouts);
+      errorListHolder.FatalVerificationError = null;
+      var tacticsErrorList = new List<Tacny.CompoundErrorInformation>();
+      var success = true;
 
+#if !DEBUGTHROW
       try
       {
+#endif
         string filename = _document != null ? _document.FilePath : "<program>";
         var driver = new DafnyDriver(_buffer, filename);
-        bool success = driver.Verify(program, errorListHolder, GetHashCode().ToString(), requestId, errorInfo =>
+        success = driver.Verify(program, errorListHolder, GetHashCode().ToString(), requestId, errorInfo =>
         {
-          if (!_disposed)
+          if (_disposed) return;
+
+          var tacticErrorInfo = errorInfo as Tacny.CompoundErrorInformation;
+          if (tacticErrorInfo!=null)
           {
-            errorInfo.BoogieErrorCode = null;
-            var isRecycled = false;
-            ITextSnapshot s = null;
-            if (errorInfo.OriginalRequestId != null)
-            {
-              isRecycled = errorInfo.OriginalRequestId != requestId;
-              RequestIdToSnapshot.TryGetValue(errorInfo.OriginalRequestId, out s);
-            }
-            if (s == null && errorInfo.RequestId != null)
-            {
-              RequestIdToSnapshot.TryGetValue(errorInfo.RequestId, out s);
-            }
-            if (s != null)
-            {
-              errorListHolder.AddError(new DafnyError(errorInfo.Tok.filename, errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg, s, isRecycled, errorInfo.Model.ToString(), System.IO.Path.GetFullPath(_document.FilePath) == errorInfo.Tok.filename), errorInfo.ImplementationName, requestId);
-              foreach (var aux in errorInfo.Aux)
-              {
-                errorListHolder.AddError(new DafnyError(aux.Tok.filename, aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s, isRecycled, null, System.IO.Path.GetFullPath(_document.FilePath) == aux.Tok.filename), errorInfo.ImplementationName, requestId);
-              }
-            }
+            tacticsErrorList.Add(tacticErrorInfo);
+            return;
+          }
+
+          errorInfo.BoogieErrorCode = null;
+          var isRecycled = false;
+          ITextSnapshot s = null;
+          if (errorInfo.OriginalRequestId != null)
+          {
+            isRecycled = errorInfo.OriginalRequestId != requestId;
+            RequestIdToSnapshot.TryGetValue(errorInfo.OriginalRequestId, out s);
+          }
+          if (s == null && errorInfo.RequestId != null)
+          {
+            RequestIdToSnapshot.TryGetValue(errorInfo.RequestId, out s);
+          }
+          if (s == null) return;
+
+          errorListHolder.AddError(
+            new DafnyError(errorInfo.Tok.filename, errorInfo.Tok.line - 1, errorInfo.Tok.col - 1,
+              ErrorCategory.VerificationError, errorInfo.FullMsg, s, isRecycled, errorInfo.Model.ToString(),
+              System.IO.Path.GetFullPath(_document.FilePath) == errorInfo.Tok.filename),
+            errorInfo.ImplementationName, requestId);
+          foreach (var aux in errorInfo.Aux)
+          {
+            errorListHolder.AddError(
+              new DafnyError(aux.Tok.filename, aux.Tok.line - 1, aux.Tok.col - 1, 
+                ErrorCategory.AuxInformation, aux.FullMsg, s, isRecycled, null, 
+                System.IO.Path.GetFullPath(_document.FilePath) == aux.Tok.filename),
+              errorInfo.ImplementationName, requestId);
           }
         });
         if (!success)
@@ -404,22 +426,48 @@ namespace DafnyLanguage
           foreach (var error in driver.Errors) {
             errorListHolder.AddError(error, "$$program$$", requestId);
           }
+          errorListHolder.AddError(
+            new DafnyError("$$program$$", 0, 0, ErrorCategory.InternalError, "Verification process error", snapshot, false),
+          "$$program$$", requestId);
         }
-      }
+#if !DEBUGTHROW  
+      }    
       catch (Exception e)
       {
         errorListHolder.AddError(new DafnyError("$$program$$", 0, 0, ErrorCategory.InternalError, "Verification process error: " + e.Message, snapshot, false), "$$program$$", requestId);
+        errorListHolder.FatalVerificationError = new DafnyError("$$program$$", 0, 0,
+          ErrorCategory.InternalError, "Fatal verification error: " + e.Message + "\n" + e.StackTrace, snapshot, false);
       }
       finally
       {
+#endif
+        ITextSnapshot snap;
+        RequestIdToSnapshot.TryGetValue(requestId, out snap);
+        var addedErrors = new List<DafnyError>();
+        if (tacticsErrorList.Count>0){
+          success = false;
+          try {
+            tacticsErrorList.ForEach(errorInfo => new TacticErrorReportingResolver(errorInfo)
+              .AddTacticErrors(addedErrors, snap, _document.FilePath));
+            addedErrors.ForEach(error => errorListHolder.AddError(error, "$$program_tactics$$", requestId));
+          } catch (TacticErrorResolutionException e) {
+            errorListHolder.AddError(
+              new DafnyError("$$program_tactics$$", 0, 0, ErrorCategory.InternalError,
+              "Error resolving tactics error " + e.Message + "\n" + e.StackTrace, snapshot, false),
+            "$$program_tactics$$", requestId);
+          }
+        }
         DafnyDriver.SetDiagnoseTimeouts(!diagnoseTimeouts);
+#if !DEBUGTHROW
       }
-
+#endif
       lock (this) {
         bufferChangesPreVerificationStart.Clear();
         verificationInProgress = false;
       }
 
+      if (success) DafnyClassifier.DafnyMenuPackage.TacnyMenuProxy.UpdateRot(_document.FilePath, snapshot);
+      
       errorListHolder.UpdateErrorList(snapshot);
 
       // Notify to-whom-it-may-concern about the cleared pre-verification changes
