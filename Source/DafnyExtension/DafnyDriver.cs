@@ -8,6 +8,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.VisualStudio.Text;
+using Tacny;
 using Bpl = Microsoft.Boogie;
 using Dafny = Microsoft.Dafny;
 
@@ -17,12 +18,12 @@ namespace DafnyLanguage
 
   public class DafnyDriver
   {
-    readonly string _filename;
-    readonly ITextSnapshot _snapshot;
+    protected readonly string _filename;
+    protected readonly ITextSnapshot _snapshot;
     readonly ITextBuffer _buffer;
     Dafny.Program _program;
-    static object bufferDafnyKey = new object();
-
+    protected static object bufferDafnyKey = new object();
+    public Resolver MostRecentResolver { get; private set; }
     List<DafnyError> _errors = new List<DafnyError>();
     public List<DafnyError> Errors { get { return _errors; } }
 
@@ -150,6 +151,7 @@ namespace DafnyLanguage
 
       var r = new Resolver(program);
       r.ResolveProgram(program);
+      MostRecentResolver = r;
       if (errorReporter.Count(ErrorLevel.Error) != 0)
         return false;
 
@@ -297,11 +299,11 @@ namespace DafnyLanguage
 
     public bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
 
-      Dafny.Translator translator = new Dafny.Translator(dafnyProgram.reporter);
+      Dafny.Translator translator = new Dafny.Translator(dafnyProgram.reporter, null, er);
       var translatorFlags = new Dafny.Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = uniqueIdPrefix };
 
 
-      var boogiePrograms = Dafny.Translator.Translate(dafnyProgram, dafnyProgram.reporter, translatorFlags);
+      var boogiePrograms = Dafny.Translator.Translate(dafnyProgram, dafnyProgram.reporter, resolver.MostRecentResolver, translatorFlags);
 
       var impls = boogiePrograms.SelectMany(p => p.Item2.Implementations);
       resolver.ReInitializeVerificationErrors(requestId, impls);

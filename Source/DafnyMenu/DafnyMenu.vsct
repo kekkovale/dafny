@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
   <!--  This is the file that defines the actual layout and type of the commands.
@@ -46,11 +46,33 @@
           <CommandName>Dafny</CommandName>
         </Strings>
       </Menu>
+    
+      <Menu guid="guidDafnyMenuPkg" id="RefactoringMenu" priority="0x700" type="Menu">
+        <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup"/>
+        <Strings>
+          <CommandName>Refactoring</CommandName>
+        </Strings>
+      </Menu>
+          
+      <Menu guid="guidDafnyMenuPkg" id="RefactoringContextMenu" priority="0x700" type="Menu">
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_CODEWIN_TEXTEDIT" />
+        <Strings>
+          <CommandName>Refactoring</CommandName>
+        </Strings>
+      </Menu>
     </Menus>
 
     <Groups>
       <Group guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" priority="0x0600">
         <Parent guid="guidDafnyMenuPkg" id="DafnyMenu"/>
+      </Group>
+      <Group guid="guidRefactoringMenuCmdSet" id="RefactoringMenuGroup" priority="0x0610">
+        <Parent guid="guidDafnyMenuPkg" id="RefactoringMenu"/>
+      </Group>
+      <Group guid="guidRefactoringMenuCmdSet" id="RefactoringContextGroup" priority="0x0610">
+        <Parent guid="guidDafnyMenuPkg" id="RefactoringContextMenu" />
       </Group>
     </Groups>
     
@@ -58,6 +80,9 @@
     <!--This section defines the elements the user can interact with, like a menu command or a button 
         or combo box in a toolbar. -->
     <Buttons>
+      <!-- ################
+      Dafny Main Menu Items
+      ################# -->
 
       <!--To define a menu group you have to specify its ID, the parent menu and its display priority. 
           The command is visible and enabled by default. If you need to change the visibility, status, etc, you can use
@@ -67,7 +92,7 @@
               <CommandFlag>DynamicVisibility</CommandFlag>
           If you do not want an image next to your command, remove the Icon node /> -->
 
-      <Button guid="guidDafnyMenuCmdSet" id="cmdidCompile" priority="0x010" type="Button">
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidCompile" priority="0x0100" type="Button">
         <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
         <!--
         <Icon guid="guidImages" id="bmpPic1" />
@@ -158,6 +183,81 @@
           <ButtonText>Re-verify to diagnose timeouts</ButtonText>
         </Strings>
       </Button>
+      
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidToggleDeadCode" priority="0x0108" type="Button">
+        <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>Enable dead annotation analysis</ButtonText>
+        </Strings>
+      </Button>
+      
+      <!-- #################
+      Refactoring Menu Items
+      ################## -->
+      
+      <Button guid="guidRefactoringMenuCmdSet" id="cmdidExpandAllTactics" priority="0x0100" type="Button">
+        <Parent guid="guidRefactoringMenuCmdSet" id="RefactoringMenuGroup" />
+        <Strings>
+          <ButtonText>Expand all tactics in file</ButtonText>
+        </Strings>
+      </Button><Button guid="guidRefactoringMenuCmdSet" id="cmdidToggleTacny" priority="0x0101" type="Button">
+        <Parent guid="guidRefactoringMenuCmdSet" id="RefactoringMenuGroup" />
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>Disable automatic tactic verification</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="guidRefactoringMenuCmdSet" id="cmdidRemoveAllDeadCode" priority="0x0102" type="Button">
+        <Parent guid="guidRefactoringMenuCmdSet" id="RefactoringMenuGroup" />
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>Remove/Simplify ALL dead annotations in file</ButtonText>
+        </Strings>
+      </Button>
+      
+      <!-- #########################
+      Refactoring Context Menu Items
+      ########################## -->
+      
+      <Button guid="guidRefactoringMenuCmdSet" id="cmdidContextExpandTactics" priority="0x0100" type="Button">
+        <Parent guid="guidRefactoringMenuCmdSet" id="RefactoringContextGroup" />
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <Strings>
+          <ButtonText>Expand this tactic (F10)</ButtonText>
+        </Strings>
+      </Button>
+      
+      <Button guid="guidRefactoringMenuCmdSet" id="cmdidContextExpandRot" priority="0x0101" type="Button">
+        <Parent guid="guidRefactoringMenuCmdSet" id="RefactoringContextGroup" />
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <Strings>
+          <ButtonText>Read-only peek this tactic (F9)</ButtonText>
+        </Strings>
+      </Button>
+    
+      <Button guid="guidRefactoringMenuCmdSet" id="cmdidContextRemoveDeadCode" priority="0x0102" type="Button">
+        <Parent guid="guidRefactoringMenuCmdSet" id="RefactoringContextGroup" />
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>Remove/Simplify this dead annotation</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="guidRefactoringMenuCmdSet" id="cmdidContextRemoveDeadMemberCode" priority="0x0103" type="Button">
+        <Parent guid="guidRefactoringMenuCmdSet" id="RefactoringContextGroup" />
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>Remove/Simplify dead annotation in this member</ButtonText>
+        </Strings>
+      </Button>
 
     </Buttons>
   
@@ -173,28 +273,45 @@
       <Bitmap guid="guidImages" href="Resources\Images.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows"/>
       -->
     </Bitmaps>
-
   </Commands>
 
   <Symbols>
     <!-- This is the package guid. -->
     <GuidSymbol name="guidDafnyMenuPkg" value="{e1baf989-88a6-4acf-8d97-e0dc243476aa}">
-      <IDSymbol name="DafnyMenu" value="0x1021" />
+      <IDSymbol name="DafnyMenu" value="0x1020" />
+      <IDSymbol name="RefactoringMenu" value="0x1021" />
+      <IDSymbol name="RefactoringContextMenu" value="0x1022" />
     </GuidSymbol>
 
     <!-- This is the guid used to group the menu commands together -->
     <GuidSymbol name="guidDafnyMenuCmdSet" value="{393ad46d-e125-41ce-84ee-b4d552d5ba16}">
-      <IDSymbol name="DafnyMenuGroup" value="0x1020" />
-      <IDSymbol name="cmdidCompile" value="0x010" />
-      <IDSymbol name="cmdidRunResolver" value="0x011" />
-      <IDSymbol name="cmdidStopResolver" value="0x012" />
-      <IDSymbol name="cmdidRunVerifier" value="0x0101" />
-      <IDSymbol name="cmdidStopVerifier" value="0x0102" />
-      <IDSymbol name="cmdidToggleSnapshotVerification" value="0x0103" />
-      <IDSymbol name="cmdidToggleBVD" value="0x0104" />
-      <IDSymbol name="cmdidToggleMoreAdvancedSnapshotVerification" value="0x0105" />
-      <IDSymbol name="cmdidToggleAutomaticInduction" value="0x0106" />
-      <IDSymbol name="cmdidDiagnoseTimeouts" value="0x0107" />
+      <IDSymbol name="DafnyMenuGroup" value="0x1021" />
+      
+      <IDSymbol name="cmdidCompile" value="0x10" />
+      <IDSymbol name="cmdidRunResolver" value="0x11" />
+      <IDSymbol name="cmdidStopResolver" value="0x12" />
+      <IDSymbol name="cmdidRunVerifier" value="0x101" />
+      <IDSymbol name="cmdidStopVerifier" value="0x102" />
+      <IDSymbol name="cmdidToggleSnapshotVerification" value="0x103" />
+      <IDSymbol name="cmdidToggleBVD" value="0x104" />
+      <IDSymbol name="cmdidToggleMoreAdvancedSnapshotVerification" value="0x105" />
+      <IDSymbol name="cmdidToggleAutomaticInduction" value="0x106" />
+      <IDSymbol name="cmdidDiagnoseTimeouts" value="0x107" />
+      <IDSymbol name="cmdidToggleDeadCode" value="0x108" />
+    </GuidSymbol>
+
+    <GuidSymbol name="guidRefactoringMenuCmdSet" value="{6800196a-f13c-4bd6-a795-456a2eb74164}">
+      <IDSymbol name="RefactoringMenuGroup" value="0x1020" />
+      <IDSymbol name="RefactoringContextGroup" value="0x1021" />
+      
+      <IDSymbol name="cmdidExpandAllTactics" value="0x100" />
+      <IDSymbol name="cmdidToggleTacny" value="0x101" />
+      <IDSymbol name="cmdidRemoveAllDeadCode" value="0x102" />
+      
+      <IDSymbol name="cmdidContextExpandTactics" value="0x110" />
+      <IDSymbol name="cmdidContextExpandRot" value="0x111" />
+      <IDSymbol name="cmdidContextRemoveDeadCode" value="0x112" />
+      <IDSymbol name="cmdidContextRemoveDeadMemberCode" value="0x113" />
     </GuidSymbol>
     <!--
     <GuidSymbol name="guidImages" value="{0176b216-66c6-49f6-a97d-0273c57a7da6}" >
