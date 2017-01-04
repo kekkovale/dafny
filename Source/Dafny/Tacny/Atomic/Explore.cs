@@ -1,18 +1,10 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using Microsoft.Boogie;
-using Microsoft.Dafny;
-using Formal = Microsoft.Dafny.Formal;
-using Type = Microsoft.Dafny.Type;
 
-
-namespace Tacny.Atomic {
+namespace Microsoft.Dafny.Tacny.Atomic {
 
   class Explore : Atomic {
     public override string Signature => "explore";

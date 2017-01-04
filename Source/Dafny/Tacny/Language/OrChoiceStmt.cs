@@ -4,12 +4,12 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
-using Tacny;
+using Microsoft.Dafny.Tacny;
 using Formal = Microsoft.Dafny.Formal;
 using Type = Microsoft.Dafny.Type;
 using Microsoft.Dafny;
 
-namespace Tacny.Language
+namespace Microsoft.Dafny.Tacny.Language
 {
     class OrChoiceStmt
     {

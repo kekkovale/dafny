@@ -12,10 +12,10 @@ using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
 using Microsoft.Boogie;
-using Tacny;
+using Microsoft.Dafny.Tacny;
 
 namespace Microsoft.Dafny {
-
+  
   public class FreshIdGenerator
   {
     Dictionary<string, int> PrefixToCount = new Dictionary<string, int>();
@@ -1857,7 +1857,7 @@ namespace Microsoft.Dafny {
 
       if (mem is Method) {
         if (TacticEvaluationIsEnabled && mem.CallsTactic) {
-         mem = Tacny.Interpreter.FindAndApplyTactic(program, (Method)mem, _tacnyDelegate, r) as Method;
+         mem = Interpreter.FindAndApplyTactic(program, (Method)mem, _tacnyDelegate, r) as Method;
         }
         AddMethod_Top((Method)mem);
       }

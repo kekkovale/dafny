@@ -6,11 +6,10 @@ using System.Threading.Tasks;
 using Microsoft.Dafny;
 using dfy = Microsoft.Dafny;
 using System.Diagnostics.Contracts;
-using Tacny;
-using Tacny.Atomic;
-using Tacny.Language;
+using Microsoft.Dafny.Tacny;
+using Microsoft.Dafny.Tacny.Language;
 
-namespace Tacny.Language {
+namespace  Microsoft.Dafny.Tacny.Language {
   public class FlowControlMng{
 
     public static bool IsFlowControl(Statement stmt) {

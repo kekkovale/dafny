@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Dafny;
 
-namespace Tacny.EAtomic {
+
+namespace Microsoft.Dafny.Tacny.EAtomic {
   class Lemmas : EAtomic {
     public override string Signature => "lemmas";
     public override int ArgsCount => 0;

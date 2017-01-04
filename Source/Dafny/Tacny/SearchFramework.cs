@@ -7,7 +7,7 @@ using System.Linq;
 using Microsoft.Boogie;
 
 
-namespace Tacny {
+namespace Microsoft.Dafny.Tacny {
 
 
   [ContractClass(typeof(BaseSearchContract))]

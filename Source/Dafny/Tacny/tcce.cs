@@ -7,7 +7,7 @@ using Microsoft.Dafny;
 /// A class containing static methods to extend the functionality of Code Contracts
 /// </summary>
 
-namespace Tacny {
+namespace Microsoft.Dafny.Tacny {
   public class tcce {
     [Pure]
     public static bool NonNull<T>(T t) where T : class {

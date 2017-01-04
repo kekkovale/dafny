@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using Microsoft.Dafny;
 
-namespace Tacny.EAtomic {
+namespace Microsoft.Dafny.Tacny.EAtomic {
   /// <summary>
   ///   Abstact class for Atomic Expressions
   /// </summary>

@@ -8,7 +8,7 @@
 //       - main program for taking a Dafny program and verifying it
 //---------------------------------------------------------------------------------------------
 
-using Tacny;
+using Microsoft.Dafny.Tacny;
 
 namespace Microsoft.Dafny
 {

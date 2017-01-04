@@ -2,7 +2,7 @@
 using System.Linq;
 using Microsoft.Dafny;
 
-namespace Tacny.EAtomic {
+namespace Microsoft.Dafny.Tacny.EAtomic {
   class Params : EAtomic {
     public override string Signature => "params";
     public override int ArgsCount => 0;

@@ -7,7 +7,7 @@ using Microsoft.Dafny;
 using dfy = Microsoft.Dafny;
 using System.Diagnostics.Contracts;
 /*
-namespace Tacny.Language {
+namespace  Microsoft.Dafny.Tacny.Language {
   public class IfStmt : FlowControlStmt {
     public override IEnumerable<ProofState> Generate(Statement statement, ProofState state) {
 

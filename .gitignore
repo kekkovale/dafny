@@ -26,3 +26,7 @@ Test/*/*.exe
 Source/DafnyExtension/z3.exe
 Binaries/export/
 Package/
+Binaries/
+Source/Dafny/bin/
+Source/Dare/bin/Debug/Boogie.exe
+Source/DafnyItem/bin/Debug/ItemTemplates/General/1033/DafnyItem.zip

@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using Microsoft.Dafny;
-using Tacny;
+using Microsoft.Dafny.Tacny;
 using Bpl = Microsoft.Boogie;
 
 namespace Dare {

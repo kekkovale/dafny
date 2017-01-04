@@ -5,10 +5,9 @@ using System.Diagnostics.Contracts;
 using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using Dfy = Microsoft.Dafny;
-using Microsoft.Dafny;
-using Tacny.Language;
+using Microsoft.Dafny.Tacny.Language;
 
-namespace Tacny {
+namespace Microsoft.Dafny.Tacny {
   public class ProofState {
     // Static State
     public readonly Dictionary<string, DatatypeDecl> Datatypes;

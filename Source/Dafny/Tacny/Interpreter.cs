@@ -4,17 +4,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Numerics;
 using System.Reflection;
-using System.Security.Permissions;
-using System.Text;
 using Microsoft.Boogie;
-using Microsoft.Dafny;
-using Tacny.Language;
-using Program = Microsoft.Dafny.Program;
-using Type = Microsoft.Dafny.Type;
+using Microsoft.Dafny.Tacny.Language;
 
-namespace Tacny {
+namespace Microsoft.Dafny.Tacny {
   public class Interpreter {
     public static int TACNY_CODE_TOK_LINE = -1;
     private static Interpreter _i;

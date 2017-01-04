@@ -4,14 +4,14 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
-using Tacny;
+using Microsoft.Dafny.Tacny;
 using Formal = Microsoft.Dafny.Formal;
 using Type = Microsoft.Dafny.Type;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Tacny;
 
 
-namespace Tacny.Language
+namespace Microsoft.Dafny.Tacny.Language
 {
     /*
      * TODO: instead of storing all the information in the frame. Why doesn't these just inherit some atomicLang interface

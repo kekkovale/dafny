@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.Contracts;
 
-namespace Tacny {
+namespace Microsoft.Dafny.Tacny {
   [ContractClass(typeof(BaseTacticContract))]
   public abstract class BaseTactic {
     // Atom signature

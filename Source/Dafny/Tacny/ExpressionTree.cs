@@ -11,7 +11,7 @@ using Formal = Microsoft.Dafny.Formal;
 using LiteralExpr = Microsoft.Dafny.LiteralExpr;
 using QuantifierExpr = Microsoft.Dafny.QuantifierExpr;
 
-namespace Tacny {
+namespace Microsoft.Dafny.Tacny {
   /// <summary>
   /// Easy to manage tree representation of àn expression.
   /// </summary>

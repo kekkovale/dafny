@@ -3,10 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Text;
-using Microsoft.Dafny;
 
-namespace Tacny.Atomic {
+
+namespace Microsoft.Dafny.Tacny.Atomic {
   class SuchThatAtomic : Atomic {
     public override string Signature => ":|";
     public override int ArgsCount => -1;

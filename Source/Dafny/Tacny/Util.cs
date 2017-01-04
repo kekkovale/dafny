@@ -3,18 +3,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.IO;
 using System.Linq;
 using System.Reflection;
-using Tacny.ArrayExtensions;
-using Microsoft.Dafny;
-using Type = System.Type;
+using Microsoft.Dafny.Tacny.ArrayExtensions;
 using Bpl = Microsoft.Boogie;
 using Microsoft.Boogie;
-using Errors = Microsoft.Dafny.Errors;
-using Program = Microsoft.Dafny.Program;
 
-namespace Tacny {
+namespace Microsoft.Dafny.Tacny {
 
   public static class Util {
 
@@ -329,9 +324,9 @@ namespace Tacny {
 
       LinearTypeChecker ltc;
       CivlTypeChecker ctc;
-      string baseName = cce.NonNull(Path.GetFileName(fileNames[fileNames.Count - 1]));
-      baseName = cce.NonNull(Path.ChangeExtension(baseName, "bpl"));
-      string bplFileName = Path.Combine(Path.GetTempPath(), baseName);
+      string baseName = cce.NonNull(System.IO.Path.GetFileName(fileNames[fileNames.Count - 1]));
+      baseName = cce.NonNull(System.IO.Path.ChangeExtension(baseName, "bpl"));
+      string bplFileName = System.IO.Path.Combine(System.IO.Path.GetTempPath(), baseName);
 
       errorList = new List<ErrorInformation>();
       stats = new PipelineStatistics();
@@ -468,8 +463,8 @@ namespace Tacny {
 
   public static class ObjectExtensions {
     private static readonly MethodInfo CloneMethod = typeof(Object).GetMethod("MemberwiseClone", BindingFlags.NonPublic | BindingFlags.Instance);
-
-    public static bool IsPrimitive(this Type type) {
+    
+    public static bool IsPrimitive(this System.Type type) {
       if (type == typeof(String)) return true;
       return (type.IsValueType & type.IsPrimitive);
     }
@@ -479,7 +474,7 @@ namespace Tacny {
     }
     private static object InternalCopy(Object originalObject, IDictionary<Object, Object> visited) {
       if (originalObject == null) return null;
-      var typeToReflect = originalObject.GetType();
+      System.Type typeToReflect = originalObject.GetType();
       if (IsPrimitive(typeToReflect)) return originalObject;
       if (visited.ContainsKey(originalObject)) return visited[originalObject];
       if (typeof(Delegate).IsAssignableFrom(typeToReflect)) return null;
@@ -498,14 +493,14 @@ namespace Tacny {
       return cloneObject;
     }
 
-    private static void RecursiveCopyBaseTypePrivateFields(object originalObject, IDictionary<object, object> visited, object cloneObject, Type typeToReflect) {
+    private static void RecursiveCopyBaseTypePrivateFields(object originalObject, IDictionary<object, object> visited, object cloneObject, System.Type typeToReflect) {
       if (typeToReflect.BaseType != null) {
         RecursiveCopyBaseTypePrivateFields(originalObject, visited, cloneObject, typeToReflect.BaseType);
         CopyFields(originalObject, visited, cloneObject, typeToReflect.BaseType, BindingFlags.Instance | BindingFlags.NonPublic, info => info.IsPrivate);
       }
     }
 
-    private static void CopyFields(object originalObject, IDictionary<object, object> visited, object cloneObject, Type typeToReflect, BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy, Func<FieldInfo, bool> filter = null) {
+    private static void CopyFields(object originalObject, IDictionary<object, object> visited, object cloneObject, System.Type typeToReflect, BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy, Func<FieldInfo, bool> filter = null) {
       foreach (FieldInfo fieldInfo in typeToReflect.GetFields(bindingFlags)) {
         if (filter != null && filter(fieldInfo) == false) continue;
         if (IsPrimitive(fieldInfo.FieldType)) continue;

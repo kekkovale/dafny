@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using Microsoft.Dafny;
 
-namespace Tacny.Atomic {
+namespace Microsoft.Dafny.Tacny.Atomic {
   /// <summary>
   ///   Abstract class for Atomic Statement
   /// </summary>
