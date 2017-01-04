@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Dafny;
 using Microsoft.VisualStudio.Text;
-using Tacny;
+using Microsoft.Dafny.Tacny;
 
 namespace DafnyLanguage.Refactoring
 {

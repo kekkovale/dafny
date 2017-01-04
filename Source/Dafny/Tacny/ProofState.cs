@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.Tacny {
     public readonly Dictionary<string, DatatypeDecl> Datatypes;
     public TopLevelClassDeclaration ActiveClass;
     private readonly List<TopLevelClassDeclaration> _topLevelClasses;
-    private readonly Program _original;
+    private readonly Program  _original;
 
     // Dynamic State
     public MemberDecl TargetMethod;
@@ -50,7 +50,8 @@ namespace Microsoft.Dafny.Tacny {
       var files = new List<DafnyFile>();
       files.Add(new DafnyFile(program.FullName));
       //note the differences between this ParseCheck and the one at the top level. This function only parses but the other one resolves.
-      var err = Main.Parse(files, program.Name, program.reporter, out _original);
+      //use the deafult error reportor, as the one from program include too much extra object/information for deep copy
+      var err = Main.Parse(files, program.Name, new ConsoleErrorReporter(), out _original);
       if(err != null)
         reporter.Error(MessageSource.Tacny, program.DefaultModuleDef.tok, $"Error parsing a fresh Tacny program: {err}");
     

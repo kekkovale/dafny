@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny;
 using Microsoft.VisualStudio.Text;
-using Tacny;
+using Microsoft.Dafny.Tacny;
 using Bpl = Microsoft.Boogie;
 
 namespace DafnyLanguage.Refactoring

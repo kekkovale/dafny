@@ -373,7 +373,7 @@ namespace DafnyLanguage
 
       DafnyDriver.SetDiagnoseTimeouts(diagnoseTimeouts);
       errorListHolder.FatalVerificationError = null;
-      var tacticsErrorList = new List<Tacny.CompoundErrorInformation>();
+      var tacticsErrorList = new List<Microsoft.Dafny.Tacny.CompoundErrorInformation>();
       var success = true;
 
 #if !DEBUGTHROW
@@ -386,7 +386,7 @@ namespace DafnyLanguage
         {
           if (_disposed) return;
 
-          var tacticErrorInfo = errorInfo as Tacny.CompoundErrorInformation;
+          var tacticErrorInfo = errorInfo as Microsoft.Dafny.Tacny.CompoundErrorInformation;
           if (tacticErrorInfo!=null)
           {
             tacticsErrorList.Add(tacticErrorInfo);

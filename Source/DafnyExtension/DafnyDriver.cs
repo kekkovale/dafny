@@ -8,7 +8,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.VisualStudio.Text;
-using Tacny;
+using Microsoft.Dafny.Tacny;
 using Bpl = Microsoft.Boogie;
 using Dafny = Microsoft.Dafny;
 
@@ -297,8 +297,8 @@ namespace DafnyLanguage
       return Dafny.DafnyOptions.O.Induction == 3;
     }
 
-    public bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
-
+    public bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er){
+      Dafny.Tacny.Interpreter.ResetTacnyResultList();
       Dafny.Translator translator = new Dafny.Translator(dafnyProgram.reporter, null, er);
       var translatorFlags = new Dafny.Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = uniqueIdPrefix };
 

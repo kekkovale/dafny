@@ -15,7 +15,7 @@ using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Utilities;
-using Tacny;
+using Microsoft.Dafny.Tacny;
 using Printer = Microsoft.Dafny.Printer;
 
 namespace DafnyLanguage.Refactoring

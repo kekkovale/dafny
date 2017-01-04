@@ -21,7 +21,7 @@ using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
 using Program = Microsoft.Dafny.Program;
 using Dare;
-using Tacny;
+using Microsoft.Dafny.Tacny;
 
 namespace DafnyLanguage.Refactoring
 {
