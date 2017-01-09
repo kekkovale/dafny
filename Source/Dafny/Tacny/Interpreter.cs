@@ -220,17 +220,33 @@ namespace Microsoft.Dafny.Tacny {
       return ret;
     }
 
-
-    public static IEnumerable<ProofState> EvalStep(ProofState state) {
+    public static IEnumerable<ProofState> EvalStep(ProofState state){
       Contract.Requires<ArgumentNullException>(state != null, "state");
 
       IEnumerable<ProofState> enumerable = null;
       var stmt = state.GetStmt();
 
-      //if the current frame is a control flow, e.g. match, no need to get stmt
-      if(FlowControlMng.IsFlowControlFrame(state)) {
-        enumerable = FlowControlMng.EvalNextControlFlow(stmt, state);
-      } else {
+      // get the type of the current frame
+      var type = state.GetCurFrameTyp();
+
+      //create the object of frame control with the right type to run EvalStep
+      var types =
+             Assembly.GetAssembly(typeof(TacticFrameCtrl))
+               .GetTypes()
+               .Where(t => t.IsSubclassOf(typeof(TacticFrameCtrl)));
+      foreach(var fType in types) {
+        var porjInst = Activator.CreateInstance(fType) as TacticFrameCtrl;
+        if(type == porjInst?.Signature) {
+          enumerable = porjInst?.EvalStep(stmt, state);
+        }
+      }
+      return enumerable;
+    }
+
+    public static IEnumerable<ProofState> EvalStmt(Statement stmt, ProofState state) {
+      Contract.Requires<ArgumentNullException>(state != null, "state");
+
+      IEnumerable<ProofState> enumerable = null;
         if(stmt is TacticVarDeclStmt) {
           enumerable = RegisterVariable(stmt as TacticVarDeclStmt, state);
         } else if(stmt is UpdateStmt) {
@@ -261,22 +277,21 @@ namespace Microsoft.Dafny.Tacny {
           enumerable = EvalSuchThatStmt((AssignSuchThatStmt)stmt, state);
         } else if(stmt is PredicateStmt) {
           enumerable = EvalPredicateStmt((PredicateStmt)stmt, state);
-        } else if(FlowControlMng.IsFlowControl(stmt)) {
+        } else if(TacticFrameCtrl.IsFlowControl(stmt)) {
           if(stmt is TacnyCasesBlockStmt) {
             enumerable = new Match().EvalInit(stmt, state);
           }
           else if (OrChoiceStmt.IsNonDeterministic(stmt))
           {
-            enumerable = new OrChoiceStmt().Eval(stmt, state);
+            enumerable = new OrChoiceStmt().EvalInit(stmt, state);
           }
           //TODO: to implement if and while control flow
         } else {
           enumerable = DefaultAction(stmt, state);
         }
-      }
-      foreach(var item in enumerable)
-        yield return item.Copy();
+        return enumerable;
     }
+      
     /*
        private static IEnumerable<ProofState> ResolveFlowControlStmt(Statement stmt, ProofState state) {
          Language.FlowControlStmt fcs = null;

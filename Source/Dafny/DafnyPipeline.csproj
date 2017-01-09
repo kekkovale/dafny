@@ -181,8 +181,8 @@
     <Compile Include="Tacny\EAtomic\Params.cs" />
     <Compile Include="Tacny\EAtomic\Variables.cs" />
     <Compile Include="Tacny\ExpressionTree.cs" />
+    <Compile Include="Tacny\Language\TacticFrameCtrl.cs" />
     <Compile Include="Tacny\Interpreter.cs" />
-    <Compile Include="Tacny\Language\FlowControlStmt.cs" />
     <Compile Include="Tacny\Language\ForallStmt.cs" />
     <Compile Include="Tacny\Language\IfStmt.cs" />
     <Compile Include="Tacny\Language\Match.cs" />

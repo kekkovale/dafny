@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Diagnostics.Contracts;
 using System.Diagnostics.Eventing.Reader;
 using System.Linq;
+using System.Reflection;
 using Dfy = Microsoft.Dafny;
 using Microsoft.Dafny.Tacny.Language;
 
@@ -546,6 +547,7 @@ namespace Microsoft.Dafny.Tacny {
       public readonly string WhatKind; 
       public Statement CurStmt => _bodyCounter >= Body.Count ? null : Body[_bodyCounter];
       public readonly Frame Parent;
+      public TacticFrameCtrl FrameCtrl;
       private readonly Dictionary<string, object> _declaredVariables; // tacny variables
       private readonly Dictionary<string, VariableData> _DafnyVariables; // dafny variables
       public readonly ITactic ActiveTactic;
@@ -741,16 +743,19 @@ namespace Microsoft.Dafny.Tacny {
       /// assemble the list of stataemnt list (raw code) to statment list, depending on the current frame kind
       /// </summary>
       /// <returns></returns>
-      internal static List<Statement> AssembleStmts(List<List<Statement>> raw, string whatKind){
-        List<Statement> code;
+      ///       
+      internal static List<Statement> AssembleStmts(List<List<Statement>> raw, string whatKind) {
+        List<Statement> code = null;
 
-        switch(whatKind) {
-          case "tmatch":
-            code = Match.Assemble(raw);          
-            break;
-          default:
-            code = raw.SelectMany(x => x).ToList();
-            break;
+        var types =
+          Assembly.GetAssembly(typeof(TacticFrameCtrl))
+            .GetTypes()
+            .Where(t => t.IsSubclassOf(typeof(TacticFrameCtrl)));
+        foreach(var fType in types) {
+          var porjInst = Activator.CreateInstance(fType) as TacticFrameCtrl;
+          if(whatKind == porjInst?.Signature) {
+            code = porjInst.Assemble(raw);
+          }
         }
         return code;
       }
@@ -758,15 +763,24 @@ namespace Microsoft.Dafny.Tacny {
       // only call it when verification is successful, this check if the current frame is terminated, 
       // when the popped child frame is termianted
       internal bool IsFrameTerminated(bool latestChildFrameRes) {
-        bool ret;
+        bool ret = latestChildFrameRes;
 
-        switch(WhatKind) {
-          case "tmatch":
-            ret = Match.IsTerminated(_rawCodeList, latestChildFrameRes);
-            break;
-          default:
-            ret = latestChildFrameRes;
-            break;
+        if(WhatKind == "default")
+          ret = latestChildFrameRes;
+        else {
+          var types =
+            Assembly.GetAssembly(typeof(TacticFrameCtrl))
+              .GetTypes()
+              .Where(t => t.IsSubclassOf(typeof(TacticFrameCtrl)));
+          foreach(var fType in types) {
+            var porjInst = Activator.CreateInstance(fType) as TacticFrameCtrl;
+            if(WhatKind == porjInst?.Signature) {
+              ret = porjInst.EvalTerminated(_rawCodeList);
+            } else {
+              Contract.Assert(false);
+              ret = false;
+            }
+          }
         }
         return ret;
       }

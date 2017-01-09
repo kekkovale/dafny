@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.Tacny.Language
         }
 
 
-        public IEnumerable<ProofState> Eval(Statement statement, ProofState state0){
+        public IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
             Contract.Requires(statement != null);
             Contract.Requires(IsNonDeterministic(statement));
             //Contract.Requires(statement is TacnyCasesBlockStmt);

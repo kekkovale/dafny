@@ -8,12 +8,10 @@ using Microsoft.Dafny.Tacny;
 using Formal = Microsoft.Dafny.Formal;
 using Type = Microsoft.Dafny.Type;
 using Microsoft.Dafny;
-
-
 namespace Microsoft.Dafny.Tacny.Language {
-  class Match {
-    public string Signature => "tmatch";
-    public bool IsPartial = false;
+  class Match : TacticFrameCtrl {
+    public override string Signature => "tmatch";
+    public override bool IsPartial => false;
     private Dictionary<string, Type> _ctorTypes;
 
     /*
@@ -58,7 +56,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
 
-    public static bool IsTerminated(List<List<Statement>> raw, bool b){
+    public override bool EvalTerminated(List<List<Statement>> raw){
       Contract.Requires(raw != null);
       Contract.Requires(raw.Count > 0);
       Contract.Requires(raw[0]!=null && raw[0].Count == 1 && raw[0][0] is MatchStmt);
@@ -69,7 +67,7 @@ namespace Microsoft.Dafny.Tacny.Language {
        return (raw[0][0] as MatchStmt).Cases.Count + 1== raw.Count;
     }
 
-    public static List<Statement> Assemble(List<List<Statement>> raw){
+     public override List<Statement> Assemble(List<List<Statement>> raw){
       //Contract.Requires(IsTerminated(raw));
 
       var matchStmt = raw[0][0] as MatchStmt;
@@ -90,7 +88,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       return raw.Count - 1;
 
     }
-    public IEnumerable<ProofState> EvalNext(Statement statement, ProofState state0){
+    override public IEnumerable<ProofState> EvalStep(Statement statement, ProofState state0){
       Contract.Requires(statement != null);
       Contract.Requires(statement is TacnyCasesBlockStmt);
       var state = state0.Copy();
@@ -113,7 +111,7 @@ namespace Microsoft.Dafny.Tacny.Language {
      
     }
 
-    public IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
+    override public IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
       Contract.Requires(statement != null);
       Contract.Requires(statement is TacnyCasesBlockStmt);
       var state = state0.Copy();
