@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Dafny;
 using NUnit.Framework;
+using System.IO;
 
 namespace Quicky
 {
@@ -16,24 +17,20 @@ namespace Quicky
     private Quicky GetQuicky(string filename) {
       QuickyMain.SetupEnvironment();
       Program dafnyProgram =
-        QuickyMain.CreateProgramFromFileName("C:\\Users\\Duncan\\Dissertation\\Quicky\\Test\\quicky\\"+filename);
+        QuickyMain.CreateProgramFromFileName(Directory.GetParent(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).ToString()) + @"\Test\quicky\"+filename);
 
       return new Quicky(dafnyProgram);
     }
 
+
+    //TODO test smaller parts
     [Test]
-    public void TestOutputs() {
+    public void TestWholeProcess() {
       var quicky = GetQuicky("Test01.dfy");
       quicky.PerformTesting();
-      //Assert.AreEqual(3, (int)(BigInteger)quicky.Outputs[0]);
-      foreach (var quickyException in quicky.FoundErrors.Values) {
-        Console.WriteLine("Exception on line "+quickyException.Token.line + " with input: " + quickyException.CounterExamples);
-      }
-    }
-
-    [Test]
-    public void TestPostConditionFailure() {
-      
+      Assert.AreEqual(1, quicky.FoundErrors.Count);
+//      foreach (var quickyException in quicky.FoundErrors.Values)
+//        System.Diagnostics.Debug.WriteLine("Exception on line "+quickyException.Token.line + " with input: " + quickyException.CounterExamples);
     }
   }
 }

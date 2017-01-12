@@ -39,28 +39,21 @@
   <ItemGroup>
     <Reference Include="BoogieBasetypes, Version=2.3.0.61016, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Binaries\BoogieBasetypes.dll</HintPath>
+      <HintPath>..\..\..\boogie\Binaries\BoogieBasetypes.dll</HintPath>
     </Reference>
     <Reference Include="BoogieCore, Version=2.3.0.61016, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Binaries\BoogieCore.dll</HintPath>
+      <HintPath>..\..\..\boogie\Binaries\BoogieCore.dll</HintPath>
     </Reference>
     <Reference Include="BoogieExecutionEngine">
       <HintPath>..\..\..\boogie\Binaries\BoogieExecutionEngine.dll</HintPath>
     </Reference>
     <Reference Include="BoogieParserHelper, Version=2.3.0.61016, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Binaries\BoogieParserHelper.dll</HintPath>
+      <HintPath>..\..\..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
     </Reference>
-    <Reference Include="DafnyPipeline, Version=1.9.8.30829, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Binaries\DafnyPipeline.dll</HintPath>
-    </Reference>
-    <Reference Include="DafnyRuntime">
-      <HintPath>..\..\Binaries\DafnyRuntime.dll</HintPath>
-    </Reference>
-    <Reference Include="nunit.framework, Version=3.5.0.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
-      <HintPath>..\packages\NUnit.3.5.0\lib\net45\nunit.framework.dll</HintPath>
+    <Reference Include="nunit.framework, Version=3.6.0.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
+      <HintPath>..\packages\NUnit.3.6.0\lib\net45\nunit.framework.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="ReadOnlyCollectionsInterfaces, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -69,7 +62,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Collections.Immutable, Version=1.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Collections.Immutable.1.3.0\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
+      <HintPath>..\packages\System.Collections.Immutable.1.3.1\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Core" />
@@ -87,14 +80,17 @@
     <Compile Include="Tests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj">
       <Project>{63400D1F-05B2-453E-9592-1EAB74B2C9CC}</Project>
       <Name>DafnyDriver</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Dafny\DafnyPipeline.csproj">
+      <Project>{fe44674a-1633-4917-99f4-57635e6fa740}</Project>
+      <Name>DafnyPipeline</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

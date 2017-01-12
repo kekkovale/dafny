@@ -38,7 +38,7 @@ namespace Quicky
     public static void Main() {
       SetupEnvironment();
       Program dafnyProgram =
-        CreateProgramFromFileName("C:\\Users\\Duncan\\Dissertation\\Quicky\\Test\\quicky\\Test.dfy");
+        CreateProgramFromFileName(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory) + "\\Test\\quicky\\Test01.dfy");
       
       Quicky quicky = new Quicky(dafnyProgram);
       quicky.PerformTesting();
@@ -62,7 +62,7 @@ namespace Quicky
     public static void SetupEnvironment() {
       DafnyOptions.Install(new DafnyOptions());
       Bpl.CommandLineOptions.Clo.ApplyDefaultOptions();
-      DafnyOptions.O.Z3ExecutablePath = "C:\\Users\\Duncan\\Dissertation\\Quicky\\Binaries\\z3.exe";
+      DafnyOptions.O.Z3ExecutablePath = AppDomain.CurrentDomain.BaseDirectory + "\\z3.exe";
       DafnyOptions.O.ApplyDefaultOptions();
       DafnyOptions.O.RunningBoogieFromCommandLine = true;
       DafnyOptions.O.VerifySnapshots = 1;
@@ -96,10 +96,11 @@ namespace Quicky
       Compiler compiler = new Compiler(true);
       compiler.ErrorWriter = Console.Out;
       compiler.Compile(_dafnyProgram, tw);
+/*
       using (TextWriter writer = File.CreateText("C:\\Users\\Duncan\\Documents\\Test.cs")) {
         writer.WriteLine(tw.ToString());
       }
-
+*/
       return tw;
     }
 
@@ -107,7 +108,7 @@ namespace Quicky
       var csc = new CSharpCodeProvider(new Dictionary<string, string>() { { "CompilerVersion", "v3.5" } });
       var parameters = new CompilerParameters(GetRequiredReferences()) {GenerateExecutable = false};
       CompilerResults results = csc.CompileAssemblyFromSource(parameters, cSharpTw.ToString());
-      results.Errors.Cast<CompilerError>().ToList().ForEach(error => Console.WriteLine(error.ErrorText)); //todo throw exception if any errors
+      results.Errors.Cast<CompilerError>().ToList().ForEach(error => System.Diagnostics.Debug.WriteLine(error.ErrorText)); //todo throw exception if any errors
       _assemblyProgram = results.CompiledAssembly;
     }
 
@@ -115,12 +116,13 @@ namespace Quicky
     {
       //TODO: This needs to be done in a way so it will work on all systems
       var system = @"System.dll";
-      var core = @"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.Core.dll";
+      var core = @"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.Core.dll"; //TODO will this work on 32 bit systems?
       var numericsRef = @"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NetFramework\v4.5.2\System.Numerics.dll";
-      var immutableRef = @"C:\Users\Duncan\Dissertation\Quicky\Source\packages\System.Collections.Immutable.1.3.0\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll";
-      var quicky = @"C:\Users\Duncan\Dissertation\Quicky\Binaries\Quicky.dll";
+      var immutableRef = Directory.GetParent(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).ToString()) + @"\Source\packages\System.Collections.Immutable.1.3.1\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll";
+      var quicky = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory) + @"\Quicky.dll";
       return new[] { system, core, numericsRef, immutableRef, quicky };
     }
+   
 
     public void PerformTesting() {
       foreach (var module in _dafnyProgram.Modules()) {
