@@ -2,12 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using Microsoft.Boogie;
-using Microsoft.Dafny.Tacny;
-using Formal = Microsoft.Dafny.Formal;
-using Type = Microsoft.Dafny.Type;
-using Microsoft.Dafny;
 namespace Microsoft.Dafny.Tacny.Language {
   class Match : TacticFrameCtrl {
     public override string Signature => "tmatch";
@@ -55,6 +50,9 @@ namespace Microsoft.Dafny.Tacny.Language {
     public Match(){
     }
 
+    public override bool MatchStmt(Statement stmt){
+      return stmt is TacnyCasesBlockStmt;
+    }
 
     public override bool EvalTerminated(List<List<Statement>> raw){
       Contract.Requires(raw != null);

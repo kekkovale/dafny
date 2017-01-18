@@ -8,16 +8,11 @@ namespace Microsoft.Dafny.Tacny.Language{
     public abstract bool IsPartial { get; }
     public abstract string Signature { get; }
 
+    public abstract bool MatchStmt(Statement stmt);
     public abstract IEnumerable<ProofState> EvalStep(Statement statement, ProofState state0);
     public abstract IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0);
     public abstract bool EvalTerminated(List<List<Statement>> raw);
     public abstract List<Statement> Assemble(List<List<Statement>> raw);
-
-
-    public static bool IsFlowControl(Statement stmt){
-      return stmt is IfStmt || stmt is WhileStmt || stmt is TacnyCasesBlockStmt || stmt is AlternativeStmt;
-    }
-
 
     public static bool IsFlowControlFrame(ProofState state){
       var typ = state.GetCurFrameTyp();
@@ -31,7 +26,13 @@ namespace Microsoft.Dafny.Tacny.Language{
       public override string Signature => "default";
       public override bool IsPartial => false;
 
-      public override IEnumerable<ProofState> EvalStep(Statement statement, ProofState state0){
+    public override bool MatchStmt(Statement stmt){
+      /* the default one always returns false, as we don't need this to judge if a stmt belongs to this type.
+       * One stmt would be considered as the default one when all other matches fail. */
+      return false;
+    }
+
+    public override IEnumerable<ProofState> EvalStep(Statement statement, ProofState state0){
       return Interpreter.EvalStmt(statement, state0);
     }
 

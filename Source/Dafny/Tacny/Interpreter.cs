@@ -277,18 +277,21 @@ namespace Microsoft.Dafny.Tacny {
           enumerable = EvalSuchThatStmt((AssignSuchThatStmt)stmt, state);
         } else if(stmt is PredicateStmt) {
           enumerable = EvalPredicateStmt((PredicateStmt)stmt, state);
-        } else if(TacticFrameCtrl.IsFlowControl(stmt)) {
-          if(stmt is TacnyCasesBlockStmt) {
-            enumerable = new Match().EvalInit(stmt, state);
-          }
-          else if (OrChoiceStmt.IsNonDeterministic(stmt))
-          {
-            enumerable = new OrChoiceStmt().EvalInit(stmt, state);
-          }
-          //TODO: to implement if and while control flow
         } else {
-          enumerable = DefaultAction(stmt, state);
+        var flowctrls =
+           Assembly.GetAssembly(typeof(Language.TacticFrameCtrl))
+             .GetTypes()
+             .Where(t => t.IsSubclassOf(typeof(Language.TacticFrameCtrl)));
+        foreach(var ctrl in flowctrls) {
+          var porjInst = Activator.CreateInstance(ctrl) as Language.TacticFrameCtrl;
+          if(porjInst?.MatchStmt(stmt) == true) {
+            //TODO: validate input countx
+            enumerable = porjInst.EvalInit(stmt, state);
+          }
         }
+        if (enumerable == null)
+          enumerable = DefaultAction(stmt, state);
+      }
         return enumerable;
     }
       
