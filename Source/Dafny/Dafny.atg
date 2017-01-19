@@ -2291,8 +2291,8 @@ AlternativeBlockCase<.bool allowExistentialGuards, out GuardedAlternative alt.>
   ( IF(allowExistentialGuards && IsExistentialGuard())
     ExistentialGuard<out e, false >  (. isExistentialGuard = true; .)  // NB: don't allow lambda here
   | Expression<out e, true, false> // NB: don't allow lambda here
-  | "*"                             (. e = null; .) /* TACTICS: this is added to allow non-deterministic choices for tactics: not tested elsewhere
-                                                         TODO: could guard it so only support for tactic mode. Change to e = new WildcardExpr(t); ??? */
+  | "*"                             (. e = new WildcardExpr(t); .) /* TACTICS: this is added to allow non-deterministic choices for tactics: not tested elsewhere
+                                                         TODO: was null, but could error so changed itcould guard it so only support for tactic mode. Change to e = new WildcardExpr(t); ??? */
   )
   "=>" 
   (. body = new List<Statement>(); .)

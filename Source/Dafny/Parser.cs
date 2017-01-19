@@ -3730,7 +3730,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			Expression(out e, true, false);
 		} else if (la.kind == 61) {
 			Get();
-			e = null; 
+			e = new WildcardExpr(t); 
 		} else SynErr(237);
 		Expect(31);
 		body = new List<Statement>(); 
