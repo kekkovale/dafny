@@ -597,8 +597,9 @@ namespace Microsoft.Dafny.Tacny {
         _generatedCode = null;
         _rawCodeList = new List<List<Statement>>();
         WhatKind = kind;
-        FrameCtrlInfo = parent.FrameCtrlInfo;
-        FrameCtrlInfo.IsPartial = FrameCtrlInfo.IsPartial || partial;
+        FrameCtrlInfo = new CtrlInfo();
+        FrameCtrlInfo.SearchStrategy = parent.FrameCtrlInfo.SearchStrategy;
+        FrameCtrlInfo.IsPartial = parent.FrameCtrlInfo.IsPartial || partial;
       }
 
       public bool IncCounter() {
@@ -765,21 +766,14 @@ namespace Microsoft.Dafny.Tacny {
       internal bool IsFrameTerminated(bool latestChildFrameRes) {
         bool ret = latestChildFrameRes;
 
-        if(WhatKind == "default")
-          ret = latestChildFrameRes;
-        else {
-          var types =
-            Assembly.GetAssembly(typeof(TacticFrameCtrl))
-              .GetTypes()
-              .Where(t => t.IsSubclassOf(typeof(TacticFrameCtrl)));
-          foreach(var fType in types) {
-            var porjInst = Activator.CreateInstance(fType) as TacticFrameCtrl;
-            if(WhatKind == porjInst?.Signature) {
-              ret = porjInst.EvalTerminated(_rawCodeList);
-            } else {
-              Contract.Assert(false);
-              ret = false;
-            }
+        var types =
+          Assembly.GetAssembly(typeof(TacticFrameCtrl))
+            .GetTypes()
+            .Where(t => t.IsSubclassOf(typeof(TacticFrameCtrl)));
+        foreach(var fType in types) {
+          var porjInst = Activator.CreateInstance(fType) as TacticFrameCtrl;
+          if(WhatKind == porjInst?.Signature) {
+            return porjInst.EvalTerminated(_rawCodeList, latestChildFrameRes);
           }
         }
         return ret;
@@ -789,7 +783,9 @@ namespace Microsoft.Dafny.Tacny {
       /// this will assemble the raw code if the raw code can be verified or parital is allowed
       /// </summary>
       internal void MarkAsEvaluated(bool curFrameProved) {
-        if (curFrameProved || FrameCtrlInfo.IsPartial){
+        // only to assmeble code when the current frame is proved, 
+        // or the current frame is partial and the all the stmts have been evaluated 
+        if (curFrameProved || (FrameCtrlInfo.IsPartial && IsEvaluated)) {
           _generatedCode = AssembleStmts(_rawCodeList, WhatKind);
         }
       }

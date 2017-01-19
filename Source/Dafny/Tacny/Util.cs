@@ -234,8 +234,9 @@ namespace Microsoft.Dafny.Tacny {
       //printer.PrintProgram(prog, false);
       foreach(var stmt in state.GetGeneratedCode()) {
         printer.PrintStatement(stmt, 0);
+        Console.WriteLine("");
       }
-      Console.WriteLine("\n*********************Stmts END*****************");
+      Console.WriteLine("*********************Stmts END*****************");
 #endif
 
       dest_md.CallsTactic = false;

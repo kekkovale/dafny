@@ -6,15 +6,15 @@ using System.Linq;
 namespace Microsoft.Dafny.Tacny.Language {
   class OrChoiceStmt : TacticFrameCtrl{
 
-    public override string Signature => "orchoice";
-    public override bool IsPartial => false;
+    public override string Signature => "orChoice";
+    public override bool IsPartial => true;
 
     // All has to be * if it is non-deterministic - we could change to only one?
     [Pure]
     public override bool MatchStmt(Statement statement) {
       Contract.Requires(statement != null);
-      if(statement is IfStmt) {
-        var ifstmt = statement as IfStmt;
+      if(statement is Dafny.IfStmt) {
+        var ifstmt = statement as Dafny.IfStmt;
         if(ifstmt.Guard == null)
           return true;
         else
@@ -32,6 +32,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
 
+
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0) {
       Contract.Requires(statement != null);
       Contract.Requires(MatchStmt(statement));
@@ -39,8 +40,8 @@ namespace Microsoft.Dafny.Tacny.Language {
 
       List<BlockStmt> choices = new List<BlockStmt>();
 
-      if(statement is IfStmt) {
-        var ifstmt = statement as IfStmt;
+      if(statement is Dafny.IfStmt) {
+        var ifstmt = statement as Dafny.IfStmt;
         if(ifstmt.Thn != null)
           choices.Add(ifstmt.Thn as BlockStmt);
         if(ifstmt.Els != null)
@@ -56,7 +57,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       ProofState state = null;
       foreach(BlockStmt choice in choices) {
         state = state0.Copy();
-        state.AddNewFrame(choice.SubStatements.ToList(), IsPartial);
+        state.AddNewFrame(choice.Body, IsPartial);
         yield return state;
       }
     }
@@ -65,12 +66,12 @@ namespace Microsoft.Dafny.Tacny.Language {
       throw new System.NotImplementedException();
     }
 
-    public override bool EvalTerminated(List<List<Statement>> raw){
-      throw new System.NotImplementedException();
+    public override bool EvalTerminated(List<List<Statement>> raw, bool childFrameRes){
+      return childFrameRes;
     }
 
     public override List<Statement> Assemble(List<List<Statement>> raw){
-      throw new System.NotImplementedException();
+      return raw.SelectMany(x => x).ToList();
     }
   }
 }

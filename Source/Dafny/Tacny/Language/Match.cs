@@ -54,7 +54,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       return stmt is TacnyCasesBlockStmt;
     }
 
-    public override bool EvalTerminated(List<List<Statement>> raw){
+    public override bool EvalTerminated(List<List<Statement>> raw, bool childFrameRes){
       Contract.Requires(raw != null);
       Contract.Requires(raw.Count > 0);
       Contract.Requires(raw[0]!=null && raw[0].Count == 1 && raw[0][0] is MatchStmt);

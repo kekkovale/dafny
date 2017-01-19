@@ -456,17 +456,23 @@ namespace Microsoft.Dafny.Tacny {
               yield break;
           }
         }
-      } else if(expr is DisplayExpression) {
-        var dexpr = (DisplayExpression)expr;
-        if(dexpr.Elements.Count == 0) {
+      } else if (expr is DisplayExpression){
+        var dexpr = (DisplayExpression) expr;
+        if (dexpr.Elements.Count == 0){
           yield return dexpr.Copy();
-        } else {
-          foreach(var item in EvalDisplayExpression(state, dexpr)) {
+        }
+        else{
+          foreach (var item in EvalDisplayExpression(state, dexpr)){
             yield return item;
           }
 
         }
-      } else { yield return expr; }
+      }
+      else{
+        var expr0 = expr.Copy();
+         new Resolver(state.GetDafnyProgram()).ResolveExpression(expr0, null);
+        yield return expr0;
+      }
     }
 
 
