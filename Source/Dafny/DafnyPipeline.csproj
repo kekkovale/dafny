@@ -184,7 +184,7 @@
     <Compile Include="Tacny\Language\TacticFrameCtrl.cs" />
     <Compile Include="Tacny\Interpreter.cs" />
     <Compile Include="Tacny\Language\ForallStmt.cs" />
-    <Compile Include="Tacny\Language\IfStmt.cs" />
+    <Compile Include="Tacny\Language\IfChoiceStmt.cs" />
     <Compile Include="Tacny\Language\Match.cs" />
     <Compile Include="Tacny\Language\OrChoiceStmt.cs" />
     <Compile Include="Tacny\ProofState.cs" />
