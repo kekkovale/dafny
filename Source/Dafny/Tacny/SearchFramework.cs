@@ -38,18 +38,13 @@ namespace Microsoft.Dafny.Tacny {
     }
   }
 
-  public class BaseSearchStrategy : ISearch {
+  public class BaseSearchStrategy : ISearch{
     protected Strategy ActiveStrategy;
-    protected static bool Verify;
-    protected const int SolutionCounter = 1;
-    public BaseSearchStrategy(Strategy strategy, bool verify) {
-      Verify = verify;
+    public BaseSearchStrategy(Strategy strategy) {
       ActiveStrategy = strategy;
-
     }
 
     protected BaseSearchStrategy() {
-
     }
     
     public IEnumerable<ProofState> Search(ProofState state, ErrorReporterDelegate er) {
@@ -146,7 +141,7 @@ namespace Microsoft.Dafny.Tacny {
     internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate er){
 
       var queue = new Queue<IEnumerator<ProofState>>();
-      queue.Enqueue(Interpreter.EvalStep(rootState).GetEnumerator());
+      queue.Enqueue(rootState.EvalStep().GetEnumerator());
 
 
       IEnumerator<ProofState> enumerator = Enumerable.Empty<ProofState>().GetEnumerator();
@@ -195,7 +190,7 @@ namespace Microsoft.Dafny.Tacny {
        * otherwise, continue to evaluate the next stmt
        */
         if(!proofState.IsEvaluated()) {
-          queue.Enqueue(Interpreter.EvalStep(proofState).GetEnumerator());
+          queue.Enqueue(proofState.EvalStep().GetEnumerator());
         }
       }
     }
@@ -205,7 +200,7 @@ namespace Microsoft.Dafny.Tacny {
   
     internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate er){
       var stack = new Stack<IEnumerator<ProofState>>();
-      stack.Push(Interpreter.EvalStep(rootState).GetEnumerator());
+      stack.Push(rootState.EvalStep().GetEnumerator());
       IEnumerator<ProofState> enumerator = Enumerable.Empty<ProofState>().GetEnumerator();
 
       while(stack.Count > 0) {
@@ -253,7 +248,7 @@ namespace Microsoft.Dafny.Tacny {
           //push the current one to the stack
           stack.Push(enumerator);
           //move to the next stmt
-          enumerator = (Interpreter.EvalStep(proofState).GetEnumerator());
+          enumerator = (proofState.EvalStep().GetEnumerator());
         }
       }
     }

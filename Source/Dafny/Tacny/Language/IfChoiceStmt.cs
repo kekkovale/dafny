@@ -9,8 +9,6 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny.Tacny.Language {
   public class IfChoiceStmt : TacticFrameCtrl{
-    public override bool IsPartial => true;
-    public override string Signature => "ifChoice";
 
     public override bool MatchStmt(Statement stmt){
       if (stmt is Dafny.IfStmt || stmt is Dafny.AlternativeStmt)
@@ -18,8 +16,9 @@ namespace Microsoft.Dafny.Tacny.Language {
       return false;
     }
 
-    public override IEnumerable<ProofState> EvalStep(Statement statement, ProofState state0){
-      throw new NotImplementedException();
+    public override IEnumerable<ProofState> EvalStep(ProofState state0){
+      var statement = GetStmt();
+      return Interpreter.EvalStmt(statement, state0);
     }
 
     private List<Tuple<Expression, List<Statement>>> GetGuadBodyList(Statement stmt, List<Tuple<Expression, List<Statement>>> resList){
@@ -53,7 +52,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
-
+      bool partial = true || state0.IsCurFramePartial();
       List < Tuple < Expression, List < Statement >>>  guardBodyList = new List<Tuple<Expression, List<Statement>>>();
 
       int counter = 0;
@@ -65,7 +64,11 @@ namespace Microsoft.Dafny.Tacny.Language {
         {
           counter++;
           var state = state0.Copy();
-          state.AddNewFrame(item.Item2, IsPartial);
+          var ifChoice = this.Copy();
+          ifChoice.InitBasicFrameCtrl(item.Item2, null);
+          ifChoice.IsPartial = partial;
+          state.AddNewFrame(ifChoice);
+
           yield return state;
         } else {
           var guardExpressionTree = ExpressionTree.ExpressionToTree(item.Item1);
@@ -73,7 +76,10 @@ namespace Microsoft.Dafny.Tacny.Language {
             if (ExpressionTree.EvaluateEqualityExpression(res, state0)){
               counter ++;
               var state = state0.Copy();
-              state.AddNewFrame(item.Item2, IsPartial);
+              var ifChoice = this.Copy();
+              ifChoice.InitBasicFrameCtrl(item.Item2, null);
+              ifChoice.IsPartial = partial;
+              state.AddNewFrame(ifChoice);
               yield return state;
             }
           }
@@ -85,12 +91,12 @@ namespace Microsoft.Dafny.Tacny.Language {
         yield return state0.Copy();
     }
 
-    public override bool EvalTerminated(List<List<Statement>> raw, bool childFrameRes){
+    public override bool EvalTerminated(bool childFrameRes){
       //terminate as long as one branch is successful
-      return raw.Count == 1;
+      return _rawCodeList.Count == 1;
     }
 
-    public override List<Statement> Assemble(List<List<Statement>> raw){
+    public override List<Statement> AssembleStmts(List<List<Statement>> raw){
       return raw.SelectMany(x => x).ToList();
     }
   }

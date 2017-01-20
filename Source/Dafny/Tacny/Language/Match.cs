@@ -1,12 +1,13 @@
-﻿using System;
+﻿//YUHUI: this implemntation is over complicated, use raw[0][0] implicitly as staus data, need to simplify
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
 namespace Microsoft.Dafny.Tacny.Language {
   class Match : TacticFrameCtrl {
-    public override string Signature => "tmatch";
-    public override bool IsPartial => false;
+
     private Dictionary<string, Type> _ctorTypes;
 
     /*
@@ -54,18 +55,14 @@ namespace Microsoft.Dafny.Tacny.Language {
       return stmt is TacnyCasesBlockStmt;
     }
 
-    public override bool EvalTerminated(List<List<Statement>> raw, bool childFrameRes){
-      Contract.Requires(raw != null);
-      Contract.Requires(raw.Count > 0);
-      Contract.Requires(raw[0]!=null && raw[0].Count == 1 && raw[0][0] is MatchStmt);
-
+    public override bool EvalTerminated(bool childFrameRes){
       //raw[0] is the match case stmt with assume false for each case
       //raw[1..] the actual code to bt inserted in the case statement
 
-       return (raw[0][0] as MatchStmt).Cases.Count + 1== raw.Count;
+       return (_rawCodeList[0][0] as MatchStmt).Cases.Count + 1== _rawCodeList.Count;
     }
 
-     public override List<Statement> Assemble(List<List<Statement>> raw){
+     public override List<Statement> AssembleStmts(List<List<Statement>> raw){
       //Contract.Requires(IsTerminated(raw));
 
       var matchStmt = raw[0][0] as MatchStmt;
@@ -86,20 +83,18 @@ namespace Microsoft.Dafny.Tacny.Language {
       return raw.Count - 1;
 
     }
-    override public IEnumerable<ProofState> EvalStep(Statement statement, ProofState state0){
-      Contract.Requires(statement != null);
-      Contract.Requires(statement is TacnyCasesBlockStmt);
+    override public IEnumerable<ProofState> EvalStep(ProofState state0){
       var state = state0.Copy();
 
-      var stmt = statement as TacnyCasesBlockStmt;
-      var raw = state.GetGeneratedaRawCode();
+      var stmt = GetStmt() as TacnyCasesBlockStmt;
+      var framectrl = new DefaultTacticFrameCtrl();
+      framectrl.InitBasicFrameCtrl(stmt.Body.Body, null);
+      framectrl.IsPartial = state0.IsCurFramePartial();
+      state.AddNewFrame(framectrl);
 
+      var matchStmt = _rawCodeList[0][0] as MatchStmt;
 
-      state.AddNewFrame(stmt.Body.Body, IsPartial);
-
-      var matchStmt = raw[0][0] as MatchStmt;
-
-      var idx = GetNthCaseIdx(raw);
+      var idx = GetNthCaseIdx(_rawCodeList);
       foreach(var tmp in matchStmt.Cases[idx].CasePatterns) {
         state.AddDafnyVar(tmp.Var.Name, new ProofState.VariableData { Variable = tmp.Var, Type = tmp.Var.Type });
       }
@@ -112,6 +107,8 @@ namespace Microsoft.Dafny.Tacny.Language {
     override public IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
       Contract.Requires(statement != null);
       Contract.Requires(statement is TacnyCasesBlockStmt);
+      var partial = false || state0.IsCurFramePartial();
+
       var state = state0.Copy();
 
       var stmt = statement as TacnyCasesBlockStmt;
@@ -155,13 +152,19 @@ namespace Microsoft.Dafny.Tacny.Language {
         dummystmt.Add(stmt);
       }
 
-      state.AddNewFrame(dummystmt, IsPartial, Signature);
+      var matchCtrl = this.Copy();
+      matchCtrl.InitBasicFrameCtrl(dummystmt, null);
+      state.AddNewFrame(matchCtrl);
+
       //add raw[0]
       state.AddStatement(matchStmt);
 
       //push a frame for the first case
       //TODO: add case variable to frame, so that variable () can refer to it
-      state.AddNewFrame(stmt.Body.Body, IsPartial);
+      var caseCtrl = new DefaultTacticFrameCtrl();
+      caseCtrl.InitBasicFrameCtrl(stmt.Body.Body, null);
+      caseCtrl.IsPartial = partial;
+      state.AddNewFrame(caseCtrl);
 
       foreach(var tmp in matchStmt.Cases[0].CasePatterns) {
         state.AddDafnyVar(tmp.Var.Name, new ProofState.VariableData { Variable = tmp.Var, Type = tmp.Var.Type });
