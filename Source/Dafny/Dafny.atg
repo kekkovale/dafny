@@ -1893,7 +1893,7 @@ TacticStmt<out Statement/*!*/ s>
     | "match"       (.x = t;.)    TacnyCasesBlockStmt<out s, x> 
     | "invariant"   (.x = t;.)    TacticInvariantStmt<out s, x>  
     | "assert"      (.x = t;.)    TacticAssertStmt<out s, x> 
-	| BlockStmt<out bs, out bodyStart, out bodyEnd>  (.s = new TacnyBasicBlockStmt(x,bodyEnd,bs); .) 
+	| TacticBlockStmt<out s,x>
 	| "forall" (.x = t;.) TacticForallStmt<out s,x>
     )
     | "tvar"        (.x = t;.)    TacticVarDeclStmt<out s, x>        
@@ -1903,6 +1903,19 @@ TacticStmt<out Statement/*!*/ s>
     | "tassert"     (.x = t;.)    TacticAssertStmt<out s, x>
   )  
 . 
+
+TacticBlockStmt<out Statement/*!*/ s, IToken x, bool isObject = false>
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
+     Expression e = dummyExpr; Attributes attrs = null;
+   BlockStmt/*!*/ bs; IToken/*!*/ bodyStart; IToken/*!*/ bodyEnd; 
+   IToken/*!*/ st;
+  .)
+  (. st = t; .)
+  { IF(IsAttribute()) Attribute<ref attrs> } 
+  BlockStmt<out bs, out bodyStart, out bodyEnd>
+  (. s = new TacnyBasicBlockStmt(st,bodyEnd,attrs,bs); .)
+  .
+
 
 TacticForallStmt<out Statement/*!*/ s, IToken x, bool isObject = false>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
@@ -2292,7 +2305,7 @@ AlternativeBlockCase<.bool allowExistentialGuards, out GuardedAlternative alt.>
     ExistentialGuard<out e, false >  (. isExistentialGuard = true; .)  // NB: don't allow lambda here
   | Expression<out e, true, false> // NB: don't allow lambda here
   | "*"                             (. e = new WildcardExpr(t); .) /* TACTICS: this is added to allow non-deterministic choices for tactics: not tested elsewhere
-                                                         TODO: was null, but could error so changed itcould guard it so only support for tactic mode. Change to e = new WildcardExpr(t); ??? */
+                                                         TODO: was null, but could error so changed it could guard it so only support for tactic mode. Change to e = new WildcardExpr(t); ??? */
   )
   "=>" 
   (. body = new List<Statement>(); .)
