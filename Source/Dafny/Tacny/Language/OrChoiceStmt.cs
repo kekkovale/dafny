@@ -6,9 +6,6 @@ using System.Linq;
 namespace Microsoft.Dafny.Tacny.Language {
   class OrChoiceStmt : TacticFrameCtrl{
 
-    public override string Signature => "orChoice";
-    public override bool IsPartial => true;
-
     // All has to be * if it is non-deterministic - we could change to only one?
     [Pure]
     public override bool MatchStmt(Statement statement) {
@@ -39,6 +36,8 @@ namespace Microsoft.Dafny.Tacny.Language {
       Contract.Requires(MatchStmt(statement));
       //Contract.Requires(statement is TacnyCasesBlockStmt);
 
+      bool partial = true || state0.IsCurFramePartial();
+
       List<BlockStmt> choices = new List<BlockStmt>();
 
       if(statement is Dafny.IfStmt) {
@@ -58,20 +57,24 @@ namespace Microsoft.Dafny.Tacny.Language {
       ProofState state = null;
       foreach(BlockStmt choice in choices) {
         state = state0.Copy();
-        state.AddNewFrame(choice.Body, IsPartial);
+        var orChoice = this.Copy();
+        orChoice.InitBasicFrameCtrl(choice.Body, null);
+        orChoice.IsPartial = partial;
+        state.AddNewFrame(orChoice);
         yield return state;
       }
     }
 
-    public override IEnumerable<ProofState> EvalStep(Statement statement, ProofState state0){
-      throw new System.NotImplementedException();
+    public override IEnumerable<ProofState> EvalStep(ProofState state0){
+      var statement = GetStmt();
+      return Interpreter.EvalStmt(statement, state0);
     }
 
-    public override bool EvalTerminated(List<List<Statement>> raw, bool childFrameRes){
-      return childFrameRes;
+    public override bool EvalTerminated(bool childFrameRes){
+      return _rawCodeList.Count == 1;
     }
 
-    public override List<Statement> Assemble(List<List<Statement>> raw){
+    public override List<Statement> AssembleStmts(List<List<Statement>> raw){
       return raw.SelectMany(x => x).ToList();
     }
   }

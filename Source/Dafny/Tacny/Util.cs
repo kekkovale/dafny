@@ -203,7 +203,7 @@ namespace Microsoft.Dafny.Tacny {
       r.ResolveProgram(prog);
       //get the generated code
       var results = new Dictionary<UpdateStmt, List<Statement>>();
-      results.Add(state.TacticApplication, state.GetGeneratedCode().Copy());
+      results.Add(state.TopLevelTacApp, state.GetGeneratedCode().Copy());
       var body = Util.InsertCode(state, results);
       // find the membcl in the resoved prog
       Method dest_md = null;

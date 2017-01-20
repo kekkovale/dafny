@@ -154,7 +154,8 @@ namespace Microsoft.Dafny.Tacny {
           var us = stmt as UpdateStmt;
           if(_state.IsTacticCall(us)) {
             var list = StackToDict(_frame);
-            var result = EvalTactic(_state, list, us);
+            // this is a top level tactic call
+            var result = EvalTopLevelTactic(_state, list, us);
             if(result != null)
               _resultList.Add(us.Copy(), result.GetGeneratedCode().Copy());
             else {// when no results, just return a empty stmt list
@@ -191,57 +192,18 @@ namespace Microsoft.Dafny.Tacny {
       return result;
     }
 
-    public static bool ParsePartialAttribute(Attributes attr) {
-      Contract.Requires(attr != null);
-      if(attr.Name == "partial")
-        return true;
-
-      return attr.Prev != null && ParsePartialAttribute(attr.Prev);
-    }
-
-    public static bool IsPartial(ProofState state, UpdateStmt tacticApplication) {
-      //still need to check the localtion of the application, is it the last call ? is it a neswted call ?
-      if(state.FrameCtrlInfo.IsPartial) {
-        return true;
-      }
-
-      return tacticApplication.Rhss[0].Attributes != null && ParsePartialAttribute(tacticApplication.Rhss[0].Attributes);
-    }
-
-    public static ProofState EvalTactic(ProofState state, Dictionary<IVariable, Type> variables,
+    public static ProofState EvalTopLevelTactic(ProofState state, Dictionary<IVariable, Type> variables,
       UpdateStmt tacticApplication) {
       Contract.Requires<ArgumentNullException>(tcce.NonNull(variables));
       Contract.Requires<ArgumentNullException>(tcce.NonNull(tacticApplication));
       Contract.Requires<ArgumentNullException>(state != null, "state");
       state.InitState(tacticApplication, variables);
 
-      var search = new BaseSearchStrategy(state.FrameCtrlInfo.SearchStrategy, !IsPartial(state, tacticApplication));
+      var search = new BaseSearchStrategy(state.GetSearchStrategy());
       var ret = search.Search(state, _errorReporterDelegate).FirstOrDefault();
       return ret;
     }
 
-    public static IEnumerable<ProofState> EvalStep(ProofState state){
-      Contract.Requires<ArgumentNullException>(state != null, "state");
-
-      IEnumerable<ProofState> enumerable = null;
-      var stmt = state.GetStmt();
-
-      // get the type of the current frame
-      var type = state.GetCurFrameTyp();
-
-      //create the object of frame control with the right type to run EvalStep
-      var types =
-             Assembly.GetAssembly(typeof(TacticFrameCtrl))
-               .GetTypes()
-               .Where(t => t.IsSubclassOf(typeof(TacticFrameCtrl)));
-      foreach(var fType in types) {
-        var porjInst = Activator.CreateInstance(fType) as TacticFrameCtrl;
-        if(type == porjInst?.Signature) {
-          enumerable = porjInst?.EvalStep(stmt, state);
-        }
-      }
-      return enumerable;
-    }
 
     public static IEnumerable<ProofState> EvalStmt(Statement stmt, ProofState state) {
       Contract.Requires<ArgumentNullException>(state != null, "state");
@@ -256,7 +218,7 @@ namespace Microsoft.Dafny.Tacny {
           } else if(state.IsArgumentApplication(us)) {
             //TODO: argument application ??
           } else if(state.IsTacticCall(us)){
-            enumerable = EvalTacApp(us, state);
+            enumerable = EvalNestedTacApp(us, state);
           } else {
             // apply atomic
             string sig = Util.GetSignature(us);
@@ -311,9 +273,10 @@ namespace Microsoft.Dafny.Tacny {
        }
    */
 
-    public static IEnumerable<ProofState> EvalTacApp(UpdateStmt stmt, ProofState state){
+    public static IEnumerable<ProofState> EvalNestedTacApp(UpdateStmt stmt, ProofState state){
       var state0 = state.Copy();
-      state0.InitTacFrame(stmt, true);
+      state0.InitNestTacFrame(stmt);
+
       yield return state0;
     }
 
