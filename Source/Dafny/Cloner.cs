@@ -644,6 +644,12 @@ namespace Microsoft.Dafny
         var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
         r = new TacticVarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
       
+      } else if (stmt is TacnyBasicBlockStmt) {
+         var s = (TacnyBasicBlockStmt) stmt;
+         r = new TacnyBasicBlockStmt(Tok(s.Tok), Tok(s.EndTok), CloneAttributes(s.Attributes),CloneBlockStmt((BlockStmt)s.Body));
+      } else if (stmt is TacnyForallStmt) {
+                var s = (TacnyForallStmt)stmt;
+                r = new TacnyForallStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Spec), CloneBlockStmt((BlockStmt)s.Body), CloneAttributes(s.Attributes));
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }

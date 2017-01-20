@@ -3327,8 +3327,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				break;
 			}
 			case 50: {
-				BlockStmt(out bs, out bodyStart, out bodyEnd);
-				s = new TacnyBasicBlockStmt(x,bodyEnd,bs); 
+				TacticBlockStmt(out s,x);
 				break;
 			}
 			case 105: {
@@ -3508,6 +3507,20 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Expression(out e, false, true);
 		Expect(30);
 		s = new TacticAssertStmt(x, t, e, attrs, isObject); 
+	}
+
+	void TacticBlockStmt(out Statement/*!*/ s, IToken x, bool isObject = false) {
+		Contract.Ensures(Contract.ValueAtReturn(out s) != null);
+		Expression e = dummyExpr; Attributes attrs = null;
+		BlockStmt/*!*/ bs; IToken/*!*/ bodyStart; IToken/*!*/ bodyEnd; 
+		IToken/*!*/ st;
+		
+		st = t; 
+		while (IsAttribute()) {
+			Attribute(ref attrs);
+		}
+		BlockStmt(out bs, out bodyStart, out bodyEnd);
+		s = new TacnyBasicBlockStmt(st,bodyEnd,attrs,bs); 
 	}
 
 	void TacticForallStmt(out Statement/*!*/ s, IToken x, bool isObject = false) {
