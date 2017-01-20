@@ -22,8 +22,9 @@ namespace Microsoft.Dafny.Tacny.Language {
       }
       if(statement is AlternativeStmt) {
         var ifstmt = statement as AlternativeStmt;
+        // todo: should we allow just a single wildcard (*) or require that all are as we do now?
         foreach(GuardedAlternative a in ifstmt.Alternatives) {
-          if(a.Guard != null)
+          if(!(a.Guard is WildcardExpr))
             return false;
         }
         return true;
