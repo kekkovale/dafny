@@ -229,7 +229,7 @@ namespace Microsoft.Dafny.Tacny {
       }
 
 #if _TACTIC_DEBUG
-      Console.WriteLine("*********************Verifying Tacny Generated Stmts*****************");
+      Console.WriteLine("*********************Tacny: " + dest_md + "*****************");
       var printer = new Printer(Console.Out);
       //printer.PrintProgram(prog, false);
       foreach(var stmt in state.GetGeneratedCode()) {

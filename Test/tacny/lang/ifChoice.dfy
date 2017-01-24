@@ -11,6 +11,13 @@ lemma iftest2()
    tacElse();
 }
 
+lemma Alttest()
+ ensures false
+{
+   tacAlt();
+}
+
+
 
 
 tactic tacIf()
@@ -28,10 +35,12 @@ tactic tacElse()
     assume false;
   }
 }
-/*
+
 tactic tacAlt()
 {
   if {
+    case 1 > 2 => assert true;
+	case 2 > 1=> assert true;
   }
 }
-*/
+
