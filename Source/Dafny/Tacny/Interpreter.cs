@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.Tacny {
 
     /// <param name="r"></param>
     /// <returns></returns>
-    public static MemberDecl FindAndApplyTactic(Program program, MemberDecl target, ErrorReporterDelegate erd, Resolver r = null) {
+    public static MemberDecl ResolveMethod(Program program, MemberDecl target, ErrorReporterDelegate erd, Resolver r = null) {
       Contract.Requires(program != null);
       Contract.Requires(target != null);
       Stopwatch watch = new Stopwatch();
@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.Tacny {
       _i = new Interpreter(program);
       _errorReporterDelegate = erd;
       Type.BackupScopes();
-      var result = _i.EvalTacticApplication(target, r);
+      var result = _i.ResolveAndUnfoldTactic(target, r);
       Type.RestoreScopes();
       var p = new Printer(Console.Out);
       p.PrintMembers(new List<MemberDecl>() { result }, 0, "");
@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.Tacny {
     }
 
 
-    private MemberDecl EvalTacticApplication(MemberDecl target, Resolver r) {
+    private MemberDecl ResolveAndUnfoldTactic(MemberDecl target, Resolver r) {
       Contract.Requires(tcce.NonNull(target));
       // initialize new stack for variables
       _frame = new Stack<Dictionary<IVariable, Type>>();
@@ -101,7 +101,7 @@ namespace Microsoft.Dafny.Tacny {
 
         var pre_res = _resultList.Keys.Copy();
 
-        SearchBlockStmt(method.Body);
+        ResolveBlockStmt(method.Body);
         dict = _frame.Pop();
         // sanity check
         Contract.Assert(_frame.Count == 0);
@@ -126,7 +126,7 @@ namespace Microsoft.Dafny.Tacny {
     }
 
     // Find tactic application and resolve it
-    private void SearchBlockStmt(BlockStmt body) {
+    private void ResolveBlockStmt(BlockStmt body) {
       Contract.Requires(tcce.NonNull(body));
 
       // BaseSearchStrategy.ResetProofList();
@@ -145,11 +145,11 @@ namespace Microsoft.Dafny.Tacny {
           }
         } else if(stmt is IfStmt) {
           var ifStmt = stmt as IfStmt;
-          SearchIfStmt(ifStmt);
+          ResolveIfStmt(ifStmt);
 
         } else if(stmt is WhileStmt) {
           var whileStmt = stmt as WhileStmt;
-          SearchBlockStmt(whileStmt.Body);
+          ResolveBlockStmt(whileStmt.Body);
         } else if(stmt is UpdateStmt) {
           var us = stmt as UpdateStmt;
           if(_state.IsTacticCall(us)) {
@@ -169,16 +169,16 @@ namespace Microsoft.Dafny.Tacny {
       _frame.Pop();
     }
 
-    private void SearchIfStmt(IfStmt ifStmt) {
+    private void ResolveIfStmt(IfStmt ifStmt) {
       Contract.Requires(tcce.NonNull(ifStmt));
-      SearchBlockStmt(ifStmt.Thn);
+      ResolveBlockStmt(ifStmt.Thn);
       if(ifStmt.Els == null)
         return;
       var els = ifStmt.Els as BlockStmt;
       if(els != null) {
-        SearchBlockStmt(els);
+        ResolveBlockStmt(els);
       } else if(ifStmt.Els is IfStmt) {
-        SearchIfStmt((IfStmt)ifStmt.Els);
+        ResolveIfStmt((IfStmt)ifStmt.Els);
       }
     }
 
@@ -209,17 +209,30 @@ namespace Microsoft.Dafny.Tacny {
       Contract.Requires<ArgumentNullException>(state != null, "state");
 
       IEnumerable<ProofState> enumerable = null;
-        if(stmt is TacticVarDeclStmt) {
+
+      var flowctrls = Assembly.GetAssembly(typeof(Language.TacticFrameCtrl))
+     .GetTypes().Where(t => t.IsSubclassOf(typeof(Language.TacticFrameCtrl)));
+      foreach(var ctrl in flowctrls) {
+        var porjInst = Activator.CreateInstance(ctrl) as Language.TacticFrameCtrl;
+        if(porjInst?.MatchStmt(stmt, state) == true) {
+          //TODO: validate input countx
+          enumerable = porjInst.EvalInit(stmt, state);
+        }
+      }
+      // no frame control is triggered
+      if (enumerable == null){
+        if (stmt is TacticVarDeclStmt){
           enumerable = RegisterVariable(stmt as TacticVarDeclStmt, state);
-        } else if(stmt is UpdateStmt) {
+        }
+        else if (stmt is UpdateStmt){
           var us = stmt as UpdateStmt;
-          if(state.IsLocalAssignment(us)) {
+          if (state.IsLocalAssignment(us)){
             enumerable = UpdateLocalValue(us, state);
-          } else if(state.IsArgumentApplication(us)) {
+          }
+          else if (state.IsArgumentApplication(us)){
             //TODO: argument application ??
-          } else if(state.IsTacticCall(us)){
-            enumerable = EvalNestedTacApp(us, state);
-          } else {
+          }
+          else{
             // apply atomic
             string sig = Util.GetSignature(us);
             //Firstly, check if this is a projection function
@@ -227,57 +240,26 @@ namespace Microsoft.Dafny.Tacny {
               Assembly.GetAssembly(typeof(Atomic.Atomic))
                 .GetTypes()
                 .Where(t => t.IsSubclassOf(typeof(Atomic.Atomic)));
-            foreach(var fType in types) {
+            foreach (var fType in types){
               var porjInst = Activator.CreateInstance(fType) as Atomic.Atomic;
-              if(sig == porjInst?.Signature) {
+              if (sig == porjInst?.Signature){
                 //TODO: validate input countx
                 enumerable = porjInst?.Generate(us, state);
               }
             }
           }
-        } else if(stmt is AssignSuchThatStmt) {
-          enumerable = EvalSuchThatStmt((AssignSuchThatStmt)stmt, state);
-        } else if(stmt is PredicateStmt) {
-          enumerable = EvalPredicateStmt((PredicateStmt)stmt, state);
-        } else {
-        var flowctrls =
-           Assembly.GetAssembly(typeof(Language.TacticFrameCtrl))
-             .GetTypes()
-             .Where(t => t.IsSubclassOf(typeof(Language.TacticFrameCtrl)));
-        foreach(var ctrl in flowctrls) {
-          var porjInst = Activator.CreateInstance(ctrl) as Language.TacticFrameCtrl;
-          if(porjInst?.MatchStmt(stmt) == true) {
-            //TODO: validate input countx
-            enumerable = porjInst.EvalInit(stmt, state);
-          }
         }
-        if (enumerable == null)
+        else if (stmt is AssignSuchThatStmt){
+          enumerable = EvalSuchThatStmt((AssignSuchThatStmt) stmt, state);
+        }
+        else if (stmt is PredicateStmt){
+          enumerable = EvalPredicateStmt((PredicateStmt) stmt, state);
+        }
+        else{
           enumerable = DefaultAction(stmt, state);
+        }
       }
-        return enumerable;
-    }
-      
-    /*
-       private static IEnumerable<ProofState> ResolveFlowControlStmt(Statement stmt, ProofState state) {
-         Language.FlowControlStmt fcs = null;
-         if(stmt is IfStmt) {
-           //fcs = new Language.IfStmt();
-           //TODO: if statemenet
-         } else if(stmt is WhileStmt) {
-           //TODO: while statemenet
-         } else {
-           Contract.Assert(false);
-           return null;
-         }
-         return fcs.Generate(stmt, state);
-       }
-   */
-
-    public static IEnumerable<ProofState> EvalNestedTacApp(UpdateStmt stmt, ProofState state){
-      var state0 = state.Copy();
-      state0.InitNestTacFrame(stmt);
-
-      yield return state0;
+      return enumerable;
     }
 
     public static IEnumerable<ProofState> EvalPredicateStmt(PredicateStmt predicate, ProofState state) {
@@ -419,21 +401,19 @@ namespace Microsoft.Dafny.Tacny {
               yield break;
           }
         }
-      } else if (expr is DisplayExpression){
-        var dexpr = (DisplayExpression) expr;
-        if (dexpr.Elements.Count == 0){
+      } else if(expr is DisplayExpression) {
+        var dexpr = (DisplayExpression)expr;
+        if(dexpr.Elements.Count == 0) {
           yield return dexpr.Copy();
-        }
-        else{
-          foreach (var item in EvalDisplayExpression(state, dexpr)){
+        } else {
+          foreach(var item in EvalDisplayExpression(state, dexpr)) {
             yield return item;
           }
 
         }
-      }
-      else{
+      } else {
         var expr0 = expr.Copy();
-         new Resolver(state.GetDafnyProgram()).ResolveExpression(expr0, null);
+        new Resolver(state.GetDafnyProgram()).ResolveExpression(expr0, null);
         yield return expr0;
       }
     }

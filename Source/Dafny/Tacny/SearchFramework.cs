@@ -8,8 +8,7 @@ using Microsoft.Boogie;
 
 
 namespace Microsoft.Dafny.Tacny {
-
-
+  
   [ContractClass(typeof(BaseSearchContract))]
   public interface ISearch {
     IEnumerable<ProofState> Search(ProofState state, ErrorReporterDelegate er);
@@ -29,6 +28,7 @@ namespace Microsoft.Dafny.Tacny {
     Partial, //TODO: partial when tactic and dafny succeed, but boogie fails
   }
 
+
   [ContractClassFor(typeof(ISearch))]
   // Validate the input before execution
   public abstract class BaseSearchContract : ISearch {
@@ -39,6 +39,8 @@ namespace Microsoft.Dafny.Tacny {
   }
 
   public class BaseSearchStrategy : ISearch{
+    public const int BACKTRACK_COUNT_UNDEFINED = -1;
+
     protected Strategy ActiveStrategy;
     public BaseSearchStrategy(Strategy strategy) {
       ActiveStrategy = strategy;
@@ -196,30 +198,43 @@ namespace Microsoft.Dafny.Tacny {
     }
   }
 
+
+
+
   internal class DepthFirstSeach : BaseSearchStrategy {
   
     internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate er){
-      var stack = new Stack<IEnumerator<ProofState>>();
+      var stack = new Stack<IEnumerator<ProofState>>(); // proof state and  backtrack count
+
       stack.Push(rootState.EvalStep().GetEnumerator());
+
       IEnumerator<ProofState> enumerator = Enumerable.Empty<ProofState>().GetEnumerator();
 
+      List<int> backtackList = null;
+
       while(stack.Count > 0) {
-        if(!enumerator.MoveNext()) {
+        if (!enumerator.MoveNext()){
           enumerator = stack.Pop();
-          if(!enumerator.MoveNext())
+          if (!enumerator.MoveNext())
             continue;
         }
         var proofState = enumerator.Current;
+        //set the backtrack list back to the frame, this will udpate the backtrack count for the parent one.
+        if (backtackList != null)
+          proofState.SetBackTrackCount(backtackList);
+        backtackList = proofState.GetBackTrackCount();
+
         //check if any new added coded reuqires to call verifier, or reach the last line of code
         if(proofState.IfVerify || proofState.IsEvaluated()) {
           proofState.IfVerify = false;
-          switch(VerifyState(proofState, er)) {
+          switch(VerifyState(proofState, er)){
             case VerifyResult.Verified:
               proofState.MarkCurFrameAsTerminated(true);
-              if(proofState.IsTerminated()) {
+              if (proofState.IsTerminated()){
                 yield return proofState;
                 yield break;
-             }
+              }
+
               //stack.Push(enumerator);
               //enumerator = (Interpreter.EvalStep(proofState).GetEnumerator());
               break;
@@ -227,10 +242,10 @@ namespace Microsoft.Dafny.Tacny {
               if(proofState.IsEvaluated()) {
                 proofState.MarkCurFrameAsTerminated(false);
                 if(proofState.IsTerminated()) {
-                  yield return proofState;
-                  yield break;
+                    yield return proofState;
+                    yield break;
+                  }
                 }
-              }
               break;
             case VerifyResult.Unresolved:
               //discharge current branch if fails to resolve
@@ -240,16 +255,20 @@ namespace Microsoft.Dafny.Tacny {
           }
         }
         /*
-       * when failed, check if this mmethod is evaluated , i.e. all tstmt are evalauted,
-       * if so, dischard this branch and continue with the next one
+       * when failed, check if this method is evaluated , i.e. all tstmt are evalauted,
+       * if so, do nothing will dischard this branch and continue with the next one
        * otherwise, continue to evaluate the next stmt
        */
-        if(!proofState.IsEvaluated()) {
+        if (!proofState.IsEvaluated()){
           //push the current one to the stack
           stack.Push(enumerator);
           //move to the next stmt
           enumerator = (proofState.EvalStep().GetEnumerator());
         }
+        else{
+          backtackList = proofState.GetBackTrackCount(); // update the current bc count to the list
+        }
+
       }
     }
   }

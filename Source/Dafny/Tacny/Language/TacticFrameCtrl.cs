@@ -1,8 +1,8 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Numerics;
 
 namespace Microsoft.Dafny.Tacny.Language{
   public abstract class TacticFrameCtrl{
@@ -13,6 +13,7 @@ namespace Microsoft.Dafny.Tacny.Language{
 
     public Strategy SearchStrategy { get; set; } = Strategy.Dfs;
     public bool IsPartial = false;
+    public int Backtrack = 0;
 
     //a funtion with the right kind will be able to th generated code to List of statment
     protected List<Statement> _generatedCode;
@@ -25,7 +26,7 @@ namespace Microsoft.Dafny.Tacny.Language{
       return _bodyCounter + 1 < Body.Count;
     }
 
-    private void ParseTacticAttributes(Attributes attr) {
+    protected void ParseTacticAttributes(Attributes attr) {
       if (attr == null){
         return;
       }
@@ -43,6 +44,19 @@ namespace Microsoft.Dafny.Tacny.Language{
         case "partial":
           IsPartial = true;
           break;
+        case "backtrack":
+          var arg = attr.Args.FirstOrDefault();
+          if (arg == null)
+            Backtrack = Backtrack + 1;
+          else{
+            try{
+              var input = (arg as LiteralExpr).Value.ToString();
+              Backtrack = Backtrack + Int32.Parse(input);
+            } catch (Exception){
+              Backtrack = Backtrack + 1;
+            }
+          }
+          break;
         default:
           //_reporter.Warning(MessageSource.Tacny, ((MemberDecl)ActiveTactic).tok, $"Unrecognized attribute {attr.Name}");
           break;
@@ -52,7 +66,9 @@ namespace Microsoft.Dafny.Tacny.Language{
         ParseTacticAttributes(attr.Prev);
     }
 
-    public void InitBasicFrameCtrl(List<Statement> body,  Attributes attrs){
+    public void InitBasicFrameCtrl(List<Statement> body,  Attributes attrs, Tactic tactic = null){
+      if(tactic != null)
+        ParseTacticAttributes(tactic.Attributes);
       Body = body;
       ParseTacticAttributes(attrs);
       _generatedCode = null;
@@ -96,7 +112,7 @@ namespace Microsoft.Dafny.Tacny.Language{
       _generatedCode = AssembleStmts(_rawCodeList);
     }
       
-    public abstract bool MatchStmt(Statement stmt); 
+    public abstract bool MatchStmt(Statement stmt, ProofState state); 
     public abstract IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0);
     public abstract IEnumerable<ProofState> EvalStep(ProofState state0);
     public abstract bool EvalTerminated(bool childFrameRes);
@@ -106,7 +122,7 @@ namespace Microsoft.Dafny.Tacny.Language{
 
   class DefaultTacticFrameCtrl : TacticFrameCtrl {
 
-    public override bool MatchStmt(Statement stmt){
+    public override bool MatchStmt(Statement stmt, ProofState state){
       /* the default one always returns false, as we don't need this to judge if a stmt belongs to this type.
        * One stmt would be considered as the default one when all other matches fail. */
       return false;

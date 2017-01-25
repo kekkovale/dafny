@@ -1,14 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using Microsoft.Boogie;
-using Microsoft.Dafny.Tacny;
-using Formal = Microsoft.Dafny.Formal;
-using Type = Microsoft.Dafny.Type;
-using Microsoft.Dafny;
-using Microsoft.Dafny.Tacny;
 
 
 namespace Microsoft.Dafny.Tacny.Language

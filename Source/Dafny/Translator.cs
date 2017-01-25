@@ -1857,7 +1857,7 @@ namespace Microsoft.Dafny {
 
       if (mem is Method) {
         if (TacticEvaluationIsEnabled && mem.CallsTactic) {
-         mem = Interpreter.FindAndApplyTactic(program, (Method)mem, _tacnyDelegate, r) as Method;
+         mem = Interpreter.ResolveMethod(program, (Method)mem, _tacnyDelegate, r) as Method;
         }
         AddMethod_Top((Method)mem);
       }

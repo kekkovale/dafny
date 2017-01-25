@@ -89,38 +89,6 @@ namespace Microsoft.Dafny.Tacny{
       TopLevelTacApp = tacAps.Copy();
     }
 
-
-    public void InitNestTacFrame(UpdateStmt tacAps){
-      var aps = ((ExprRhs) tacAps.Rhss[0]).Expr as ApplySuffix;
-      var tactic = GetTactic(tacAps) as Tactic;
-
-      if (aps.Args.Count != tactic.Ins.Count)
-        Reporter.Error(MessageSource.Tacny, tacAps.Tok,
-          $"Wrong number of method arguments (got {aps.Args.Count}, expected {tactic.Ins.Count})");
-
-      var frameCtrl = new DefaultTacticFrameCtrl();
-      frameCtrl.IsPartial = true;
-      frameCtrl.InitBasicFrameCtrl(tactic.Body.Body, tacAps.Rhss[0].Attributes);
-
-      AddNewFrame(frameCtrl);
-      for (int index = 0; index < aps.Args.Count; index++){
-        var arg = aps.Args[index];
-
-        if (arg is Microsoft.Dafny.NameSegment){
-          var name = ((Microsoft.Dafny.NameSegment) arg).Name;
-          if (ContainTacnyVal(name))
-            // in the case that referring to an exisiting tvar, dereference it
-            arg = GetTacnyVarValue(name) as Expression;
-          else{
-            Reporter.Error(MessageSource.Tacny, tacAps.Tok,
-              $"Fail to dereferenen argument({name})");
-          }
-        }
-        _scope.Peek().AddTacnyVar(tactic.Ins[index].Name, arg);
-      }
-    }
-
-
     // Permanent state information
     public Dictionary<string, ITactic> Tactics => ActiveClass.Tactics;
     public Dictionary<string, MemberDecl> Members => ActiveClass.Members;
@@ -177,8 +145,13 @@ namespace Microsoft.Dafny.Tacny{
       var parent = _scope.Peek();
       _scope.Push(new Frame(parent, ctrl));
     }
-
+    // note that this function can only be called either a frame is proved or isEvaluated.
     public void MarkCurFrameAsTerminated(bool curFrameProved){
+      if(!curFrameProved && _scope.Peek().FrameCtrl.Backtrack > 0) {
+        _scope.Peek().FrameCtrl.Backtrack -= 1;
+        return;
+      }
+
       //assmeb code in the top frame
       _scope.Peek().FrameCtrl.MarkAsEvaluated(curFrameProved);
 
@@ -188,7 +161,7 @@ namespace Microsoft.Dafny.Tacny{
       if (code != null && _scope.Peek().Parent != null){
         _scope.Peek().Parent.FrameCtrl.AddGeneratedCode(code);
         _scope.Pop();
-        if (_scope.Peek().FrameCtrl.EvalTerminated(curFrameProved))
+        if (_scope.Peek().FrameCtrl.EvalTerminated(curFrameProved) || IsEvaluated())
           MarkCurFrameAsTerminated(curFrameProved);
       }
     }
@@ -213,6 +186,47 @@ namespace Microsoft.Dafny.Tacny{
       return _scope.Peek().FrameCtrl.IsPartial;
     }
 
+    public List<int> GetBackTrackCount(){
+      var frame = _scope.Peek();
+      var backtrack = new List<int>();
+      backtrack.Add(frame.FrameCtrl.Backtrack);
+
+      while (frame.Parent != null){
+        frame = frame.Parent;
+        backtrack.Add(frame.FrameCtrl.Backtrack);
+      }
+
+      return backtrack;
+    }
+
+    public void SetBackTrackCount(List<int> cnt){
+      var cur = GetBackTrackCount();
+      //restore from the root
+      cur.Reverse();
+      List<int> tmp = cnt.Copy();
+      tmp.Reverse();
+
+      for (int j = 0; j < cur.Count; j++){
+        int count;
+        if (j >= tmp.Count)
+          count = cur[j];
+        else
+          count = tmp[j];
+        cur[j] = count;
+      }
+
+      cur.Reverse();
+
+      var frame = _scope.Peek();
+      frame.FrameCtrl.Backtrack = cur[0];
+      cur.RemoveAt(0);
+
+      while(frame.Parent != null) {
+        frame = frame.Parent;
+        frame.FrameCtrl.Backtrack = cur[0];
+        cur.RemoveAt(0);
+      }
+    }
     /// <summary>
     /// a proof state is verified if there is only one frame in the stack and _genratedCode is not null (raw code are assembled)
     /// </summary>
@@ -561,7 +575,7 @@ namespace Microsoft.Dafny.Tacny{
         }
 
         FrameCtrl = new DefaultTacticFrameCtrl();
-        FrameCtrl.InitBasicFrameCtrl(o.Body.Body, attr);
+        FrameCtrl.InitBasicFrameCtrl(o.Body.Body, attr, o);
 
         _reporter = reporter;
         _declaredVariables = new Dictionary<string, object>();

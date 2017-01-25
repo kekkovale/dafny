@@ -8,7 +8,7 @@ namespace Microsoft.Dafny.Tacny.Language {
 
     // All has to be * if it is non-deterministic - we could change to only one?
     [Pure]
-    public override bool MatchStmt(Statement statement) {
+    public override bool MatchStmt(Statement statement, ProofState state) {
       Contract.Requires(statement != null);
       if(statement is Dafny.IfStmt) {
         var ifstmt = statement as Dafny.IfStmt;
@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.Tacny.Language {
 
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0) {
       Contract.Requires(statement != null);
-      Contract.Requires(MatchStmt(statement));
+      Contract.Requires(MatchStmt(statement, state0));
       //Contract.Requires(statement is TacnyCasesBlockStmt);
 
       bool partial = true || state0.IsCurFramePartial();
@@ -58,8 +58,8 @@ namespace Microsoft.Dafny.Tacny.Language {
       foreach(BlockStmt choice in choices) {
         state = state0.Copy();
         var orChoice = this.Copy();
-        orChoice.InitBasicFrameCtrl(choice.Body, null);
         orChoice.IsPartial = partial;
+        orChoice.InitBasicFrameCtrl(choice.Body, null);
         state.AddNewFrame(orChoice);
         yield return state;
       }

@@ -229,14 +229,14 @@ namespace Microsoft.Dafny.Tacny {
       }
 
 #if _TACTIC_DEBUG
-      Console.WriteLine("*********************Tacny: " + dest_md + "*****************");
+      Console.WriteLine("********************* Tacny: " + dest_md + " *****************");
       var printer = new Printer(Console.Out);
       //printer.PrintProgram(prog, false);
       foreach(var stmt in state.GetGeneratedCode()) {
         printer.PrintStatement(stmt, 0);
         Console.WriteLine("");
       }
-      Console.WriteLine("*********************Stmts END*****************");
+      Console.WriteLine("********************* Stmts END *****************");
 #endif
 
       dest_md.CallsTactic = false;

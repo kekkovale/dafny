@@ -1,12 +1,13 @@
-﻿//YUHUI: this implemntation is over complicated, use raw[0][0] implicitly as staus data, need to simplify
-
+﻿//YUHUI: this implemntation is over complicated, use raw[0][0] implicitly as staus data, need to be simplified
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
+
+
 namespace Microsoft.Dafny.Tacny.Language {
-  class Match : TacticFrameCtrl {
+  class TMatchStmt : TacticFrameCtrl {
 
     private Dictionary<string, Type> _ctorTypes;
 
@@ -48,10 +49,10 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
     */
 
-    public Match(){
+    public TMatchStmt(){
     }
 
-    public override bool MatchStmt(Statement stmt){
+    public override bool MatchStmt(Statement stmt, ProofState state){
       return stmt is TacnyCasesBlockStmt;
     }
 
@@ -153,6 +154,8 @@ namespace Microsoft.Dafny.Tacny.Language {
       }
 
       var matchCtrl = this.Copy();
+
+      matchCtrl.IsPartial = partial;
       matchCtrl.InitBasicFrameCtrl(dummystmt, null);
       state.AddNewFrame(matchCtrl);
 

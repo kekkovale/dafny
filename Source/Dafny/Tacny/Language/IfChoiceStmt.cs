@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Dafny;
-using dfy = Microsoft.Dafny;
-using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny.Tacny.Language {
   public class IfChoiceStmt : TacticFrameCtrl{
 
-    public override bool MatchStmt(Statement stmt){
+    public override bool MatchStmt(Statement stmt, ProofState state){
       if (stmt is Dafny.IfStmt || stmt is Dafny.AlternativeStmt)
-        return (new OrChoiceStmt().MatchStmt(stmt) == false);
+        return (new OrChoiceStmt().MatchStmt(stmt, state) == false);
       return false;
     }
 
@@ -65,8 +60,8 @@ namespace Microsoft.Dafny.Tacny.Language {
           counter++;
           var state = state0.Copy();
           var ifChoice = this.Copy();
-          ifChoice.InitBasicFrameCtrl(item.Item2, null);
           ifChoice.IsPartial = partial;
+          ifChoice.InitBasicFrameCtrl(item.Item2, null);
           state.AddNewFrame(ifChoice);
 
           yield return state;

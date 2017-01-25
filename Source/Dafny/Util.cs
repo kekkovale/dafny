@@ -10,6 +10,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public class Util
   {
+
     public static string Comma<T>(IEnumerable<T> l, Func<T, string> f) {
       return Comma(",", l, f);
     }
@@ -363,3 +364,4 @@ namespace Microsoft.Dafny {
     }
   }
 }
+
