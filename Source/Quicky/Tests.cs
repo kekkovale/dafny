@@ -17,20 +17,23 @@ namespace Quicky
     private Quicky GetQuicky(string filename) {
       QuickyMain.SetupEnvironment();
       Program dafnyProgram =
-        QuickyMain.CreateProgramFromFileName(Directory.GetParent(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).ToString()) + @"\Test\quicky\"+filename);
+        QuickyMain.CreateProgramFromFileName(Directory.GetParent(QuickyMain.BinariesDirectory()) + @"\Test\quicky\"+filename);
 
       return new Quicky(dafnyProgram);
     }
-
-
+    
     //TODO test smaller parts
     [Test]
     public void TestWholeProcess() {
       var quicky = GetQuicky("Test01.dfy");
       quicky.PerformTesting();
-      Assert.AreEqual(1, quicky.FoundErrors.Count);
-//      foreach (var quickyException in quicky.FoundErrors.Values)
-//        System.Diagnostics.Debug.WriteLine("Exception on line "+quickyException.Token.line + " with input: " + quickyException.CounterExamples);
+      Assert.AreEqual(3, quicky.FoundErrors.Count);
+      foreach (var quickyException in quicky.FoundErrors.Values) {
+        Console.WriteLine("Exception on line " + quickyException.Token.line + " with input: " +
+                                           quickyException.CounterExamples);
+        Assert.AreEqual(3, quickyException.Token.line);
+        break;
+      }
     }
   }
 }

@@ -1,15 +1,10 @@
 using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Serialization;
 using Microsoft.CSharp;
 using Microsoft.Dafny;
 using Bpl = Microsoft.Boogie;
@@ -18,7 +13,6 @@ using System.Numerics;
 
 
 /*
-
     NEW COMPILE PLAN
 
     Each method will now have a QuickyChecker object passed in.  This will be called to perform checks etc and track the errors.
@@ -26,8 +20,9 @@ using System.Numerics;
     Start of each method:
     - check for preconditions - return if false
     - create a string to show parameter values
-
 */
+
+  //TODO also reference Dafny and pass token in?
 
 namespace Quicky
 {
@@ -38,7 +33,7 @@ namespace Quicky
     public static void Main() {
       SetupEnvironment();
       Program dafnyProgram =
-        CreateProgramFromFileName(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory) + "\\Test\\quicky\\Test01.dfy");
+        CreateProgramFromFileName(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory) + @"\Test\quicky\Test01.dfy");
       
       Quicky quicky = new Quicky(dafnyProgram);
       quicky.PerformTesting();
@@ -47,6 +42,7 @@ namespace Quicky
     }
     
     public static Program CreateProgramFromFileName(string fileName) {
+      Contract.Requires(fileName != null);
       var nameStart = fileName.LastIndexOf('\\') + 1;
       var programName = fileName.Substring(nameStart, fileName.Length - nameStart);
 
@@ -70,14 +66,18 @@ namespace Quicky
       DafnyOptions.O.ProverKillTime = 15;
       Bpl.ExecutionEngine.printer = new Bpl.ConsolePrinter();
     }
-  }
 
-  //This class is referenced from quicky compiled programs to check and react to 
+    public static string BinariesDirectory() {
+      var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+      return Path.GetFileName(baseDir) == "Binaries" ? baseDir : Directory.GetParent(baseDir).ToString();
+    }
+  }
+  
   public class Quicky
   {
-    public Dictionary<Method, QuickyException> FoundErrors = new Dictionary<Method, QuickyException>();
+    public Dictionary<Method, QuickyError> FoundErrors = new Dictionary<Method, QuickyError>();
     private readonly Program _dafnyProgram;
-    private Assembly _assemblyProgram;
+    private readonly Assembly _assemblyProgram;
     public List<object> Outputs = new List<object>();
     private readonly int _testCases;
 
@@ -85,7 +85,7 @@ namespace Quicky
       _dafnyProgram = dafnyProgram;
       _testCases = testCases;
       var cSharpProgram = CompileDafnyProgram();
-      CompileCsharpProgram(cSharpProgram);
+      _assemblyProgram = CompileCsharpProgram(cSharpProgram);
     }
 
     private TextWriter CompileDafnyProgram() {
@@ -93,37 +93,33 @@ namespace Quicky
       resolver.ResolveProgram(_dafnyProgram);
 
       TextWriter tw = new StringWriter();
-      Compiler compiler = new Compiler(true);
-      compiler.ErrorWriter = Console.Out;
+      Compiler compiler = new Compiler(true) {ErrorWriter = Console.Out};
       compiler.Compile(_dafnyProgram, tw);
-/*
       using (TextWriter writer = File.CreateText("C:\\Users\\Duncan\\Documents\\Test.cs")) {
         writer.WriteLine(tw.ToString());
       }
-*/
       return tw;
     }
 
-    private void CompileCsharpProgram(TextWriter cSharpTw) { 
+    private Assembly CompileCsharpProgram(TextWriter cSharpTw) { 
       var csc = new CSharpCodeProvider(new Dictionary<string, string>() { { "CompilerVersion", "v3.5" } });
       var parameters = new CompilerParameters(GetRequiredReferences()) {GenerateExecutable = false};
       CompilerResults results = csc.CompileAssemblyFromSource(parameters, cSharpTw.ToString());
       results.Errors.Cast<CompilerError>().ToList().ForEach(error => System.Diagnostics.Debug.WriteLine(error.ErrorText)); //todo throw exception if any errors
-      _assemblyProgram = results.CompiledAssembly;
+      return results.CompiledAssembly;
     }
 
     private static string[] GetRequiredReferences()
     {
       //TODO: This needs to be done in a way so it will work on all systems
+      //(e.g. on 32 bit systems it will be in /Program Files/, Assemblies may be installed elsewhere?)
       var system = @"System.dll";
-      var core = @"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.Core.dll"; //TODO will this work on 32 bit systems?
+      var core = @"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.Core.dll";
       var numericsRef = @"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NetFramework\v4.5.2\System.Numerics.dll";
-      var immutableRef = Directory.GetParent(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).ToString()) + @"\Source\packages\System.Collections.Immutable.1.3.1\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll";
-      var quicky = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory) + @"\Quicky.dll";
-      return new[] { system, core, numericsRef, immutableRef, quicky };
+      var quicky = AppDomain.CurrentDomain.BaseDirectory + @"\Quicky.dll";
+      return new[] { system, core, numericsRef, /*immutableRef,*/ quicky };
     }
    
-
     public void PerformTesting() {
       foreach (var module in _dafnyProgram.Modules()) {
         TestModule(module);
@@ -175,14 +171,14 @@ namespace Quicky
 //    if outputs is ever needed, they will be in parameters after the actual input parameters
     }
   }
-  
 
   //todo: move error info into here?  can be tracked alongside precondition fails count
+  //This class is referenced from quicky compiled programs to check and react to 
   public class QuickyChecker
   {
     private readonly Method _method;
     private readonly Quicky _quicky;
-    public int PreconditionFails { get; private set; } = 0;
+    public int PreconditionFails { get; private set; }
 
     public QuickyChecker(Method method, Quicky quicky) {
       _method = method;
@@ -200,10 +196,36 @@ namespace Quicky
         return;
       Console.WriteLine("Assert has failed!");
       Bpl.Token tok = new Bpl.Token(lineNum, columnNum);
-      var exception = new QuickyException(tok, counterExamples);
-      _quicky.FoundErrors.Add(_method, exception);
-      //throw exception;
+      var exception = new QuickyError(tok, counterExamples);
+      if (!_quicky.FoundErrors.ContainsKey(_method))
+        _quicky.FoundErrors.Add(_method, exception);
     }
+
+    public void CheckInvariantEntry(bool outcome, int lineNum, int columnNum, string counterExamples)
+    {
+      if (outcome)
+        //assert holds - do nothing
+        return;
+      Console.WriteLine("Invariant has failed on entry!");
+      Bpl.Token tok = new Bpl.Token(lineNum, columnNum);
+      var exception = new QuickyError(tok, counterExamples);
+      if (!_quicky.FoundErrors.ContainsKey(_method))
+        _quicky.FoundErrors.Add(_method, exception);
+    }
+
+    public void CheckInvariantEnd(bool outcome, int lineNum, int columnNum, string counterExamples)
+    {
+      if (outcome)
+        //assert holds - do nothing
+        return;
+      Console.WriteLine("Assert has failed at end of loop!");
+      Bpl.Token tok = new Bpl.Token(lineNum, columnNum);
+      var exception = new QuickyError(tok, counterExamples); //TODO add more info to error
+      if(!_quicky.FoundErrors.ContainsKey(_method))
+        _quicky.FoundErrors.Add(_method, exception);
+    }
+
+    
   }
 
   class ParameterGenerator
@@ -221,35 +243,34 @@ namespace Quicky
       List<object> parameters = new List<object>() { QuickyChecker };
       foreach (var param in _method.Ins)
         parameters.Add(GenerateValueOfType(param.SyntacticType));
-      foreach (var formal in _method.Outs)
+      for(int i = 0; i < _method.Outs.Count; i++)
         parameters.Add(null); //nulls needed for outs
+      //foreach (var formal in _method.Outs)
       return parameters.ToArray();
     }
-
+    //TODO move actuall generation for each parameter to new class? This way iterations can be counted for each parameter
     private object GenerateValueOfType(Microsoft.Dafny.Type type) {
       if (type is IntType)
         return GenerateInt();
-      throw new Exception("Nothing of type found"); //TODO create new exception type
+      throw new Exception("Nothing of type found"); //TODO create new exception type and catch it - do not test that method
     }
 
     //TODO: Something more advanced must be done using the preconditions
     private BigInteger GenerateInt() {
-      int value = _random.Next();//TODO: start with smaller numbers and work up somehow so simple examples are given OR integrate fscheck for generation only
+      int value = _random.Next(5000);//TODO: start with smaller numbers and work up somehow so simple examples are given OR integrate fscheck for generation only
       return new BigInteger(value);
     }
   }
-
-  //TODO make exception?
-  public class QuickyException : Exception
+  
+  public class QuickyError
   {
     public Bpl.IToken Token;
     public string CounterExamples;
 
-    public QuickyException(Bpl.IToken token, string counterExamples) {
+    public QuickyError(Bpl.IToken token, string counterExamples) {
       Token = token;
       CounterExamples = counterExamples;
     }
   }
-
-  public class PreconditionFailedException : Exception {}
+  
 }

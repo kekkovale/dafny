@@ -1653,10 +1653,18 @@ namespace Microsoft.Dafny {
           wr.WriteLine("while (false) { }");
         } else {
           Indent(indent, wr);
+          if (quickyCompile)
+            CheckLoopInvariantsEntry(s, wr);
           wr.Write("while (");
           TrExpr(s.Guard, wr, false);
           wr.WriteLine(")");
+          if(quickyCompile)
+            wr.Write("{");
           wr.Write(TrStmt(s.Body, indent).ToString());
+          if (quickyCompile) {
+            CheckLoopInvariantsEnd(s, wr);
+            wr.Write("}");
+          }
         }
 
       } else if (stmt is AlternativeLoopStmt) {
@@ -1937,6 +1945,41 @@ namespace Microsoft.Dafny {
       }
 
       return wr;
+    }
+
+    private void CheckLoopInvariantsEntry(LoopStmt stmt, TextWriter wr) {
+      var invariants = stmt.Invariants;
+      foreach (var invariant in invariants) {
+        CheckInvariantEntry(invariant, wr);
+      }
+    }
+
+    private void CheckLoopInvariantsEnd(LoopStmt stmt, TextWriter wr) {
+      var invariants = stmt.Invariants;
+      foreach (var invariant in invariants) {
+        CheckInvariantEnd(invariant, wr);
+      }
+    }
+
+
+    //todo tidy and remove code duplication from CheckPreconditions() + move together?
+    private void CheckInvariantEntry(MaybeFreeExpression invariant, TextWriter wr) {
+      wr.Write("qChecker.CheckInvariantEntry(");
+      CheckExpression(invariant.E, wr);
+    }
+
+    private void CheckInvariantEnd(MaybeFreeExpression invariant, TextWriter wr) {
+      wr.Write("qChecker.CheckInvariantEnd(");
+      CheckExpression(invariant.E, wr);
+    }
+
+    private void CheckExpression(Expression e, TextWriter wr) {
+      TrExpr(e, wr, false);
+      wr.Write(", ");
+      wr.Write(e.tok.line);
+      wr.Write(", ");
+      wr.Write(e.tok.col);
+      wr.WriteLine(", counterExamples);");
     }
 
     private void IntroduceAndAssignBoundVars(int indent, ExistsExpr exists, TextWriter wr) {
