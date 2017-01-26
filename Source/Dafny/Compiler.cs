@@ -1055,15 +1055,8 @@ namespace Microsoft.Dafny {
     }
 
     private void CheckPostconditions(Method m, TextWriter wr) {
-      foreach (var postCondition in m.Ens) {
-        wr.Write("qChecker.CheckAssert(");
-        TrExpr(postCondition.E, wr, false);
-        wr.Write(", ");
-        wr.Write(postCondition.E.tok.line);
-        wr.Write(", ");
-        wr.Write(postCondition.E.tok.col);
-        wr.WriteLine(", counterExamples);");
-      }
+      foreach (var postCondition in m.Ens)
+        CheckExpression(postCondition.E, wr, "Postcondition");
     }
 
     private void CheckPreconditions(Method m, TextWriter wr) {
@@ -1654,7 +1647,7 @@ namespace Microsoft.Dafny {
         } else {
           Indent(indent, wr);
           if (quickyCompile)
-            CheckLoopInvariantsEntry(s, wr);
+            CheckLoopInvariants(s, wr, "Entry");
           wr.Write("while (");
           TrExpr(s.Guard, wr, false);
           wr.WriteLine(")");
@@ -1662,7 +1655,7 @@ namespace Microsoft.Dafny {
             wr.Write("{");
           wr.Write(TrStmt(s.Body, indent).ToString());
           if (quickyCompile) {
-            CheckLoopInvariantsEnd(s, wr);
+            CheckLoopInvariants(s, wr, "End");
             wr.Write("}");
           }
         }
@@ -1947,49 +1940,25 @@ namespace Microsoft.Dafny {
       return wr;
     }
 
-    private void CheckLoopInvariantsEntry(LoopStmt stmt, TextWriter wr) {
+    private void CheckLoopInvariants(LoopStmt stmt, TextWriter wr, string part) { //part is either "Entry" or "End"
       var invariants = stmt.Invariants;
       foreach (var invariant in invariants) {
-        CheckInvariantEntry(invariant, wr);
+        CheckExpression(invariant.E, wr, "Invariant"+part);
       }
     }
 
-    private void CheckLoopInvariantsEnd(LoopStmt stmt, TextWriter wr) {
-      var invariants = stmt.Invariants;
-      foreach (var invariant in invariants) {
-        CheckInvariantEnd(invariant, wr);
-      }
-    }
-
-
-    //todo tidy and remove code duplication from CheckPreconditions() + move together?
-    private void CheckInvariantEntry(MaybeFreeExpression invariant, TextWriter wr) {
-      wr.Write("qChecker.CheckInvariantEntry(");
-      CheckExpression(invariant.E, wr);
-      wr.WriteLine(");");
-      ReturnIfExprFalse(invariant.E, wr);
-    }
-
-    private void CheckInvariantEnd(MaybeFreeExpression invariant, TextWriter wr) {
-      wr.Write("qChecker.CheckInvariantEnd(");
-      CheckExpression(invariant.E, wr);
-      wr.WriteLine(");");
-      ReturnIfExprFalse(invariant.E, wr);
-    }
-
-    private void CheckExpression(Expression e, TextWriter wr) {
+    private void CheckExpression(Expression e, TextWriter wr, string errorType) { //TODO some indenting here
+      wr.Write("if(!");
       TrExpr(e, wr, false);
-      wr.Write(", ");
+      wr.WriteLine(") {");
+      wr.Write("  qChecker.TrackError(");
       wr.Write(e.tok.line);
       wr.Write(", ");
       wr.Write(e.tok.col);
-      wr.Write(", counterExamples");
-    }
-
-    private void ReturnIfExprFalse(Expression e, TextWriter wr) {
-      wr.Write("if(!");
-      TrExpr(e, wr, false);
-      wr.WriteLine(") return;");
+      wr.Write(", counterExamples, QuickyError.ErrorType.");
+      wr.Write(errorType);
+      wr.WriteLine(");");
+      wr.WriteLine("  return; } ");
     }
 
     private void IntroduceAndAssignBoundVars(int indent, ExistsExpr exists, TextWriter wr) {

@@ -23,13 +23,13 @@ namespace Quicky
     public void TestWholeProcess() {
       var quicky = GetQuicky("Test01.dfy");
       quicky.PerformTesting();
-      Assert.AreEqual(3, quicky.FoundErrors.Count);
+      Assert.AreEqual(3, quicky.FoundErrors.Count, "Number of errors");
       int i = 0;
       foreach (var method in quicky.FoundErrors.Keys) {
         var quickyException = quicky.FoundErrors[method];
-        Console.WriteLine("Exception on line " + quickyException.Token.line + " with input: " +
-                                           quickyException.CounterExamples);
-        if(i==0) Assert.AreEqual(3, quickyException.Token.line);
+        Console.WriteLine("Exception on line " + quickyException.Token.line + ": ");
+        Console.WriteLine(quickyException.Message);
+        if(i==0) Assert.AreEqual(3, quickyException.Token.line, "line check for first error");
         i++;
       }
     }

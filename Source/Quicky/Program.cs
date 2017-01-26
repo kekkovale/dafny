@@ -9,8 +9,6 @@ using Microsoft.CSharp;
 using Microsoft.Dafny;
 using Bpl = Microsoft.Boogie;
 using Type = System.Type;
-using System.Numerics;
-
 
 /*
     NEW COMPILE PLAN
@@ -21,8 +19,6 @@ using System.Numerics;
     - check for preconditions - return if false
     - create a string to show parameter values
 */
-
-  //TODO also reference Dafny and pass token in?
 
 namespace Quicky
 {
@@ -83,6 +79,7 @@ namespace Quicky
     private readonly int _testCases;
 
     public Quicky(Program dafnyProgram, int testCases = 100) {
+      Contract.Requires(dafnyProgram != null);
       _dafnyProgram = dafnyProgram;
       _testCases = testCases;
       var cSharpProgram = CompileDafnyProgram();
@@ -156,8 +153,15 @@ namespace Quicky
       Contract.Requires(t != null && method != null);
       string methodName = method.CompileName;
       MethodInfo methodInfo = t.GetMethod(methodName);
-      ParameterSetGenerator parameterSetGenerator = new ParameterSetGenerator(this, method);
-      
+      ParameterSetGenerator parameterSetGenerator;
+      try {
+        parameterSetGenerator = new ParameterSetGenerator(this, method);
+      }
+      catch (UnidentifiedDafnyTypeException e) {
+        Console.WriteLine("Could not generate parameters for method " + method.Name + " of type " + e.Type);
+        return;
+      }
+
       //todo: multithread here?
       //could do some fancy counter thing to do a few at a time and stop when error is found 
       for (int i = 0; i < _testCases; i++) {
@@ -175,61 +179,7 @@ namespace Quicky
     }
   }
 
-  //todo: move error info into here?  can be tracked alongside precondition fails count
-  //This class is referenced from quicky compiled programs to check and react to 
-  public class QuickyChecker
-  {
-    private readonly Method _method;
-    private readonly Quicky _quicky;
-    public int PreconditionFails { get; private set; }
 
-    public QuickyChecker(Method method, Quicky quicky) {
-      _method = method;
-      _quicky = quicky;
-    }
-
-    public void PreconditionFailed() {
-      PreconditionFails++;
-    }
-
-    public void CheckAssert(bool outcome, int lineNum, int columnNum, string counterExamples)
-    {
-      if (outcome)
-        //assert holds - do nothing
-        return;
-      Console.WriteLine("Assert has failed!");
-      Bpl.Token tok = new Bpl.Token(lineNum, columnNum);
-      var exception = new QuickyError(tok, counterExamples);
-      if (!_quicky.FoundErrors.ContainsKey(_method))
-        _quicky.FoundErrors.Add(_method, exception);
-    }
-
-    public void CheckInvariantEntry(bool outcome, int lineNum, int columnNum, string counterExamples)
-    {
-      if (outcome)
-        //assert holds - do nothing
-        return;
-      Console.WriteLine("Invariant has failed on entry!");
-      Bpl.Token tok = new Bpl.Token(lineNum, columnNum);
-      var exception = new QuickyError(tok, counterExamples);
-      if (!_quicky.FoundErrors.ContainsKey(_method))
-        _quicky.FoundErrors.Add(_method, exception);
-    }
-
-    public void CheckInvariantEnd(bool outcome, int lineNum, int columnNum, string counterExamples)
-    {
-      if (outcome)
-        //assert holds - do nothing
-        return;
-      Console.WriteLine("Invariant has failed at end of loop!");
-      Bpl.Token tok = new Bpl.Token(lineNum, columnNum);
-      var exception = new QuickyError(tok, counterExamples); //TODO add more info to error
-      if(!_quicky.FoundErrors.ContainsKey(_method))
-        _quicky.FoundErrors.Add(_method, exception);
-    }
-
-    
-  }
 
   
 
@@ -245,13 +195,32 @@ namespace Quicky
   
   public class QuickyError
   {
+    public enum ErrorType
+    {
+      Postcondition,
+      Assert,
+      InvariantEntry,
+      InvariantEnd
+    }
+
+    //Error messages to be displayed for certain types of failures
+    private static Dictionary<QuickyError.ErrorType, string> _errorMessages = new Dictionary<QuickyError.ErrorType, string>() {
+      {QuickyError.ErrorType.Postcondition, "Postcondition failed"},
+      {QuickyError.ErrorType.Assert, "Assert failed"},
+      {QuickyError.ErrorType.InvariantEntry, "Invariant failed on entry"},
+      {QuickyError.ErrorType.InvariantEnd, "Invariant failed at the end of a loop iteration"}
+    };
+
+    public ErrorType TypeOfError;
     public Bpl.IToken Token;
     public string CounterExamples;
 
-    public QuickyError(Bpl.IToken token, string counterExamples) {
+    public string Message => _errorMessages[TypeOfError] + " with parameters: " + CounterExamples;
+
+    public QuickyError(Bpl.IToken token, string counterExamples, ErrorType errorType) {
       Token = token;
       CounterExamples = counterExamples;
+      TypeOfError = errorType;
     }
   }
-  
 }
