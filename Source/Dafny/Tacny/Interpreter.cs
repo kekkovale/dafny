@@ -281,7 +281,7 @@ namespace Microsoft.Dafny.Tacny {
         }
         var copy = state.Copy();
         copy.AddStatement(newPredicate);
-        copy.IfVerify = true;
+        copy.NeedVerify = true;
         yield return copy;
       }
     }
@@ -514,8 +514,11 @@ namespace Microsoft.Dafny.Tacny {
           }
         } else if(exprRhs?.Expr is Microsoft.Dafny.LiteralExpr) {
           state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);
-        } else {
-          state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, exprRhs?.Expr);
+        } else{
+          var tree = ExpressionTree.ExpressionToTree(exprRhs?.Expr);
+          var e = ExpressionTree.EvaluateExpression(tree, state);
+
+          state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, e);
         }
       }
       yield return state.Copy();

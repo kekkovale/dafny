@@ -1,11 +1,3 @@
-
-lemma ifChoice()
- ensures false
-{
-   tacIf();
-}
-
-
 lemma altChoice()
  ensures false
 {

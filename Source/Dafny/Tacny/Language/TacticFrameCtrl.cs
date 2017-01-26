@@ -90,7 +90,7 @@ namespace Microsoft.Dafny.Tacny.Language{
     public void MarkAsEvaluated(bool curFrameProved) {
       // only to assmeble code when the current frame is proved, 
       // or the current frame is partial and the all the stmts have been evaluated 
-      if(curFrameProved || (IsPartial && IsEvaluated)) {
+      if(curFrameProved || IsPartial) {
         Assemble();
       }
     }
@@ -115,7 +115,7 @@ namespace Microsoft.Dafny.Tacny.Language{
     public abstract bool MatchStmt(Statement stmt, ProofState state); 
     public abstract IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0);
     public abstract IEnumerable<ProofState> EvalStep(ProofState state0);
-    public abstract bool EvalTerminated(bool childFrameRes);
+    public abstract bool EvalTerminated(bool childFrameRes, ProofState state);
     public abstract List<Statement> AssembleStmts(List<List<Statement>> raw);
 
   }
@@ -139,7 +139,7 @@ namespace Microsoft.Dafny.Tacny.Language{
       return null;
     }
 
-    public override bool EvalTerminated(bool latestChildFrameRes) {
+    public override bool EvalTerminated(bool latestChildFrameRes, ProofState state) {
         return latestChildFrameRes;
     }
 

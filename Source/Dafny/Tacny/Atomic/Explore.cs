@@ -18,7 +18,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       IVariable lv;
       InitArgs(state, statement, out lv, out callArguments);
 
-      state.IfVerify = true;
+      state.NeedVerify = true;
 
 
       //TODO: implement this properly

@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.Tacny{
     public ErrorReporter Reporter;
 
     //not all the eval step requires to be verified, e.g. var decl
-    public bool IfVerify { set; get; } = false;
+    public bool NeedVerify { set; get; } = false;
 
     public UpdateStmt TopLevelTacApp;
 /*
@@ -152,7 +152,7 @@ namespace Microsoft.Dafny.Tacny{
         return;
       }
 
-      //assmeb code in the top frame
+      //assemble code in the top frame
       _scope.Peek().FrameCtrl.MarkAsEvaluated(curFrameProved);
 
       var code = _scope.Peek().FrameCtrl.GetFinalCode();
@@ -161,7 +161,7 @@ namespace Microsoft.Dafny.Tacny{
       if (code != null && _scope.Peek().Parent != null){
         _scope.Peek().Parent.FrameCtrl.AddGeneratedCode(code);
         _scope.Pop();
-        if (_scope.Peek().FrameCtrl.EvalTerminated(curFrameProved) || IsEvaluated())
+        if (_scope.Peek().FrameCtrl.EvalTerminated(curFrameProved, this) || IsEvaluated())
           MarkCurFrameAsTerminated(curFrameProved);
       }
     }
@@ -434,6 +434,7 @@ namespace Microsoft.Dafny.Tacny{
 
     private bool IsTacticCall(string name){
       Contract.Requires(tcce.NonNull(name));
+      if (name == null) return false;
       return Tactics.ContainsKey(name);
     }
 
@@ -665,7 +666,11 @@ namespace Microsoft.Dafny.Tacny{
       internal void UpdateLocalTacnyVar(string key, object value){
         Contract.Requires<ArgumentNullException>(key != null, "key");
         //Contract.Requires<ArgumentException>(_declaredVariables.ContainsKey(key));
-        _declaredVariables[key] = value;
+        if (_declaredVariables.ContainsKey(key))
+          _declaredVariables[key] = value;
+        else{
+          Parent.UpdateLocalTacnyVar(key, value);
+        }
       }
 
       internal object GetTacnyValData(string name){

@@ -159,8 +159,8 @@ namespace Microsoft.Dafny.Tacny {
         }
         var proofState = enumerator.Current;
         //check if any new added code reuqires to call the dafny to verity, or reach the last line of code
-        if (proofState.IfVerify || proofState.IsEvaluated()) {
-          proofState.IfVerify = false;
+        if (proofState.NeedVerify || proofState.IsEvaluated()) {
+          proofState.NeedVerify = false;
           switch (VerifyState(proofState, er)){
             case VerifyResult.Verified:
               proofState.MarkCurFrameAsTerminated(true);
@@ -225,8 +225,8 @@ namespace Microsoft.Dafny.Tacny {
         backtackList = proofState.GetBackTrackCount();
 
         //check if any new added coded reuqires to call verifier, or reach the last line of code
-        if(proofState.IfVerify || proofState.IsEvaluated()) {
-          proofState.IfVerify = false;
+        if(proofState.NeedVerify || proofState.IsEvaluated()) {
+          proofState.NeedVerify = false;
           switch(VerifyState(proofState, er)){
             case VerifyResult.Verified:
               proofState.MarkCurFrameAsTerminated(true);

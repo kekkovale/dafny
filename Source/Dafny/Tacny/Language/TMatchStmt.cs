@@ -52,11 +52,12 @@ namespace Microsoft.Dafny.Tacny.Language {
     public TMatchStmt(){
     }
 
+    public new bool IsEvaluated => false;
     public override bool MatchStmt(Statement stmt, ProofState state){
       return stmt is TacnyCasesBlockStmt;
     }
 
-    public override bool EvalTerminated(bool childFrameRes){
+    public override bool EvalTerminated(bool childFrameRes, ProofState ps){
       //raw[0] is the match case stmt with assume false for each case
       //raw[1..] the actual code to bt inserted in the case statement
 
@@ -100,7 +101,7 @@ namespace Microsoft.Dafny.Tacny.Language {
         state.AddDafnyVar(tmp.Var.Name, new ProofState.VariableData { Variable = tmp.Var, Type = tmp.Var.Type });
       }
       //with this flag set to true, dafny will check the case branch before evaluates any tacny code
-      state.IfVerify = true;
+      state.NeedVerify = true;
       yield return state;
      
     }
@@ -173,7 +174,7 @@ namespace Microsoft.Dafny.Tacny.Language {
         state.AddDafnyVar(tmp.Var.Name, new ProofState.VariableData { Variable = tmp.Var, Type = tmp.Var.Type });
       }
       //with this flag set to true, dafny will check the case brnach before evaluates any tacny code
-      state.IfVerify = true;
+      state.NeedVerify = true;
       yield return state;
     }
 

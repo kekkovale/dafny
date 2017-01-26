@@ -358,10 +358,10 @@ namespace Microsoft.Dafny.Tacny {
     }
 
 
-    protected Expression EvaluateExpression(ExpressionTree expt, ProofState state) {
+    public static Expression EvaluateExpression(ExpressionTree expt, ProofState state) {
       Contract.Requires(expt != null);
       if (expt.IsLeaf()) {
-        return EvaluateLeaf(expt, state) as LiteralExpr;
+        return EvaluateLeaf(expt, state).FirstOrDefault() as LiteralExpr;
       }
       var bexp = (BinaryExpr)expt.Data;
       if (BinaryExpr.IsEqualityOp(bexp.Op)) {

@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.Tacny.Language{
       return Interpreter.EvalStmt(statement, state0);
     }
 
-    public override bool EvalTerminated(bool childFrameRes){
+    public override bool EvalTerminated(bool childFrameRes, ProofState ps){
       return childFrameRes;
     }
 

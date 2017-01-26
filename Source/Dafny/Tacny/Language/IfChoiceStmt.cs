@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.Tacny.Language {
         yield return state0.Copy();
     }
 
-    public override bool EvalTerminated(bool childFrameRes){
+    public override bool EvalTerminated(bool childFrameRes, ProofState ps){
       //terminate as long as one branch is successful
       return _rawCodeList.Count == 1;
     }
