@@ -1966,11 +1966,15 @@ namespace Microsoft.Dafny {
     private void CheckInvariantEntry(MaybeFreeExpression invariant, TextWriter wr) {
       wr.Write("qChecker.CheckInvariantEntry(");
       CheckExpression(invariant.E, wr);
+      wr.WriteLine(");");
+      ReturnIfExprFalse(invariant.E, wr);
     }
 
     private void CheckInvariantEnd(MaybeFreeExpression invariant, TextWriter wr) {
       wr.Write("qChecker.CheckInvariantEnd(");
       CheckExpression(invariant.E, wr);
+      wr.WriteLine(");");
+      ReturnIfExprFalse(invariant.E, wr);
     }
 
     private void CheckExpression(Expression e, TextWriter wr) {
@@ -1979,7 +1983,13 @@ namespace Microsoft.Dafny {
       wr.Write(e.tok.line);
       wr.Write(", ");
       wr.Write(e.tok.col);
-      wr.WriteLine(", counterExamples);");
+      wr.Write(", counterExamples");
+    }
+
+    private void ReturnIfExprFalse(Expression e, TextWriter wr) {
+      wr.Write("if(!");
+      TrExpr(e, wr, false);
+      wr.WriteLine(") return;");
     }
 
     private void IntroduceAndAssignBoundVars(int indent, ExistsExpr exists, TextWriter wr) {

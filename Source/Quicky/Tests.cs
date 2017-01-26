@@ -1,9 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Dafny;
 using NUnit.Framework;
 using System.IO;
@@ -16,9 +11,10 @@ namespace Quicky
   {
     private Quicky GetQuicky(string filename) {
       QuickyMain.SetupEnvironment();
+      QuickyMain.PrintCompiledCode = true;
       Program dafnyProgram =
         QuickyMain.CreateProgramFromFileName(Directory.GetParent(QuickyMain.BinariesDirectory()) + @"\Test\quicky\"+filename);
-
+      
       return new Quicky(dafnyProgram);
     }
     
@@ -28,12 +24,20 @@ namespace Quicky
       var quicky = GetQuicky("Test01.dfy");
       quicky.PerformTesting();
       Assert.AreEqual(3, quicky.FoundErrors.Count);
-      foreach (var quickyException in quicky.FoundErrors.Values) {
+      int i = 0;
+      foreach (var method in quicky.FoundErrors.Keys) {
+        var quickyException = quicky.FoundErrors[method];
         Console.WriteLine("Exception on line " + quickyException.Token.line + " with input: " +
                                            quickyException.CounterExamples);
-        Assert.AreEqual(3, quickyException.Token.line);
-        break;
+        if(i==0) Assert.AreEqual(3, quickyException.Token.line);
+        i++;
       }
+    }
+
+    [Test]
+    public void TestCompiler() {
+      var quicky = GetQuicky("Test01.dfy");
+      //if no exception is thrown, the test has passed.
     }
   }
 }

@@ -29,6 +29,7 @@ namespace Quicky
   public static class QuickyMain
   {
     private static readonly ErrorReporter Reporter = new ConsoleErrorReporter();
+    public static bool PrintCompiledCode;
 
     public static void Main() {
       SetupEnvironment();
@@ -95,8 +96,10 @@ namespace Quicky
       TextWriter tw = new StringWriter();
       Compiler compiler = new Compiler(true) {ErrorWriter = Console.Out};
       compiler.Compile(_dafnyProgram, tw);
-      using (TextWriter writer = File.CreateText("C:\\Users\\Duncan\\Documents\\Test.cs")) {
-        writer.WriteLine(tw.ToString());
+      if (QuickyMain.PrintCompiledCode) {
+        using (TextWriter writer = File.CreateText("C:\\Users\\Duncan\\Documents\\Test.cs")) {
+          writer.WriteLine(tw.ToString());
+        }
       }
       return tw;
     }
@@ -112,7 +115,7 @@ namespace Quicky
     private static string[] GetRequiredReferences()
     {
       //TODO: This needs to be done in a way so it will work on all systems
-      //(e.g. on 32 bit systems it will be in /Program Files/, Assemblies may be installed elsewhere?)
+      //(e.g. on 32 bit systems it will be in /Program Files/ instead of /Program Files (x86)/, Assemblies may be installed elsewhere?)
       var system = @"System.dll";
       var core = @"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.Core.dll";
       var numericsRef = @"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NetFramework\v4.5.2\System.Numerics.dll";
@@ -138,7 +141,7 @@ namespace Quicky
     private void TestClass(ClassDecl classDecl) {
       string className = classDecl.CompileName;
       string typeCall = className + "." + className; //TODO this may need changed for modules etc
-      Console.WriteLine(typeCall);
+      //Console.WriteLine(typeCall);
       Type t = _assemblyProgram.GetType(typeCall);
     
       foreach (var member in classDecl.Members) {
@@ -153,20 +156,20 @@ namespace Quicky
       Contract.Requires(t != null && method != null);
       string methodName = method.CompileName;
       MethodInfo methodInfo = t.GetMethod(methodName);
-      ParameterGenerator parameterGenerator = new ParameterGenerator(this, method);
+      ParameterSetGenerator parameterSetGenerator = new ParameterSetGenerator(this, method);
       
       //todo: multithread here?
       //could do some fancy counter thing to do a few at a time and stop when error is found 
       for (int i = 0; i < _testCases; i++) {
-        TestMethodOnce(methodInfo, parameterGenerator);
+        TestMethodOnce(methodInfo, parameterSetGenerator);
         if (FoundErrors.ContainsKey(method))
           break;
       }
-      Console.WriteLine(parameterGenerator.QuickyChecker.PreconditionFails);
+      //Console.WriteLine(parameterGenerator.QuickyChecker.PreconditionFails);
     }
 
-    private void TestMethodOnce(MethodInfo methodInfo, ParameterGenerator parameterGenerator) {
-      object[] parameters = parameterGenerator.GetParameterSet();
+    private void TestMethodOnce(MethodInfo methodInfo, ParameterSetGenerator parameterSetGenerator) {
+      object[] parameters = parameterSetGenerator.GetNextParameterSet();
       methodInfo.Invoke(null, parameters);
 //    if outputs is ever needed, they will be in parameters after the actual input parameters
     }
@@ -218,7 +221,7 @@ namespace Quicky
       if (outcome)
         //assert holds - do nothing
         return;
-      Console.WriteLine("Assert has failed at end of loop!");
+      Console.WriteLine("Invariant has failed at end of loop!");
       Bpl.Token tok = new Bpl.Token(lineNum, columnNum);
       var exception = new QuickyError(tok, counterExamples); //TODO add more info to error
       if(!_quicky.FoundErrors.ContainsKey(_method))
@@ -228,37 +231,15 @@ namespace Quicky
     
   }
 
-  class ParameterGenerator
+  
+
+
+  class IndividualParamaterGenerator
   {
-    public readonly QuickyChecker QuickyChecker;
-    private readonly Method _method;
-    private readonly Random _random = new Random();
+    public Type Type { get; set; }
 
-    public ParameterGenerator(Quicky quicky, Method method) {
-      QuickyChecker = new QuickyChecker(method, quicky);
-      _method = method;
-    }
-
-    public object[] GetParameterSet() {
-      List<object> parameters = new List<object>() { QuickyChecker };
-      foreach (var param in _method.Ins)
-        parameters.Add(GenerateValueOfType(param.SyntacticType));
-      for(int i = 0; i < _method.Outs.Count; i++)
-        parameters.Add(null); //nulls needed for outs
-      //foreach (var formal in _method.Outs)
-      return parameters.ToArray();
-    }
-    //TODO move actuall generation for each parameter to new class? This way iterations can be counted for each parameter
-    private object GenerateValueOfType(Microsoft.Dafny.Type type) {
-      if (type is IntType)
-        return GenerateInt();
-      throw new Exception("Nothing of type found"); //TODO create new exception type and catch it - do not test that method
-    }
-
-    //TODO: Something more advanced must be done using the preconditions
-    private BigInteger GenerateInt() {
-      int value = _random.Next(5000);//TODO: start with smaller numbers and work up somehow so simple examples are given OR integrate fscheck for generation only
-      return new BigInteger(value);
+    public IndividualParamaterGenerator(Type type) {
+      Type = type;
     }
   }
   
