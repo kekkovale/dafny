@@ -6,17 +6,17 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Tacny.Language
 {
-    /*
-     * TODO: instead of storing all the information in the frame. Why doesn't these just inherit some atomicLang interface
-     * and we push that to the frame?
-     * Same will happen for while/if/match etc
-     * Domain specific stuff can then be stored in the object
-     * 
-     */
-    class ForallStmt
-    {
+
+    class ForallStmt {
+
+        private TacnyForallStmt _stmt;
+        private List<BoundVar> _vars;
+        private Expression _range;
+        private List<MaybeFreeExpression> _ens;
+
         /*
          *  TODO: generalise: this could also be a meta-level variable or tactic application
+         *  FIXME: doesn't have to be an implication
          */
         [Pure]
         public static bool IsForallShape(Expression e){
@@ -71,5 +71,30 @@ namespace Microsoft.Dafny.Tacny.Language
 
             yield return state;
         }
+
+        /*
+         * Term work:
+         *  - check free vars
+         *  - instantiate var (possible rename)
+         *  - rename all instances in program text (body)
+         *  - 
+         */
+
+        public Dafny.ForallStmt GenerateForallStmt(Statement body) {
+            Contract.Requires(_stmt != null);
+            IToken start = TokenGenerator.NextToken(_stmt.Tok, _stmt.Tok);
+            IToken end = TokenGenerator.NextToken(_stmt.EndTok, _stmt.EndTok);
+
+            return new Dafny.ForallStmt(start, end, _vars, null, _range, _ens, body);
+        }
+
+        private int freeVars() {
+            
+        }
+
+        private void instVar() {
+            
+        }
+
     }
 }
