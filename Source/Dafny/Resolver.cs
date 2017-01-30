@@ -7188,6 +7188,7 @@ namespace Microsoft.Dafny
       switch(typeN) {
         case "Element":
         case "Term":
+        case "Tactic":
           ret = true;
           break;
         default:

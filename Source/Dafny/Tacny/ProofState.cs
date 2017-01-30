@@ -365,6 +365,7 @@ namespace Microsoft.Dafny.Tacny{
     /// <returns></returns>
     public bool ContainTacnyVal(string key){
       Contract.Requires<ArgumentNullException>(!string.IsNullOrEmpty(key), "key");
+      if (_scope == null || _scope.Count == 0) return false;
       return _scope.Peek().ContainTacnyVars(key);
     }
 
@@ -387,7 +388,15 @@ namespace Microsoft.Dafny.Tacny{
       Contract.Requires(us != null);
       Contract.Requires<ArgumentException>(IsTacticCall(us));
       Contract.Ensures(Contract.Result<ITactic>() != null);
-      return GetTactic(Util.GetSignature(us));
+
+      var name = Util.GetSignature(us);
+      if(ContainTacnyVal(name)) {
+        var nameSegment = GetTacnyVarValue(name) as NameSegment;
+        if(nameSegment != null)
+          name = nameSegment.Name;
+      }
+
+      return GetTactic(name);
     }
 
     /// <summary>
@@ -401,7 +410,13 @@ namespace Microsoft.Dafny.Tacny{
       Contract.Requires(aps != null);
       Contract.Requires(IsTacticCall(aps));
       Contract.Ensures(Contract.Result<ITactic>() != null);
-      return GetTactic(Util.GetSignature(aps));
+      var name = Util.GetSignature(aps);
+      if(ContainTacnyVal(name)) {
+        var nameSegment = GetTacnyVarValue(name) as NameSegment;
+        if(nameSegment != null)
+          name = nameSegment.Name;
+      }
+      return GetTactic(name);
     }
 
     #endregion GETTERS
@@ -418,7 +433,12 @@ namespace Microsoft.Dafny.Tacny{
     [Pure]
     public bool IsTacticCall(UpdateStmt us){
       Contract.Requires(us != null);
-      return IsTacticCall(Util.GetSignature(us));
+      var name = Util.GetSignature(us);
+      if (ContainTacnyVal(name)){
+        var nameSegment = GetTacnyVarValue(name) as NameSegment;
+        if (nameSegment != null) name = nameSegment.Name;
+      }
+      return IsTacticCall(name);
     }
 
     /// <summary>
