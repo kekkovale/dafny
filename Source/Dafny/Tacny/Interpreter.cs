@@ -413,7 +413,8 @@ namespace Microsoft.Dafny.Tacny {
         }
       } else {
         var expr0 = expr.Copy();
-        new Resolver(state.GetDafnyProgram()).ResolveExpression(expr0, null);
+        var prog = state.GetDafnyProgram();
+        new Resolver(prog).ResolveExpression(expr0, new Resolver.ResolveOpts(null, true));
         yield return expr0;
       }
     }

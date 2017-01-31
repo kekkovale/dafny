@@ -176,6 +176,7 @@
     <Compile Include="Tacny\Atomic\Explore.cs" />
     <Compile Include="Tacny\Atomic\SuchThatAtomic.cs" />
     <Compile Include="Tacny\BaseTactic.cs" />
+    <Compile Include="Tacny\EAtomic\LoopGuard.cs" />
     <Compile Include="Tacny\EAtomic\EAtomic.cs" />
     <Compile Include="Tacny\EAtomic\Lemmas.cs" />
     <Compile Include="Tacny\EAtomic\Params.cs" />

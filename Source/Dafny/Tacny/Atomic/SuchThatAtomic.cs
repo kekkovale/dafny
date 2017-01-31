@@ -6,42 +6,44 @@ using System.Linq;
 
 
 namespace Microsoft.Dafny.Tacny.Atomic {
-  class SuchThatAtomic : Atomic {
+  class SuchThatAtomic : Atomic{
     public override string Signature => ":|";
     public override int ArgsCount => -1;
-    public override IEnumerable<ProofState> Generate(Statement statement, ProofState state) {
+
+    public override IEnumerable<ProofState> Generate(Statement statement, ProofState state){
       var tvds = statement as TacticVarDeclStmt;
       AssignSuchThatStmt suchThat = null;
       if (tvds != null)
         suchThat = tvds.Update as AssignSuchThatStmt;
-      else if (statement is AssignSuchThatStmt) {
-        suchThat = (AssignSuchThatStmt)statement;
-      } else {
+      else if (statement is AssignSuchThatStmt){
+        suchThat = (AssignSuchThatStmt) statement;
+      }
+      else{
         Contract.Assert(false, "Unexpected statement type");
       }
       Contract.Assert(suchThat != null, "Unexpected statement type");
 
       BinaryExpr bexp = suchThat.Expr as BinaryExpr;
       var locals = new List<string>();
-      if (tvds == null) {
-        foreach (var item in suchThat.Lhss) {
-          if (item is IdentifierExpr) {
-            var id = (IdentifierExpr)item;
+      if (tvds == null){
+        foreach (var item in suchThat.Lhss){
+          if (item is IdentifierExpr){
+            var id = (IdentifierExpr) item;
             if (state.ContainTacnyVal(id.Name))
               locals.Add(id.Name);
-            else {
+            else{
               //TODO: error
             }
           }
         }
       }
-      else {
+      else{
         locals = new List<string>(tvds.Locals.Select(x => x.Name).ToList());
       }
       // this will cause issues when multiple variables are used
       // as the variables are updated one at a time
-      foreach (var local in locals) {
-        foreach (var item in ResolveExpression(state, bexp, local)) {
+      foreach (var local in locals){
+        foreach (var item in Interpreter.EvalTacnyExpression(state, bexp)){
           var copy = state.Copy();
           copy.UpdateTacnyVar(local, item);
           yield return copy;
@@ -49,6 +51,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       }
     }
 
+    /*
     private IEnumerable<object> ResolveExpression(ProofState state, Expression expr, string declaration) {
       Contract.Requires(expr != null);
 
@@ -89,6 +92,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
         }
       }
     }
+  */
   }
 }
 
