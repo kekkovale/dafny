@@ -23,7 +23,8 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       }
       Contract.Assert(suchThat != null, "Unexpected statement type");
 
-      BinaryExpr bexp = suchThat.Expr as BinaryExpr;
+
+      //BinaryExpr bexp = suchThat.Expr as BinaryExpr;
       var locals = new List<string>();
       if (tvds == null){
         foreach (var item in suchThat.Lhss){
@@ -40,13 +41,16 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       else{
         locals = new List<string>(tvds.Locals.Select(x => x.Name).ToList());
       }
+
       // this will cause issues when multiple variables are used
       // as the variables are updated one at a time
       foreach (var local in locals){
-        foreach (var item in Interpreter.EvalTacnyExpression(state, bexp)){
-          var copy = state.Copy();
-          copy.UpdateTacnyVar(local, item);
-          yield return copy;
+        foreach (var l in Interpreter.EvalTacnyExpression(state, suchThat.Expr)) {
+          foreach (var item in (l as List<Expression>)){
+            var copy = state.Copy();
+            copy.UpdateTacnyVar(local, item);
+            yield return copy;
+          }
         }
       }
     }

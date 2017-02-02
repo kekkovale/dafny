@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Dafny;
+using Microsoft.Dafny.Tacny;
 using Microsoft.VisualStudio.Text;
 using Errors = Microsoft.Dafny.Errors;
 using Parser = Microsoft.Dafny.Parser;
@@ -12,10 +13,9 @@ namespace DafnyLanguage.Refactoring
   {
     public TacnyDriver(ITextBuffer buffer, string filename) : base(buffer, filename){}
     
-    public static bool ToggleTacticEvaluation()
-    {
-      Translator.TacticEvaluationIsEnabled = !Translator.TacticEvaluationIsEnabled;
-      return Translator.TacticEvaluationIsEnabled;
+    public static bool ToggleTacticEvaluation(){
+      Interpreter.IfEvalTac = !Interpreter.IfEvalTac;
+      return Interpreter.IfEvalTac;
     }
     
     public Program ReParse(bool runResolver)

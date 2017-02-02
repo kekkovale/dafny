@@ -6825,6 +6825,8 @@ namespace Microsoft.Dafny
     /// </summary>
     /// <param name="m"></param>
     public void ResolveMethodBody(Method m){
+      //infre type
+
       scope.PushMarker();
       if(m.IsStatic) {
         scope.AllowInstance = false;
@@ -6832,8 +6834,15 @@ namespace Microsoft.Dafny
       foreach(Formal p in m.Ins) {
         scope.Push(p.Name, p);
       }
+      foreach(Formal p in m.Outs) {
+        scope.Push(p.Name, p);
+      }
+
+      //CheckTypeInference_Member(m);
+
       ResolveBlockStatement(m.Body, m);
       SolveAllTypeConstraints();
+      CheckTypeInference_Member(m);
       scope.PopMarker();
     }
 
@@ -7763,6 +7772,11 @@ namespace Microsoft.Dafny
           ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
         }
 
+        if (s.TInvariants != null && s.TInvariants.Count > 0){
+          if(codeContext is Method) {
+            ((Method)codeContext).CallsTactic = true;
+          }
+        }
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, fvs);
 
         if (s.Body != null) {

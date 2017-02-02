@@ -3687,7 +3687,6 @@ namespace Microsoft.Dafny {
     public abstract string WhatKind { get; }
     public readonly bool HasStaticKeyword;
     public bool CallsTactic = false; // filled in during resolution
-    public bool EvaluateTactic = false;
     public virtual bool IsStatic {
       get {
         return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
@@ -6316,8 +6315,9 @@ namespace Microsoft.Dafny {
 
   public abstract class LoopStmt : Statement
   {
-    public readonly List<MaybeFreeExpression> Invariants;
-    public readonly Specification<Expression> Decreases;
+    public List<MaybeFreeExpression> Invariants;
+    public List<Statement> TInvariants;
+    public Specification<Expression> Decreases;
     public bool InferredDecreases;  // filled in by resolution
     public readonly Specification<FrameExpression> Mod;
     [ContractInvariantMethod]
@@ -6326,7 +6326,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Decreases != null);
       Contract.Invariant(Mod != null);
     }
-    public LoopStmt(IToken tok, IToken endTok, List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
+    public LoopStmt(IToken tok, IToken endTok, List<MaybeFreeExpression> invariants, List<Statement> tinvaraints, Specification<Expression> decreases, Specification<FrameExpression> mod)
     : base(tok, endTok)
     {
       Contract.Requires(tok != null);
@@ -6336,6 +6336,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(mod != null);
 
       this.Invariants = invariants;
+      this.TInvariants = tinvaraints;
       this.Decreases = decreases;
       this.Mod = mod;
       if (DafnyOptions.O.Dafnycc) {
@@ -6370,12 +6371,11 @@ namespace Microsoft.Dafny {
   {
     public readonly Expression Guard;
     public BlockStmt Body;
-    public Statement TacAps; // Tacny tactic application
 
     public WhileStmt(IToken tok, IToken endTok, Expression guard,
-                     List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+                     List<MaybeFreeExpression> invariants, List<Statement> tinvariants ,Specification<Expression> decreases, Specification<FrameExpression> mod,
                      BlockStmt body)
-      : base(tok, endTok, invariants, decreases, mod) {
+      : base(tok, endTok, invariants, tinvariants, decreases, mod) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       this.Guard = guard;
@@ -6408,7 +6408,7 @@ namespace Microsoft.Dafny {
     public RefinedWhileStmt(IToken tok, IToken endTok, Expression guard,
                             List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
                             BlockStmt body)
-      : base(tok, endTok, guard, invariants, decreases, mod, body) {
+      : base(tok, endTok, guard, invariants, null, decreases, mod, body) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(body != null);
@@ -6426,7 +6426,7 @@ namespace Microsoft.Dafny {
     public AlternativeLoopStmt(IToken tok, IToken endTok,
                                List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
                                List<GuardedAlternative> alternatives, bool usesOptionalBraces)
-      : base(tok, endTok, invariants, decreases, mod) {
+      : base(tok, endTok, invariants, null, decreases, mod) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(alternatives != null);

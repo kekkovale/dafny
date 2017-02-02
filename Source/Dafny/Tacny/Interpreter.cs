@@ -11,6 +11,8 @@ using Microsoft.Dafny.Tacny.Language;
 namespace Microsoft.Dafny.Tacny {
   public class Interpreter {
     public static int TACNY_CODE_TOK_LINE = -1;
+    public static bool IfEvalTac { get; set; } = true;
+
     private static Interpreter _i;
     private static ErrorReporterDelegate _errorReporterDelegate;
     private static Dictionary<UpdateStmt, List<Statement>> _resultList;
@@ -149,19 +151,9 @@ namespace Microsoft.Dafny.Tacny {
 
         } else if(stmt is WhileStmt) {
           var whileStmt = stmt as WhileStmt;
-          ResolveBlockStmt(whileStmt.Body);
+          ResolveWhileStmt(whileStmt);
         } else if(stmt is UpdateStmt) {
-          var us = stmt as UpdateStmt;
-          if(_state.IsTacticCall(us)) {
-            var list = StackToDict(_frame);
-            // this is a top level tactic call
-            var result = EvalTopLevelTactic(_state, list, us);
-            if(result != null)
-              _resultList.Add(us.Copy(), result.GetGeneratedCode().Copy());
-            else {// when no results, just return a empty stmt list
-              _resultList.Add(us.Copy(), new List<Statement>());
-            }
-          }
+          ResolveTacticCall(stmt as UpdateStmt);
         } else if(stmt is BlockStmt) {
           //TODO:
         }
@@ -169,8 +161,45 @@ namespace Microsoft.Dafny.Tacny {
       _frame.Pop();
     }
 
+    private void ResolveTacticCall(UpdateStmt stmt) {
+      var us = stmt as UpdateStmt;
+      if(_state.IsTacticCall(us)) {
+        var list = StackToDict(_frame);
+        // this is a top level tactic call
+        ProofState result = null;
+        if (IfEvalTac){
+          result = EvalTopLevelTactic(_state, list, us);
+        }
+        if(result != null)
+          _resultList.Add(us.Copy(), result.GetGeneratedCode().Copy());
+        else {// when no results, just return a empty stmt list
+          _resultList.Add(us.Copy(), new List<Statement>());
+        }
+      }
+    }
+
+    private void ResolveWhileStmt(WhileStmt stmt) {
+      if(stmt.TInvariants != null && stmt.TInvariants.Count > 0) {
+        foreach(var tinv in stmt.TInvariants) {
+          if(tinv is UpdateStmt) {
+            var list = StackToDict(_frame);
+            // this is a top level tactic call
+            ProofState result = null;
+            if (IfEvalTac){
+              result = EvalTopLevelTactic(_state, list, tinv as UpdateStmt);
+            }
+            if(result != null)
+              _resultList.Add(tinv as UpdateStmt, result.GetGeneratedCode().Copy());
+          }
+        }
+      }
+      ResolveBlockStmt(stmt.Body);
+    }
+
     private void ResolveIfStmt(IfStmt ifStmt) {
       Contract.Requires(tcce.NonNull(ifStmt));
+      //throw new NotImplementedException();
+
       ResolveBlockStmt(ifStmt.Thn);
       if(ifStmt.Els == null)
         return;
@@ -220,19 +249,16 @@ namespace Microsoft.Dafny.Tacny {
         }
       }
       // no frame control is triggered
-      if (enumerable == null){
-        if (stmt is TacticVarDeclStmt){
+      if(enumerable == null) {
+        if(stmt is TacticVarDeclStmt) {
           enumerable = RegisterVariable(stmt as TacticVarDeclStmt, state);
-        }
-        else if (stmt is UpdateStmt){
+        } else if(stmt is UpdateStmt) {
           var us = stmt as UpdateStmt;
-          if (state.IsLocalAssignment(us)){
+          if(state.IsLocalAssignment(us)) {
             enumerable = UpdateLocalValue(us, state);
-          }
-          else if (state.IsArgumentApplication(us)){
+          } else if(state.IsArgumentApplication(us)) {
             //TODO: argument application ??
-          }
-          else{
+          } else {
             // apply atomic
             string sig = Util.GetSignature(us);
             //Firstly, check if this is a projection function
@@ -240,22 +266,21 @@ namespace Microsoft.Dafny.Tacny {
               Assembly.GetAssembly(typeof(Atomic.Atomic))
                 .GetTypes()
                 .Where(t => t.IsSubclassOf(typeof(Atomic.Atomic)));
-            foreach (var fType in types){
+            foreach(var fType in types) {
               var porjInst = Activator.CreateInstance(fType) as Atomic.Atomic;
-              if (sig == porjInst?.Signature){
+              if(sig == porjInst?.Signature) {
                 //TODO: validate input countx
                 enumerable = porjInst?.Generate(us, state);
               }
             }
           }
-        }
-        else if (stmt is AssignSuchThatStmt){
-          enumerable = EvalSuchThatStmt((AssignSuchThatStmt) stmt, state);
-        }
-        else if (stmt is PredicateStmt){
-          enumerable = EvalPredicateStmt((PredicateStmt) stmt, state);
-        }
-        else{
+        } else if(stmt is AssignSuchThatStmt) {
+          enumerable = EvalSuchThatStmt((AssignSuchThatStmt)stmt, state);
+        } else if(stmt is PredicateStmt) {
+          enumerable = EvalPredicateStmt((PredicateStmt)stmt, state);
+        } else if(stmt is TacticInvariantStmt){
+          enumerable = new Atomic.TInvatiant().Generate(stmt, state);
+        } else {
           enumerable = DefaultAction(stmt, state);
         }
       }
@@ -515,7 +540,7 @@ namespace Microsoft.Dafny.Tacny {
           }
         } else if(exprRhs?.Expr is Microsoft.Dafny.LiteralExpr) {
           state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);
-        } else{
+        } else {
           var tree = ExpressionTree.ExpressionToTree(exprRhs?.Expr);
           var e = ExpressionTree.EvaluateExpression(tree, state);
 

@@ -10,9 +10,7 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     public override int ArgsCount => 0;
 
     public override IEnumerable<object> Generate(Expression expression, ProofState proofState){
-      foreach (var item in (proofState.TargetMethod as Method).Ens){
-        yield return item.E;
-      }
+      throw new NotImplementedException();
     }
 
   }

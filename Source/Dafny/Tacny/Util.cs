@@ -98,7 +98,19 @@ namespace Microsoft.Dafny.Tacny {
           }
         } else if (stmt is IfStmt) {
           /*body.Body[i] = InsertCodeIfStmt((IfStmt)stmt, code, tacticCall);*/
-        } else if (stmt is WhileStmt) {
+        } else if (stmt is WhileStmt){
+          var whileStmt = stmt as WhileStmt;
+          for (var j = 0; j < whileStmt.TInvariants.Count; j ++){
+            var item = whileStmt.TInvariants[j];
+            if(Compare(tacticCall.Tok, item.Tok)){
+              foreach (var gen_code in code){
+                //each inviariant are assmebled as assume statement
+                var expr = (gen_code as AssumeStmt).Expr;
+                whileStmt.Invariants.Add(new MaybeFreeExpression(expr));
+                whileStmt.TInvariants.Remove(item);
+              }
+            }
+          }
           ((WhileStmt)stmt).Body = InsertCodeInternal(((WhileStmt)stmt).Body, code, tacticCall);
         } else if (stmt is MatchStmt) {
           //TODO:
@@ -227,9 +239,9 @@ namespace Microsoft.Dafny.Tacny {
           }
         }
       }
-
+/*
 #if _TACTIC_DEBUG
-      Console.WriteLine("********************* Tacny: " + dest_md + " *****************");
+      Console.WriteLine("********************* Tactic in : " + dest_md + " *****************");
       var printer = new Printer(Console.Out);
       //printer.PrintProgram(prog, false);
       foreach(var stmt in state.GetGeneratedCode()) {
@@ -238,7 +250,7 @@ namespace Microsoft.Dafny.Tacny {
       }
       Console.WriteLine("********************* Stmts END *****************");
 #endif
-
+*/
       dest_md.CallsTactic = false;
       r.SetCurClass(dest_md.EnclosingClass as ClassDecl);
       r.ResolveMethodBody(dest_md);
@@ -256,14 +268,14 @@ namespace Microsoft.Dafny.Tacny {
 
     public static bool VerifyResolvedProg(Program program, ErrorReporterDelegate er) {
       Contract.Requires<ArgumentNullException>(program != null);
-/*
+//
 #if _TACTIC_DEBUG
       var printer = new Printer(Console.Out);
       Console.WriteLine("*********************Verifying Tacny Generated Prog*****************");
       printer.PrintProgram(program, true);
       Console.WriteLine("\n*********************Prog END*****************");
 #endif
-*/
+//
       var boogieProg = Translator.Translate(program, program.reporter, null);
 
       PipelineStatistics stats;

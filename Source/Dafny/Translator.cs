@@ -97,7 +97,6 @@ namespace Microsoft.Dafny {
     ErrorReporter reporter;
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
     public bool UseOptimizationInZ3 { get; set; }
-    public static bool TacticEvaluationIsEnabled = true;
     private ErrorReporterDelegate _tacnyDelegate; 
 
     public class TranslatorFlags {
@@ -1856,7 +1855,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(mem is Method);
 
       if (mem is Method) {
-        if (TacticEvaluationIsEnabled && mem.CallsTactic) {
+        if (mem.CallsTactic) {
          mem = Interpreter.ResolveMethod(program, (Method)mem, _tacnyDelegate, r) as Method;
         }
         AddMethod_Top((Method)mem);
@@ -15842,7 +15841,7 @@ namespace Microsoft.Dafny {
           r = new AlternativeStmt(s.Tok, s.EndTok, s.Alternatives.ConvertAll(SubstGuardedAlternative), s.UsesOptionalBraces);
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
-          r = new WhileStmt(s.Tok, s.EndTok, Substitute(s.Guard), s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), SubstBlockStmt(s.Body));
+          r = new WhileStmt(s.Tok, s.EndTok, Substitute(s.Guard), s.Invariants.ConvertAll(SubstMayBeFreeExpr), s.TInvariants, SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), SubstBlockStmt(s.Body));
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
           r = new AlternativeLoopStmt(s.Tok, s.EndTok, s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(SubstGuardedAlternative), s.UsesOptionalBraces);

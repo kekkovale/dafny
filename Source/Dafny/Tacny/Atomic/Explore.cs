@@ -123,45 +123,6 @@ namespace Microsoft.Dafny.Tacny.Atomic {
     }
 
 
-    private static List<Expression> GetCallArguments(UpdateStmt us) {
-      Contract.Requires(us != null);
-      var er = (ExprRhs)us.Rhss[0];
-      return ((ApplySuffix)er.Expr).Args;
-    }
-    private void InitArgs(ProofState ps, Statement st, out IVariable lv, out List<Expression> callArguments) {
-      Contract.Requires(st != null);
-      Contract.Ensures(Contract.ValueAtReturn(out callArguments) != null);
-      lv = null;
-      callArguments = null;
-      TacticVarDeclStmt tvds;
-      UpdateStmt us;
-      TacnyBlockStmt tbs;
-
-      // tacny variables should be declared as tvar or tactic var
-      //if(st is VarDeclStmt)
-      //  Contract.Assert(false, Error.MkErr(st, 13));
-
-      if((tvds = st as TacticVarDeclStmt) != null) {
-        lv = tvds.Locals[0];
-        callArguments = GetCallArguments(tvds.Update as UpdateStmt);
-
-      } else if((us = st as UpdateStmt) != null) {
-        if(us.Lhss.Count == 0)
-          callArguments = GetCallArguments(us);
-        else {
-          var ns = (NameSegment)us.Lhss[0];
-          if(ps.ContainTacnyVal(ns)) {
-            //TODO: need to doubel check this
-            lv = ps.GetTacnyVarValue(ns) as IVariable;
-            callArguments = GetCallArguments(us);
-          }
-        }
-      } else if((tbs = st as TacnyBlockStmt) != null) {
-        var pe = tbs.Guard as ParensExpression;
-        callArguments = pe != null ? new List<Expression> { pe.E } : new List<Expression> { tbs.Guard };
-      }
-
-    }
     private static IEnumerable<List<NameSegment>> PermuteArguments(List<List<IVariable>> args, int depth, List<NameSegment> current) {
       if(args.Count == 0)
         yield break;

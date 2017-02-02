@@ -47,7 +47,7 @@ namespace DafnyLanguage.Refactoring
       _errMessage = innerError.FullMsg;
 
       _implTargetName = MethodNameFromImpl(innerError.ImplementationName);
-      _tacticCall = proofState.TacticApplication;
+      _tacticCall = proofState.TopLevelTacApp;
       _activeTactic = proofState.GetTactic(_tacticCall) as Tactic;
 
       _callingMember = proofState.TargetMethod;
