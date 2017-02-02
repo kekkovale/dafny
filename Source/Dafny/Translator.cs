@@ -1855,9 +1855,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(mem is Method);
 
       if (mem is Method) {
-        if (mem.CallsTactic) {
-         mem = Interpreter.ResolveMethod(program, (Method)mem, _tacnyDelegate, r) as Method;
+        if (mem.CallsTactic){
+          mem = Interpreter.ResolveMethod(program, (Method) mem, _tacnyDelegate, r) as Method;
         }
+     /*   else{
+          var printer = new Printer(Console.Out);
+          printer.PrintMethod(mem as Method, 1,false);
+        }*/
+
         AddMethod_Top((Method)mem);
       }
 

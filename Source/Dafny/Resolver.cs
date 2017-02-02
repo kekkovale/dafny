@@ -6820,12 +6820,11 @@ namespace Microsoft.Dafny
       currentClass = cl;
     }
     /// <summary>
-    /// For tacny use, when a new method is generated, tacny need to resove that method only
+    /// For tactic use, when a new method is generated, tacny need to resove that method only
     /// more need to be done for 1, pushing type parameters 2, pre and post rewrite ?
     /// </summary>
     /// <param name="m"></param>
     public void ResolveMethodBody(Method m){
-      //infre type
 
       scope.PushMarker();
       if(m.IsStatic) {
@@ -6838,12 +6837,15 @@ namespace Microsoft.Dafny
         scope.Push(p.Name, p);
       }
 
-      //CheckTypeInference_Member(m);
-
       ResolveBlockStatement(m.Body, m);
       SolveAllTypeConstraints();
+      //infer types
       CheckTypeInference_Member(m);
       scope.PopMarker();
+
+      //fill in decreases
+      var c = new FillInDefaultLoopDecreases_Visitor(this, m);
+      c.Visit(m.Body);
     }
 
     void ResolveCtorSignature(DatatypeCtor ctor, List<TypeParameter> dtTypeArguments) {

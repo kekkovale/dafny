@@ -115,6 +115,7 @@ namespace Microsoft.Dafny.Tacny {
         if(body != null)
           method.Body.Body.AddRange(body.Body);
 
+        
         // use the original resolver of the resoved program, as it contains all the necessary type info
         //TODO: how about pre and post ??
         method.CallsTactic = false; // set the tactic call lable to be false, no actual consequence
@@ -279,7 +280,7 @@ namespace Microsoft.Dafny.Tacny {
         } else if(stmt is PredicateStmt) {
           enumerable = EvalPredicateStmt((PredicateStmt)stmt, state);
         } else if(stmt is TacticInvariantStmt){
-          enumerable = new Atomic.TInvatiant().Generate(stmt, state);
+          enumerable = new Atomic.TacticInv().Generate(stmt, state);
         } else {
           enumerable = DefaultAction(stmt, state);
         }

@@ -106,7 +106,7 @@ namespace Microsoft.Dafny.Tacny {
               foreach (var gen_code in code){
                 //each inviariant are assmebled as assume statement
                 var expr = (gen_code as AssumeStmt).Expr;
-                whileStmt.Invariants.Add(new MaybeFreeExpression(expr));
+                whileStmt.Invariants.Insert(0, (new MaybeFreeExpression(expr)));
                 whileStmt.TInvariants.Remove(item);
               }
             }
@@ -239,21 +239,23 @@ namespace Microsoft.Dafny.Tacny {
           }
         }
       }
-/*
-#if _TACTIC_DEBUG
-      Console.WriteLine("********************* Tactic in : " + dest_md + " *****************");
-      var printer = new Printer(Console.Out);
-      //printer.PrintProgram(prog, false);
-      foreach(var stmt in state.GetGeneratedCode()) {
-        printer.PrintStatement(stmt, 0);
-        Console.WriteLine("");
-      }
-      Console.WriteLine("********************* Stmts END *****************");
-#endif
-*/
+      /*
+      #if _TACTIC_DEBUG
+            Console.WriteLine("********************* Tactic in : " + dest_md + " *****************");
+            var printer = new Printer(Console.Out);
+            //printer.PrintProgram(prog, false);
+            foreach(var stmt in state.GetGeneratedCode()) {
+              printer.PrintStatement(stmt, 0);
+              Console.WriteLine("");
+            }
+            Console.WriteLine("********************* Stmts END *****************");
+      #endif
+      */
+      
       dest_md.CallsTactic = false;
       r.SetCurClass(dest_md.EnclosingClass as ClassDecl);
       r.ResolveMethodBody(dest_md);
+
 
       if (prog.reporter.Count(ErrorLevel.Error) != 0){
 

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Tacny.Atomic{
-  class TInvatiant : Atomic{
+  class TacticInv : Atomic{
     public override string Signature => "invariant";
     public override int ArgsCount => 1;
 
