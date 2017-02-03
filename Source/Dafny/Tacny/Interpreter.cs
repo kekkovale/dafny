@@ -121,7 +121,8 @@ namespace Microsoft.Dafny.Tacny {
         method.CallsTactic = false; // set the tactic call lable to be false, no actual consequence
         // set the current class in the resolver, so that it can refer to the memberdecl correctly
         r.SetCurClass(method.EnclosingClass as ClassDecl);
-        r.ResolveMethodBody(method);
+        //asssume the defualt module is the current module, this needs to be improved.
+        r.ResolveMethodBody(method, _state.GetDafnyProgram().DefaultModuleDef.Name);
         //Console.WriteLine("Errors: " + _program.reporter.Count(ErrorLevel.Error));
 
       }

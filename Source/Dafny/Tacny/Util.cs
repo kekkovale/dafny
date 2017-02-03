@@ -254,7 +254,7 @@ namespace Microsoft.Dafny.Tacny {
       
       dest_md.CallsTactic = false;
       r.SetCurClass(dest_md.EnclosingClass as ClassDecl);
-      r.ResolveMethodBody(dest_md);
+      r.ResolveMethodBody(dest_md, state.GetDafnyProgram().DefaultModuleDef.Name);
 
 
       if (prog.reporter.Count(ErrorLevel.Error) != 0){

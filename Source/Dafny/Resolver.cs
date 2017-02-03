@@ -6824,7 +6824,14 @@ namespace Microsoft.Dafny
     /// more need to be done for 1, pushing type parameters 2, pre and post rewrite ?
     /// </summary>
     /// <param name="m"></param>
-    public void ResolveMethodBody(Method m){
+    public void ResolveMethodBody(Method m, string moduleName){
+      // get the current module 
+      ModuleDecl curModule = dependencies.GetVertices().ToList().Find(x => x.N.Name == moduleName).N;
+      var moduleDef = (curModule as LiteralModuleDecl).ModuleDef;
+      foreach(var r in rewriters)
+      {
+        r.PreResolve(moduleDef);
+      }
 
       scope.PushMarker();
       if(m.IsStatic) {
@@ -6846,7 +6853,17 @@ namespace Microsoft.Dafny
       //fill in decreases
       var c = new FillInDefaultLoopDecreases_Visitor(this, m);
       c.Visit(m.Body);
-    }
+
+      //post resolve
+      foreach (var r in rewriters){
+        r.PostResolve(moduleDef);
+      }
+/*
+      foreach(var r in rewriters) {
+        r.PostCyclicityResolve(moduleDef);
+      }
+ */
+     }
 
     void ResolveCtorSignature(DatatypeCtor ctor, List<TypeParameter> dtTypeArguments) {
       Contract.Requires(ctor != null);
