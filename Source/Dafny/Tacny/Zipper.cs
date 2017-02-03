@@ -88,16 +88,35 @@ namespace Microsoft.Dafny.Tacny {
             while (GoUp()) {}
         }
 
-        public void GoLast() {
-            while (GoDown()) { }
+        public void GoLeftMost() {
+            while (GoLeft()) { }
+        }
+        public void GoRightMost() {
             while (GoRight()) { }
         }
 
+        public void GoLast() {
+            GoRightMost();
+            while (GoDown())
+                GoRightMost();
+        }
+
+        // depth-first
         public bool GoNext() {
+            if (GoDown())
+                return true;
             if (GoRight())
                 return true;
-            else
-                return GoDown();
+            if (GoRight())
+                return true;
+            // We then have to keep on going up and right until we reach the top (meaning all have been seen)
+            while (GoUp()) {
+                if (GoRight())
+                    return true;
+            }
+            // Go to the last and return false -- could be skipped
+            //GoLast();
+            return false;
         }
 
         public bool GoTo(Predicate<Expression> p) {

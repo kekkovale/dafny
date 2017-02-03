@@ -997,7 +997,10 @@ Everything) {
         PrintRhs(s.Rhs);
         wr.Write(";");
 
-      } else if (stmt is TacnyCasesBlockStmt) {
+      } else if (stmt is TacnyForallStmt) {
+        wr.Write("tactic forall {}");
+        // todo: complete
+      }else if (stmt is TacnyCasesBlockStmt) {
         TacnyCasesBlockStmt tcbs = stmt as TacnyCasesBlockStmt;
         wr.Write("cases ");
         PrintExpression(tcbs.Guard, false);

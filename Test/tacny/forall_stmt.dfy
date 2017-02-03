@@ -2,17 +2,19 @@
 lemma dummyLemma()
 ensures false
 {
-	forall x : int | x == x
-	  ensures x != x
+  	forall x:int 
+	  ensures x == x
 	  {
-	    var x := 0;
-	    while x < 10{
-		  x := x + 1;
-		}
-	    assume false;
 	  }
+	t(); 
+}
 
- 
+tactic t()
+{
+  tactic forall forall x :: x > 5
+	{
+		assume false;
+	}	
 }
 
 /*
