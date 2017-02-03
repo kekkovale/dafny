@@ -146,12 +146,8 @@ namespace Microsoft.Dafny.Tacny{
       _scope.Push(new Frame(parent, ctrl));
     }
     // note that this function can only be called either a frame is proved or isEvaluated.
-    public void MarkCurFrameAsTerminated(bool curFrameProved){
-      if(!curFrameProved && _scope.Peek().FrameCtrl.Backtrack > 0) {
-        _scope.Peek().FrameCtrl.Backtrack -= 1;
-        return;
-      }
-
+    public bool MarkCurFrameAsTerminated(bool curFrameProved){
+ 
       //assemble code in the top frame
       _scope.Peek().FrameCtrl.MarkAsEvaluated(curFrameProved);
 
@@ -162,8 +158,10 @@ namespace Microsoft.Dafny.Tacny{
         _scope.Peek().Parent.FrameCtrl.AddGeneratedCode(code);
         _scope.Pop();
         if (_scope.Peek().FrameCtrl.EvalTerminated(curFrameProved, this) || IsEvaluated())
-          MarkCurFrameAsTerminated(curFrameProved);
+          return MarkCurFrameAsTerminated(curFrameProved);
       }
+
+      return true;
     }
 
     public IEnumerable<ProofState> EvalStep(){
@@ -197,6 +195,10 @@ namespace Microsoft.Dafny.Tacny{
       }
 
       return backtrack;
+    }
+
+    public int GetOrignalTopBacktrack(){
+      return _scope.Peek().FrameCtrl.OriginalBK;
     }
 
     public void SetBackTrackCount(List<int> cnt){

@@ -154,7 +154,7 @@ namespace Microsoft.Dafny.Tacny.Language {
         dummystmt.Add(stmt);
       }
 
-      var matchCtrl = this.Copy();
+      var matchCtrl = this;
 
       matchCtrl.IsPartial = partial;
       matchCtrl.InitBasicFrameCtrl(dummystmt, null);

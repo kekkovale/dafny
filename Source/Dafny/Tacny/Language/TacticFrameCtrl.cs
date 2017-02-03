@@ -13,6 +13,7 @@ namespace Microsoft.Dafny.Tacny.Language{
 
     public Strategy SearchStrategy { get; set; } = Strategy.Dfs;
     public bool IsPartial = false;
+    public int OriginalBK = -1;
     public int Backtrack = 0;
 
     //a funtion with the right kind will be able to th generated code to List of statment
@@ -71,6 +72,7 @@ namespace Microsoft.Dafny.Tacny.Language{
         ParseTacticAttributes(tactic.Attributes);
       Body = body;
       ParseTacticAttributes(attrs);
+      OriginalBK = Backtrack;
       _generatedCode = null;
       _rawCodeList = new List<List<Statement>>();
     }
@@ -88,9 +90,15 @@ namespace Microsoft.Dafny.Tacny.Language{
     /// this will assemble the raw code if the raw code can be verified or parital is allowed
     /// </summary>
     public void MarkAsEvaluated(bool curFrameProved) {
+
       // only to assmeble code when the current frame is proved, 
       // or the current frame is partial and the all the stmts have been evaluated 
       if(curFrameProved || IsPartial) {
+        if(Backtrack > 0) {
+          Console.WriteLine(" ----- Backtrack ---- ");
+          Backtrack -= 1;
+          return;
+        }
         Assemble();
       }
     }
