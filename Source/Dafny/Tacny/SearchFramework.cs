@@ -205,6 +205,7 @@ namespace Microsoft.Dafny.Tacny {
   
     internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate er){
       var stack = new Stack<IEnumerator<ProofState>>(); // proof state and  backtrack count
+      ProofState lastSucc = null;
 
       stack.Push(rootState.EvalStep().GetEnumerator());
 
@@ -230,6 +231,7 @@ namespace Microsoft.Dafny.Tacny {
           switch(VerifyState(proofState, er)){
             case VerifyResult.Verified:
               proofState.MarkCurFrameAsTerminated(true);
+              lastSucc = proofState;
               if (proofState.IsTerminated()){
                 yield return proofState;
                 yield break;
@@ -241,14 +243,15 @@ namespace Microsoft.Dafny.Tacny {
             case VerifyResult.Failed:
               if(proofState.IsEvaluated()) {
                 proofState.MarkCurFrameAsTerminated(false);
+                lastSucc = proofState;
                 if(proofState.IsTerminated()) {
-                    yield return proofState;
+                  yield return proofState;
                     yield break;
                   }
                 }
               break;
             case VerifyResult.Unresolved:
-              //discharge current branch if fails to resolve
+              //discard current branch if fails to resolve
               continue;
             default:
               throw new ArgumentOutOfRangeException();
@@ -267,6 +270,17 @@ namespace Microsoft.Dafny.Tacny {
         }
         else{
           backtackList = proofState.GetBackTrackCount(); // update the current bc count to the list
+        }
+
+      }
+      //check if over-backchecked
+      if(backtackList.Exists(x => x >= 0))
+      {
+        if (lastSucc == null)
+          Console.WriteLine("!!! No more branch for the request of " +  (backtackList.Last()+1) +  "backtracking, and no branch.");
+        else{
+          Console.WriteLine("!!! No more branch for the request of " + lastSucc.GetOrignalTopBacktrack() + ", remaining " + (backtackList.Last()+1 > lastSucc.GetOrignalTopBacktrack() ? lastSucc.GetOrignalTopBacktrack(): backtackList.Last() + 1) + " requests, return the last one.");
+          yield return lastSucc;
         }
 
       }
