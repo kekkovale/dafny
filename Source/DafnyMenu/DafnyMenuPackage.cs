@@ -79,7 +79,7 @@ namespace DafnyLanguage.DafnyMenu
 
     void DiagnoseTimeouts(IWpfTextView activeTextView);
 
-    void GoToDefinition(IWpfTextView activeTextView);
+    void GoToDefinition(IWpfTextView activeTextView); //TODO add function here
   }
 
 

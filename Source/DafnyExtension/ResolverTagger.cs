@@ -474,7 +474,7 @@ namespace DafnyLanguage
 
   #region Errors
 
-  public enum ErrorCategory
+  public enum ErrorCategory //TODO add my own?
   {
     ProcessError, ParseWarning, ParseError, ResolveWarning, ResolveError, VerificationError, AuxInformation, InternalError
   }

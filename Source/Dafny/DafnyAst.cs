@@ -565,7 +565,7 @@ namespace Microsoft.Dafny {
     }
 
     public static VisibilityScope GetScope() {
-      if (scopes.Count > 0 && scopesEnabled) {
+      if (scopesEnabled && scopes.Count > 0) {
         return scopes[scopes.Count - 1];
       }
       return null;

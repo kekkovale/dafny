@@ -11,11 +11,8 @@ namespace Quicky
   //This class is referenced from quicky compiled programs to check and react to 
   public class QuickyChecker
   {
-   
-
     private readonly Method _method;
     private readonly Quicky _quicky;
-
     
     public int PreconditionFails { get; private set; }
 
@@ -32,7 +29,8 @@ namespace Quicky
 
     public void TrackError(int lineNum, int columnNum, string counterExamples, QuickyError.ErrorType errorType) {
       Microsoft.Boogie.Token tok = new Microsoft.Boogie.Token(lineNum, columnNum);
-      var exception = new QuickyError(tok, counterExamples, errorType);
+      string implName = "Impl$$" + _method.FullSanitizedName;
+      var exception = new QuickyError(tok, counterExamples, errorType, implName);
       if (!_quicky.FoundErrors.ContainsKey(_method))
         _quicky.FoundErrors.Add(_method, exception);
     }

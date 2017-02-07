@@ -62,12 +62,21 @@ namespace Microsoft.Dafny {
     void ReadRuntimeSystem(TextWriter wr) {
       string codebase = cce.NonNull( System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
       string path = System.IO.Path.Combine(codebase, "DafnyRuntime.cs");
-      using (TextReader rd = new StreamReader(new FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read)))
-      {
+      using (TextReader rd = new StreamReader(new FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read))) {
+//        if (quickyCompile) {
+//          for (int i = 0; i < 4; i++) {
+//            //the ifdef wont work as it will be defined
+//            string str = rd.ReadLine();
+//            Console.WriteLine(str);
+//          }
+//        }
+        
         while (true) {
           string s = rd.ReadLine();
           if (s == null)
             return;
+          if(s.Length > 5)
+            if (s.Substring(0, 5) == "using") continue;
           wr.WriteLine(s);
         }
       }
@@ -76,6 +85,7 @@ namespace Microsoft.Dafny {
     void EmitDafnySourceAttribute(Program program, TextWriter wr) {
       Contract.Requires(program != null);
 
+      if (quickyCompile) return;
       wr.WriteLine("[assembly: DafnyAssembly.DafnySourceAttribute(@\"");
 
       var strwr = new StringWriter();
@@ -991,8 +1001,11 @@ namespace Microsoft.Dafny {
         wr.Write("<{0}>", TypeParameters(m.TypeArgs));
       }
       wr.Write("(");
-      if(quickyCompile)
-        wr.Write("QuickyChecker qChecker, ");
+      if (quickyCompile) {
+        wr.Write("QuickyChecker qChecker");
+        if(m.Ins.Count + m.Outs.Count > 0)
+          wr.Write(", ");
+      }
       int nIns = WriteFormals("", m.Ins, wr);
       WriteFormals(nIns == 0 ? "" : ", ", m.Outs, wr);
       wr.WriteLine(")");
@@ -1068,6 +1081,10 @@ namespace Microsoft.Dafny {
     }
 
     private static void CreateCounterExampleString(Method m, TextWriter wr) {
+      if (m.Ins.Count < 1) {
+        wr.WriteLine("string counterExamples = \"(no parameters for this function)\";");
+        return;}
+
       string counterExamples = "\"";
       string counterExampleValues = "";
       for (int index = 0; index < m.Ins.Count; index++) {
@@ -1500,6 +1517,10 @@ namespace Microsoft.Dafny {
       if (stmt.IsGhost) {
         var v = new CheckHasNoAssumes_Visitor(this, wr);
         v.Visit(stmt);
+        if (quickyCompile && stmt is AssertStmt) {
+          AssertStmt assert = (AssertStmt) stmt;
+          CheckExpression(assert.Expr, wr, "Assert");
+        }
         Indent(indent, wr); wr.WriteLine("{ }");
         return wr;
       }
@@ -1948,9 +1969,9 @@ namespace Microsoft.Dafny {
     }
 
     private void CheckExpression(Expression e, TextWriter wr, string errorType) { //TODO some indenting here
-      wr.Write("if(!");
+      wr.Write("if(!(");
       TrExpr(e, wr, false);
-      wr.WriteLine(") {");
+      wr.WriteLine(")) {");
       wr.Write("  qChecker.TrackError(");
       wr.Write(e.tok.line);
       wr.Write(", ");
@@ -2288,7 +2309,11 @@ namespace Microsoft.Dafny {
           TrParenExpr(s.Receiver, wr, false);
         }
         wr.Write(".@{0}(", s.Method.CompileName);
-
+        if (quickyCompile) {
+          wr.Write("qChecker");
+          if(s.Method.Ins.Count + s.Method.Outs.Count > 0)
+            wr.Write(", ");
+        }
         string sep = "";
         for (int i = 0; i < s.Method.Ins.Count; i++) {
           Formal p = s.Method.Ins[i];

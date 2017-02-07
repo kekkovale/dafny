@@ -222,6 +222,7 @@ namespace DafnyLanguage
 
     private Ellipse CreateErrorAdornment(DafnyErrorResolverTag ertag)
     {
+            //TODO error things made here
       var result = new Ellipse
       {
         Fill = Brushes.Crimson,
