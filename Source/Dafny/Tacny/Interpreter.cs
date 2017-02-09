@@ -254,6 +254,12 @@ namespace Microsoft.Dafny.Tacny {
       if(enumerable == null) {
         if(stmt is TacticVarDeclStmt) {
           enumerable = RegisterVariable(stmt as TacticVarDeclStmt, state);
+        }  else if(stmt is AssignSuchThatStmt) {
+          enumerable = EvalSuchThatStmt((AssignSuchThatStmt)stmt, state);
+        } else if(stmt is PredicateStmt) {
+          enumerable = EvalPredicateStmt((PredicateStmt)stmt, state);
+        } else if(stmt is TacticInvariantStmt){
+          enumerable = new Atomic.TacticInv().Generate(stmt, state);
         } else if(stmt is UpdateStmt) {
           var us = stmt as UpdateStmt;
           if(state.IsLocalAssignment(us)) {
@@ -276,13 +282,7 @@ namespace Microsoft.Dafny.Tacny {
               }
             }
           }
-        } else if(stmt is AssignSuchThatStmt) {
-          enumerable = EvalSuchThatStmt((AssignSuchThatStmt)stmt, state);
-        } else if(stmt is PredicateStmt) {
-          enumerable = EvalPredicateStmt((PredicateStmt)stmt, state);
-        } else if(stmt is TacticInvariantStmt){
-          enumerable = new Atomic.TacticInv().Generate(stmt, state);
-        } else {
+        } else {// default action as macrl
           enumerable = DefaultAction(stmt, state);
         }
       }
@@ -291,7 +291,15 @@ namespace Microsoft.Dafny.Tacny {
 
     public static IEnumerable<ProofState> EvalPredicateStmt(PredicateStmt predicate, ProofState state) {
       Contract.Requires<ArgumentNullException>(predicate != null, "predicate");
-      foreach(var result in EvalTacnyExpression(state, predicate.Expr)) {
+      var expr_enum = EvalTacnyExpression(state, predicate.Expr, false);
+      if(!expr_enum.GetEnumerator().MoveNext()) // in the case that the expression can't be evaluated, return as it is, i.e. macro
+      {
+        var copy = state.Copy();
+        copy.AddStatement(predicate);
+        yield return copy;
+        yield break;
+      }
+      foreach(var result in expr_enum) {
         var resultExpression = result is IVariable ? Util.VariableToExpression(result as IVariable) : result as Expression;
         PredicateStmt newPredicate;
 
@@ -311,9 +319,11 @@ namespace Microsoft.Dafny.Tacny {
         copy.NeedVerify = true;
         yield return copy;
       }
+
+
     }
 
-    public static IEnumerable<object> EvalTacnyExpression(ProofState state, Expression expr) {
+    public static IEnumerable<object> EvalTacnyExpression(ProofState state, Expression expr, bool ifEvalDafnyExpr = true) {
       Contract.Requires<ArgumentNullException>(state != null, "state");
       Contract.Requires<ArgumentNullException>(expr != null, "expr");
       if(expr is NameSegment) {
@@ -363,7 +373,7 @@ namespace Microsoft.Dafny.Tacny {
             }
           }
 
-          // if we reached this point, rewrite  the apply suffix
+          // if we reached this point, rewrite the apply suffix
           foreach(var item in EvalTacnyExpression(state, aps.Lhs)) {
             if(!(item is NameSegment)) {
               //TODO: warning
@@ -438,7 +448,7 @@ namespace Microsoft.Dafny.Tacny {
           }
 
         }
-      } else {
+      } else if (ifEvalDafnyExpr){
         var expr0 = expr.Copy();
         var prog = state.GetDafnyProgram();
         new Resolver(prog).ResolveExpression(expr0, new Resolver.ResolveOpts(null, true));

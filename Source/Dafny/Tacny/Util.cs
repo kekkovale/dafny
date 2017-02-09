@@ -239,7 +239,7 @@ namespace Microsoft.Dafny.Tacny {
           }
         }
       }
-      /*
+      //
       #if _TACTIC_DEBUG
             Console.WriteLine("********************* Tactic in : " + dest_md + " *****************");
             var printer = new Printer(Console.Out);
@@ -250,7 +250,7 @@ namespace Microsoft.Dafny.Tacny {
             }
             Console.WriteLine("********************* Stmts END *****************");
       #endif
-      */
+      //
       
       dest_md.CallsTactic = false;
       r.SetCurClass(dest_md.EnclosingClass as ClassDecl);
@@ -270,14 +270,14 @@ namespace Microsoft.Dafny.Tacny {
 
     public static bool VerifyResolvedProg(Program program, ErrorReporterDelegate er) {
       Contract.Requires<ArgumentNullException>(program != null);
-//
+/*
 #if _TACTIC_DEBUG
       var printer = new Printer(Console.Out);
       Console.WriteLine("*********************Verifying Tacny Generated Prog*****************");
       printer.PrintProgram(program, true);
       Console.WriteLine("\n*********************Prog END*****************");
 #endif
-//
+*/
       var boogieProg = Translator.Translate(program, program.reporter, null);
 
       PipelineStatistics stats;

@@ -6,26 +6,36 @@ using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny
 {
-  public abstract class IRewriter
-  {
+  public abstract class IRewriter{
     protected readonly ErrorReporter reporter;
 
-    public IRewriter(ErrorReporter reporter) {
+    public IRewriter(ErrorReporter reporter){
       Contract.Requires(reporter != null);
       this.reporter = reporter;
     }
 
-    internal virtual void PreResolve(ModuleDefinition m) {
+    internal virtual void PreResolve(ModuleDefinition m){
       Contract.Requires(m != null);
     }
 
-    internal virtual void PostResolve(ModuleDefinition m) {
+    internal virtual void PostResolve(ModuleDefinition m){
       Contract.Requires(m != null);
     }
 
     // After SCC/Cyclicity/Recursivity analysis:
-    internal virtual void PostCyclicityResolve(ModuleDefinition m) {
+    internal virtual void PostCyclicityResolve(ModuleDefinition m){
       Contract.Requires(m != null);
+    }
+
+
+    internal bool isTacticRelated(ICallable m)
+    {
+      if (m is Tactic)
+        return true;
+      if (m is Method){
+        return (m as Method).CallsTactic;
+      }
+      return false;
     }
   }
 
@@ -42,11 +52,12 @@ namespace Microsoft.Dafny
     internal TriggerGeneratingRewriter(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
     }
-
+ 
     internal override void PostCyclicityResolve(ModuleDefinition m) {
       var finder = new Triggers.QuantifierCollector(reporter);
         
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
+        if (!isTacticRelated(decl))
         finder.Visit(decl, false);
       }
       
@@ -66,7 +77,10 @@ namespace Microsoft.Dafny
     internal override void PostResolve(ModuleDefinition m) {
       var splitter = new Triggers.QuantifierSplitter();
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
-        splitter.Visit(decl);
+        //skip tactics
+        if (!(isTacticRelated(decl))){
+          splitter.Visit(decl);
+        }
       }
       splitter.Commit();
     }

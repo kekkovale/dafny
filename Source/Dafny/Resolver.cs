@@ -6819,6 +6819,35 @@ namespace Microsoft.Dafny
     public void SetCurClass(ClassDecl cl){
       currentClass = cl;
     }
+
+    internal ModuleSignature RestoreSigFromMouduleDef(ModuleDefinition moduleDef) {
+      //init some basic info
+      var sig = new ModuleSignature();
+      sig.ModuleDef = moduleDef;
+      sig.IsAbstract = moduleDef.IsAbstract;
+      sig.VisibilityScope = new VisibilityScope();
+      sig.VisibilityScope.Augment(moduleDef.VisibilityScope);
+
+      //mainly for datatype ctors
+      foreach(var ctors in datatypeCtors.Values) {
+        foreach(DatatypeCtor ctor in ctors.Values) { 
+
+            // also register the constructor name globally
+            Tuple<DatatypeCtor, bool> pair;
+            if(sig.Ctors.TryGetValue(ctor.Name, out pair)) {
+              // ignore when it is duplicated
+            } else {
+              // add new
+              sig.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
+            }
+      
+        }
+      }
+
+      return sig;
+
+      // moduleInfo = MergeSignature(sig, systemNameInfo);
+    }
     /// <summary>
     /// For tactic use, when a new method is generated, tacny need to resove that method only
     /// more need to be done for 1, pushing type parameters 2, pre and post rewrite ?
@@ -6828,10 +6857,14 @@ namespace Microsoft.Dafny
       // get the current module 
       ModuleDecl curModule = dependencies.GetVertices().ToList().Find(x => x.N.Name == moduleName).N;
       var moduleDef = (curModule as LiteralModuleDecl).ModuleDef;
+
       foreach(var r in rewriters)
       {
         r.PreResolve(moduleDef);
       }
+
+      var oldModuleInfo = moduleInfo;
+      moduleInfo = RestoreSigFromMouduleDef(moduleDef);
 
       scope.PushMarker();
       if(m.IsStatic) {
@@ -6846,8 +6879,10 @@ namespace Microsoft.Dafny
 
       ResolveBlockStatement(m.Body, m);
       SolveAllTypeConstraints();
-      //infer types
+
       CheckTypeInference_Member(m);
+      CheckExpression(m.Body, this, m);
+
       scope.PopMarker();
 
       //fill in decreases
@@ -6858,12 +6893,14 @@ namespace Microsoft.Dafny
       foreach (var r in rewriters){
         r.PostResolve(moduleDef);
       }
-/*
+
       foreach(var r in rewriters) {
         r.PostCyclicityResolve(moduleDef);
       }
- */
-     }
+      
+      moduleInfo = oldModuleInfo;
+
+    }
 
     void ResolveCtorSignature(DatatypeCtor ctor, List<TypeParameter> dtTypeArguments) {
       Contract.Requires(ctor != null);
@@ -11060,7 +11097,6 @@ namespace Microsoft.Dafny
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(opts != null);
       Contract.Ensures(Contract.Result<Expression>() == null || args != null);
-      
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
