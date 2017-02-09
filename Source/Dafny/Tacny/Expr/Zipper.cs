@@ -4,19 +4,14 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.IO;
 using System.Linq;
-using Microsoft.Dafny;
-using System.Numerics;
-using Microsoft.Boogie;
 using ExistsExpr = Microsoft.Dafny.ExistsExpr;
 using ForallExpr = Microsoft.Dafny.ForallExpr;
 using Formal = Microsoft.Dafny.Formal;
 using LiteralExpr = Microsoft.Dafny.LiteralExpr;
 using QuantifierExpr = Microsoft.Dafny.QuantifierExpr;
 
-namespace Microsoft.Dafny.Tacny {
+namespace Microsoft.Dafny.Tacny.Expr {
 
     // won't work if an expression has two list of expressions!
     class Zipper {

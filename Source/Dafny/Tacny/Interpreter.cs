@@ -282,7 +282,7 @@ namespace Microsoft.Dafny.Tacny {
               }
             }
           }
-        } else {// default action as macrl
+        } else {// default action as macro
           enumerable = DefaultAction(stmt, state);
         }
       }

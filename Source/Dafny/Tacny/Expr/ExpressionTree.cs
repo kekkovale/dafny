@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Dafny;
 using System.Numerics;
 using Microsoft.Boogie;
 using ExistsExpr = Microsoft.Dafny.ExistsExpr;
@@ -11,7 +10,7 @@ using Formal = Microsoft.Dafny.Formal;
 using LiteralExpr = Microsoft.Dafny.LiteralExpr;
 using QuantifierExpr = Microsoft.Dafny.QuantifierExpr;
 
-namespace Microsoft.Dafny.Tacny {
+namespace Microsoft.Dafny.Tacny.Expr {
   /// <summary>
   /// Easy to manage tree representation of àn expression.
   /// </summary>
