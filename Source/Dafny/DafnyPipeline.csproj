@@ -183,7 +183,8 @@
     <Compile Include="Tacny\EAtomic\Lemmas.cs" />
     <Compile Include="Tacny\EAtomic\Params.cs" />
     <Compile Include="Tacny\EAtomic\Variables.cs" />
-    <Compile Include="Tacny\ExpressionTree.cs" />
+    <Compile Include="Tacny\Expr\ExpressionTree.cs" />
+    <Compile Include="Tacny\Expr\Zipper.cs" />
     <Compile Include="Tacny\Language\WhileCtrlStmt.cs" />
     <Compile Include="Tacny\Language\TacAppStmt.cs" />
     <Compile Include="Tacny\Language\TacticFrameCtrl.cs" />
@@ -197,7 +198,6 @@
     <Compile Include="Tacny\tcce.cs" />
     <Compile Include="Tacny\TokenGenerator.cs" />
     <Compile Include="Tacny\Util.cs" />
-    <Compile Include="Tacny\Zipper.cs" />
     <Compile Include="Triggers\QuantifiersCollection.cs" />
     <Compile Include="Triggers\QuantifierSplitter.cs" />
     <Compile Include="Triggers\TriggerExtensions.cs" />

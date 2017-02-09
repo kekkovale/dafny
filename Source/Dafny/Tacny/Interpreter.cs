@@ -6,6 +6,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Tacny.Expr;
 using Microsoft.Dafny.Tacny.Language;
 
 namespace Microsoft.Dafny.Tacny {

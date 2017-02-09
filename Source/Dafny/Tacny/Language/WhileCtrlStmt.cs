@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Dafny.Tacny.Expr;
 
 namespace Microsoft.Dafny.Tacny.Language {
   class WhileCtrlStmt : TacticFrameCtrl{

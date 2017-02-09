@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Dafny.Tacny.Expr;
 
 namespace Microsoft.Dafny.Tacny.Language {
   public class IfChoiceStmt : TacticFrameCtrl{
