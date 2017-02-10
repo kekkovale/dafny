@@ -12,14 +12,29 @@ using Bpl = Microsoft.Boogie;
 using Type = System.Type;
 
 /*
-    NEW COMPILE PLAN
+  NEW COMPILE PLAN
 
-    Each method will now have a QuickyChecker object passed in.  This will be called to perform checks etc and track the errors.
+  Each method will now have a QuickyChecker object passed in.  This will be called to perform checks etc and track the errors.
 
-    Start of each method:
-    - check for preconditions - return if false
-    - create a string to show parameter values
+  Start of each method:
+  - check for preconditions - return if false
+  - create a string to show parameter values
+
+
+  TODO:
+  1:
+  when a new function is called inside the compiler the qChecker is passed to it.  If any errors occur in that function then it is recognised as the other qChecker
+  SOLUTION: extend qChecker with a new class that takes in a qChecker as the constructor.  only checks for preconditions maybe?
+  2:
+  Better test gathering?  this would allow multiple errors per function as opposed to just 1 as it is now.  Is this a good thing though?
+  There at least needs to be something to handle the situation above if extra errors are found
+  3:
+  Better parameter generation, then doing this for more types.
+
+  Habdle infinite loops
 */
+
+
 
 namespace Quicky
 {
@@ -65,10 +80,12 @@ namespace Quicky
     public readonly List<CompilerError> Errors;
 
     public QuickyCompileException(List<CompilerError> errors) : base("Compiling of Quicky program failed:\n" + GetErrorsString(errors)) {
+      Contract.Requires(errors != null);
       Errors = errors;
     }
 
     private static string GetErrorsString(List<CompilerError> errors) {
+      Contract.Requires(errors != null);
       string str = "";
       foreach (var compilerError in errors) {
         str += compilerError.ErrorText + "\n";
@@ -82,13 +99,13 @@ namespace Quicky
     public Dictionary<Method, QuickyError> FoundErrors = new Dictionary<Method, QuickyError>();
     private readonly Program _dafnyProgram;
     private readonly Assembly _assemblyProgram;
-    private readonly int _testCases;
+    public readonly int TestCases;
 
 
     public Quicky(Program dafnyProgram, int testCases = 100) {
       Contract.Requires(dafnyProgram != null);
       _dafnyProgram = dafnyProgram;
-      _testCases = testCases;
+      TestCases = testCases;
       var cSharpProgram = CompileDafnyProgram();
       _assemblyProgram = CompileCsharpProgram(cSharpProgram);
     }
@@ -150,6 +167,7 @@ namespace Quicky
 
     private void TestMethod(Method method, Type t) {
       Contract.Requires(t != null && method != null);
+      if (method.Ins.Count < 1) return; //no paramaters, cannot really test.  May do later to show what's wrong?
       MethodInfo methodInfo = t.GetMethod(method.CompileName);
       ParameterSetGenerator parameterSetGenerator;
       try {
@@ -162,7 +180,7 @@ namespace Quicky
 
       //todo: multithread here?
       //could do some fancy counter thing to do a few at a time and stop when error is found 
-      for (int i = 0; i < _testCases; i++) {
+      for (int i = 0; i < TestCases; i++) {
         TestMethodOnce(methodInfo, parameterSetGenerator);
         if (FoundErrors.ContainsKey(method))
           break;
@@ -173,39 +191,6 @@ namespace Quicky
       object[] parameters = parameterSetGenerator.GetNextParameterSet();
       methodInfo.Invoke(null, parameters);
 //    if outputs is ever needed, they will be in parameters after the actual input parameters (they are passed as outs)
-    }
-  }
-  
-  public class QuickyError
-  {
-    public enum ErrorType
-    {
-      Postcondition,
-      Assert,
-      InvariantEntry,
-      InvariantEnd
-    }
-
-    //Error messages to be displayed for certain types of failures
-    private static readonly Dictionary<ErrorType, string> ErrorMessages = new Dictionary<ErrorType, string>() {
-      {ErrorType.Postcondition, "Postcondition failed"},
-      {ErrorType.Assert, "Assert failed"},
-      {ErrorType.InvariantEntry, "Invariant failed on entry"},
-      {ErrorType.InvariantEnd, "Invariant failed at the end of a loop iteration"}
-    };
-
-    public ErrorType TypeOfError;
-    public Bpl.IToken Token; //TODO remove token, just use line and col num?
-    public string CounterExamples;
-    public string ImplementationName;
-
-    public string Message => ErrorMessages[TypeOfError] + " with parameters: " + CounterExamples;
-
-    public QuickyError(Bpl.IToken token, string counterExamples, ErrorType errorType, string impName) {
-      Token = token;
-      CounterExamples = counterExamples;
-      TypeOfError = errorType;
-      ImplementationName = impName;
     }
   }
 }

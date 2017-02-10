@@ -2310,7 +2310,7 @@ namespace Microsoft.Dafny {
         }
         wr.Write(".@{0}(", s.Method.CompileName);
         if (quickyCompile) {
-          wr.Write("qChecker");
+          wr.Write("new NestedQuickyChecker(qChecker, {0}, {1}, counterExamples)", s.Tok.line, s.Tok.col);
           if(s.Method.Ins.Count + s.Method.Outs.Count > 0)
             wr.Write(", ");
         }

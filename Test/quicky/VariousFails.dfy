@@ -2,7 +2,7 @@ method PostCondition(a: int, b: int) returns (c: int)
 	requires a > 0 && b > 0
 	ensures c == a + b
 {
-	c := a + b +1;
+	c := a + b +b;
 }
 
 method LoopGood(a: int) returns (b: int)
@@ -42,7 +42,7 @@ method LoopEndFail(a: int) returns (b: int)
 	b := 0;
 	var i: int := 0;
 	while(i < a)
-		invariant 0 <= i <= a
+		invariant 0 <= i <= a*2
 		invariant b == a * i;
 	{
 		b := b + a;
@@ -57,6 +57,17 @@ method TestMethodCall()
   
 }
 
+method PreconditionBasic(n: int) 
+	requires n > 50
+{
+	assert n > 10;
+}
+
+method TestBadCall(n : int)
+{
+	PreconditionBasic(n);
+}
+
 method TestAssert(a: int, b: int) {
-  assert a < b;
+  assert a <= b;
 }
