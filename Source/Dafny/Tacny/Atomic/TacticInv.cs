@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Tacny.Expr;
 
 namespace Microsoft.Dafny.Tacny.Atomic{
   class TacticInv : Atomic{
@@ -16,7 +17,7 @@ namespace Microsoft.Dafny.Tacny.Atomic{
       IVariable lv;
       InitArgs(state, statement, out lv, out callArguments);
 
-      var enumrator = Interpreter.EvalTacnyExpression(state, callArguments[0]).GetEnumerator();
+      var enumrator = EvalExpr.EvalTacnyExpression(state, callArguments[0]).GetEnumerator();
 
       while (enumrator.MoveNext()){
         if (enumrator.Current is Expression){

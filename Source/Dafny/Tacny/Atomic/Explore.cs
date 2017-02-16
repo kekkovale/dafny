@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Dafny.Tacny.Expr;
 
 namespace Microsoft.Dafny.Tacny.Atomic {
 
@@ -24,7 +25,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       //TODO: implement this properly
       //var members = state.GetLocalValue(callArguments[0] as NameSegment) as IEnumerable<MemberDecl>;
       //evaluate the argument (methods/lemma)
-      var members0 = Interpreter.EvalTacnyExpression(state, callArguments[0]).GetEnumerator();
+      var members0 = EvalExpr.EvalTacnyExpression(state, callArguments[0]).GetEnumerator();
       members0.MoveNext();
       var members = members0.Current as List<MemberDecl>;
 
@@ -56,7 +57,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
           Contract.Assert(false, "In Explore Atomic call," + callArguments[0] + "is neither a Method or a Function");
 
         //evaluate the arguemnts for the lemma to be called
-        var instArgs = Interpreter.EvalTacnyExpression(state, callArguments[1]);
+        var instArgs = EvalExpr.EvalTacnyExpression(state, callArguments[1]);
         foreach(var ovars in instArgs) {
           Contract.Assert(ovars != null, "In Explore Atomic call," + callArguments[1] + "is not variable");
 
