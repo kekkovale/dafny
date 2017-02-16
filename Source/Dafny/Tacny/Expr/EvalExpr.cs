@@ -2,25 +2,100 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Tacny.Expr {
-  class EvalExpr {
-
+  class EvalExpr{
+    
     /// <summary>
-    /// TODO:
-    /// simplify tactic expression only, the dafny expression are untouched. This includes
-    /// - eval tactic varriables
-    /// - eval projection functions, e.g. post
-    /// - eval tactic calls
+    /// tactic expression:
+    /// - tvar
+    /// - expression tactic call
+    /// - eatomic
     /// </summary>
-    /// <param name="state"></param>
     /// <param name="expr"></param>
     /// <returns></returns>
-    public static IEnumerable<Expression> SimpTacExpr(ProofState state, Expression expr){
+    public static T GenEvalTacExpr<T>(ProofState state, Expression expr, Func<Tuple<ProofState, Expression>, T> f, T defaultRet){
+      if (expr is NameSegment && state.ContainTacnyVal((expr as NameSegment).Name)){
+        return f(new Tuple<ProofState, Expression>(state, expr));
+      }
+      else if (expr is ApplySuffix && state.IsTacticCall(expr as ApplySuffix)){
+        return f(new Tuple<ProofState, Expression>(state, expr));
+      }
+      return defaultRet;
+    }
+
+    public static IEnumerable<object> EvalOneTacExpr(ProofState state, Expression e) { 
+        return GenEvalTacExpr<IEnumerable<object>>(state, e, EvalTacExpr, null);
+    }
+
+    public static IEnumerable<object> EvalTacExpr(Tuple<ProofState, Expression> item){
+      if(item.Item2 is NameSegment)
+        return EvalTacExpr(item.Item1, (item.Item2 as NameSegment));
+      if(item.Item2 is ApplySuffix)
+        return EvalTacExpr(item.Item1, (item.Item2 as ApplySuffix));
+      throw new NotSupportedException("unsupported tactic expression");
+
+    }
+
+    public static IEnumerable<object> EvalTacExpr(ProofState state, NameSegment ns){
+      Contract.Requires(state.ContainTacnyVal(ns.Name));
+      yield return state.GetTacnyVarValue(ns.Name);
+    }
+
+    public static IEnumerable<object> EvalTacExpr(ProofState state, ApplySuffix aps){
+      if (state.IsTacticCall(aps))
+       return EvalTacCallExpr(state, aps);
+      else if (EAtomic.EAtomic.IsEAtomicSig(Util.GetSignature(aps))){
+        return EvalEAtomExpr(state, aps);
+      } else{
+        throw new NotSupportedException("this type of tactic expresion is not yet supported");
+      }
+    }
+
+    public static IEnumerable<object> EvalTacCallExpr(ProofState state, ApplySuffix aps){
+      Contract.Requires(state.IsTacticCall(aps));
+      //fucntion expression call, yet to be supported
+      throw new NotImplementedException();
+    }
+
+    public static IEnumerable<object> EvalEAtomExpr(ProofState state, ApplySuffix aps){
+      Contract.Requires(EAtomic.EAtomic.IsEAtomicSig(Util.GetSignature(aps)));
+      var sig = Util.GetSignature(aps);
+      var types = Assembly.GetAssembly(typeof(EAtomic.EAtomic)).GetTypes()
+        .Where(t => t.IsSubclassOf(typeof(EAtomic.EAtomic)));
+      foreach (var eType in types){
+        var eatomInst = Activator.CreateInstance(eType) as EAtomic.EAtomic;
+        if (sig == eatomInst?.Signature){
+          //TODO: validate input countx
+          var enumerable = eatomInst?.Generate(aps, state);
+          if (enumerable != null)
+            foreach (var item in enumerable){
+              yield return item;
+              yield break;
+            }
+        }
+      }
+    }
+
+
+
+    /// <summary>
+        /// TODO:
+        /// simplify tactic expression only, the dafny expression are untouched. This includes
+        /// - eval tactic varriables
+        /// - eval projection functions, e.g. post
+        /// - eval tactic calls
+        /// </summary>
+        /// <param name="state"></param>
+        /// <param name="expr"></param>
+        /// <returns></returns>
+      public static
+      IEnumerable<Expression> SimpTacExpr(ProofState state, Expression expr){
       Contract.Requires<ArgumentNullException>(state != null, "state");
       Contract.Requires<ArgumentNullException>(expr != null, "expr");
 
@@ -28,10 +103,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
     }
 
     /// <summary>
-    /// TODO: 
-    /// This function should contains two stages:
-    /// 1. simplify tactic related terms and expression, by calling SimpTacExpr
-    /// 2. ask dafny to evaluate the simplified expression if needed 
+    /// TODO: leagcy code, use it just for now. Will move to
     /// </summary>
     /// <param name="state"></param>
     /// <param name="expr"></param>

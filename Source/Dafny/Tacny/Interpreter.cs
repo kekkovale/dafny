@@ -25,11 +25,13 @@ namespace Microsoft.Dafny.Tacny {
 
     private Program _program;
 
-    public static void ResetTacnyResultList() {
+    public static void ResetTacnyResultList(){
       if(_resultList == null)
         _resultList = new Dictionary<UpdateStmt, List<Statement>>();
       else
         _resultList.Clear();
+
+      EAtomic.EAtomic.InitEAtomicSigList();
     }
 
     public static Dictionary<IToken, List<Statement>> GetTacnyResultList() {

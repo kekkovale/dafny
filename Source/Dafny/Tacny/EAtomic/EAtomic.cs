@@ -1,12 +1,35 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
+using System.Reflection;
 
 namespace Microsoft.Dafny.Tacny.EAtomic {
+
   /// <summary>
   ///   Abstact class for Atomic Expressions
   /// </summary>
   [ContractClass(typeof(EAtomicContract))]
   public abstract class EAtomic : BaseTactic {
+    public static List<string> EATomicSigList;
+
+    public static bool IsEAtomicSig(string sig){
+      if (EATomicSigList == null) return false;
+      return EATomicSigList.Exists(sig.Equals);
+    }
+
+    public static void InitEAtomicSigList() {
+      EATomicSigList = new List<string>();
+      var types =
+            Assembly.GetAssembly(typeof(EAtomic))
+              .GetTypes()
+              .Where(t => t.IsSubclassOf(typeof(EAtomic)));
+      foreach(var eType in types) {
+        var eatomInst = Activator.CreateInstance(eType) as EAtomic;
+        EATomicSigList.Add(eatomInst.Signature);
+      }
+    }
+
     public abstract override string Signature { get; }
 
     // TypeOf (Expression expression, ProofState proofState); 
