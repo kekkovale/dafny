@@ -29,7 +29,12 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return defaultRet;
     }
 
+    public static bool IsTopLevelTacExpr(ProofState state, Expression e){
+      return GenEvalTacExpr<bool>(state, e, x => true, false);
+    }
+
     public static IEnumerable<object> EvalOneTacExpr(ProofState state, Expression e) { 
+      Contract.Requires(IsTopLevelTacExpr(state, e));
         return GenEvalTacExpr<IEnumerable<object>>(state, e, EvalTacExpr, null);
     }
 
