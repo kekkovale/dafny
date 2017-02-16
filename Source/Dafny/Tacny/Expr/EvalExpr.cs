@@ -10,7 +10,33 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.Tacny.Expr {
   class EvalExpr {
 
+    /// <summary>
+    /// TODO:
+    /// simplify tactic expression only, the dafny expression are untouched. This includes
+    /// - eval tactic varriables
+    /// - eval projection functions, e.g. post
+    /// - eval tactic calls
+    /// </summary>
+    /// <param name="state"></param>
+    /// <param name="expr"></param>
+    /// <returns></returns>
+    public static IEnumerable<Expression> SimpTacExpr(ProofState state, Expression expr){
+      Contract.Requires<ArgumentNullException>(state != null, "state");
+      Contract.Requires<ArgumentNullException>(expr != null, "expr");
 
+      throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// TODO: 
+    /// This function should contains two stages:
+    /// 1. simplify tactic related terms and expression, by calling SimpTacExpr
+    /// 2. ask dafny to evaluate the simplified expression if needed 
+    /// </summary>
+    /// <param name="state"></param>
+    /// <param name="expr"></param>
+    /// <param name="ifEvalDafnyExpr"></param>
+    /// <returns></returns>
     public static IEnumerable<object> EvalTacnyExpression(ProofState state, Expression expr, bool ifEvalDafnyExpr = true) {
       Contract.Requires<ArgumentNullException>(state != null, "state");
       Contract.Requires<ArgumentNullException>(expr != null, "expr");
