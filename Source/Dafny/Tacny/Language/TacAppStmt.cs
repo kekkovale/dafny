@@ -27,9 +27,9 @@ namespace Microsoft.Dafny.Tacny.Language{
 
         if (arg is Microsoft.Dafny.NameSegment){
           var name = ((Microsoft.Dafny.NameSegment) arg).Name;
-          if (state.ContainTacnyVal(name))
+          if (state.ContainTVal(name))
             // in the case that referring to an exisiting tvar, dereference it
-            arg = state.GetTacnyVarValue(name) as Expression;
+            arg = state.GetTVarValue(name) as Expression;
           else{
             state.Reporter.Error(MessageSource.Tacny, tacApsStmt.Tok,
               $"Fail to dereferenen argument({name})");

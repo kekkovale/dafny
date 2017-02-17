@@ -22,28 +22,39 @@ namespace Microsoft.Dafny.Tacny.Language {
       Contract.Requires(statement is WhileStmt);
       var whileStmt = statement as WhileStmt;
 
-      var state = state0.Copy();
-      var whileCtrl = this.Copy();
+      if (!EvalExpr.IsTopLevelTacExpr(state0, whileStmt.Guard)) {
+        foreach (var st in EvalExpr.SimpTacExpr(state0, statement)) {
+          var state = state0.Copy();
+          state.NeedVerify = true;
+          state.AddStatement(st);
+          yield return state;
+        }
 
-      whileCtrl.guard = whileStmt.Guard;
-      whileCtrl.body = whileStmt.Body.Body;
+        yield break;
+      } else {
+        var state = state0.Copy();
+        var whileCtrl = this.Copy();
 
-      if (ExpressionTree.EvaluateEqualityExpression(ExpressionTree.ExpressionToTree(whileCtrl.guard), state)){
-        // insert the control frame
-        whileCtrl.IsPartial = true;
-        var dummyBody = new List<Statement>();
-        dummyBody.Add(whileStmt);
-        whileCtrl.InitBasicFrameCtrl(dummyBody, null);
-        state.AddNewFrame(whileCtrl);
+        whileCtrl.guard = whileStmt.Guard;
+        whileCtrl.body = whileStmt.Body.Body;
 
-        //insert the body frame
-        var bodyFrame = new DefaultTacticFrameCtrl();
-        bodyFrame.InitBasicFrameCtrl(whileCtrl.body, null);
-        bodyFrame.IsPartial = whileCtrl.IsPartial;
-        state.AddNewFrame(bodyFrame);
+        if (ExpressionTree.EvaluateEqualityExpression(ExpressionTree.ExpressionToTree(whileCtrl.guard), state)) {
+          // insert the control frame
+          whileCtrl.IsPartial = true;
+          var dummyBody = new List<Statement>();
+          dummyBody.Add(whileStmt);
+          whileCtrl.InitBasicFrameCtrl(dummyBody, null);
+          state.AddNewFrame(whileCtrl);
+
+          //insert the body frame
+          var bodyFrame = new DefaultTacticFrameCtrl();
+          bodyFrame.InitBasicFrameCtrl(whileCtrl.body, null);
+          bodyFrame.IsPartial = whileCtrl.IsPartial;
+          state.AddNewFrame(bodyFrame);
+        }
+
+        yield return state;
       }
-      
-      yield return state;
     }
 
     public override IEnumerable<ProofState> EvalStep(ProofState state0){

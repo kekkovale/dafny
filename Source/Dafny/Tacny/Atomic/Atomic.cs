@@ -49,9 +49,9 @@ namespace Microsoft.Dafny.Tacny.Atomic {
           callArguments = GetCallArguments(us);
         else {
           var ns = (NameSegment)us.Lhss[0];
-          if(ps.ContainTacnyVal(ns)) {
+          if(ps.ContainTVal(ns)) {
             //TODO: need to doubel check this
-            lv = ps.GetTacnyVarValue(ns) as IVariable;
+            lv = ps.GetTVarValue(ns) as IVariable;
             callArguments = GetCallArguments(us);
           }
         }
