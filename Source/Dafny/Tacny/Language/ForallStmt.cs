@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Tacny.Expr;
 
 
 namespace Microsoft.Dafny.Tacny.Language {
@@ -28,6 +29,12 @@ namespace Microsoft.Dafny.Tacny.Language {
       // i.e. ignore implication
 
       var e = _stmt.Spec as ForallExpr;
+
+
+      // dummy testing
+      RenameVar rn = new RenameVar();
+      var ee = rn.CloneExpr(e);
+
       _vars = e.BoundVars;
       //fixme
       _range = new LiteralExpr(_stmt.Tok, true);
@@ -76,10 +83,30 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
 
+    // List functions should be moved somewhere else...
+
+    [Pure]
+    public String NextString(String v) {
+      char last = v.ElementAt(v.Length - 1);
+      if (Char.IsNumber(last)) {
+        double n = Char.GetNumericValue(last) + 1;
+        return v.Substring(0, v.Length - 1) + n;
+      } else {
+        return v + "0";
+      }
+    }
 
 
+    [Pure]
+    public String GenFreeVar(String var, ICollection<String> allvars) {
+      while(allvars.Contains(var))
+        var = NextString(var);
+      return var;
+    }
 
-
+    public void RenameBoundVars(String var, ref Expression e) {
+       
+    }
 
 
 
