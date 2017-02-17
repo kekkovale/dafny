@@ -394,9 +394,9 @@ namespace Microsoft.Dafny.Tacny {
             state.AddTacnyVar(declaration.Locals[index], (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);
           } else if(exprRhs?.Expr is Microsoft.Dafny.NameSegment) {
             var name = ((Microsoft.Dafny.NameSegment)exprRhs.Expr).Name;
-            if(state.ContainTacnyVal(name))
+            if(state.ContainTVal(name))
               // in the case that referring to an exisiting tvar, dereference it
-              state.AddTacnyVar(declaration.Locals[index], state.GetTacnyVarValue(name));
+              state.AddTacnyVar(declaration.Locals[index], state.GetTVarValue(name));
           } else {
             state.AddTacnyVar(declaration.Locals[index], exprRhs?.Expr);
           }

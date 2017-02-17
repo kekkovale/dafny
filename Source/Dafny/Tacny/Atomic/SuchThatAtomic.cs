@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
         foreach (var item in suchThat.Lhss){
           if (item is IdentifierExpr){
             var id = (IdentifierExpr) item;
-            if (state.ContainTacnyVal(id.Name))
+            if (state.ContainTVal(id.Name))
               locals.Add(id.Name);
             else{
               //TODO: error
@@ -79,7 +79,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
             // for each item in the resolved lhs of the expression
             foreach (var item in ResolveExpression(state, bexp.E0, declaration)) {
               var copy = state.Copy();
-              copy.AddTacnyVar(declaration, item);
+              copy.AddTVar(declaration, item);
               // resolve the rhs expression
               foreach (var res in Interpreter.EvalTacnyExpression(copy, bexp.E1)) {
                 LiteralExpr lit = res as LiteralExpr;

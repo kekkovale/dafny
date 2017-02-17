@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.Tacny{
 
       for (int index = 0; index < aps.Args.Count; index++){
         var arg = aps.Args[index];
-        frame.AddTacnyVar(tactic.Ins[index].Name, arg);
+        frame.AddTVar(tactic.Ins[index].Name, arg);
       }
 
       _scope.Push(frame);
@@ -338,10 +338,10 @@ namespace Microsoft.Dafny.Tacny{
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public object GetTacnyVarValue(NameSegment key){
+    public object GetTVarValue(NameSegment key){
       Contract.Requires<ArgumentNullException>(key != null, "key");
       Contract.Ensures(Contract.Result<object>() != null);
-      return GetTacnyVarValue(key.Name);
+      return GetTVarValue(key.Name);
     }
 
     /// <summary>
@@ -349,15 +349,19 @@ namespace Microsoft.Dafny.Tacny{
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public object GetTacnyVarValue(string key){
+    public object GetTVarValue(string key){
       Contract.Requires<ArgumentNullException>(key != null, "key");
       Contract.Ensures(Contract.Result<object>() != null);
-      return _scope.Peek().GetTacnyValData(key);
+      return _scope.Peek().GetTValData(key);
     }
 
-    public bool ContainTacnyVal(NameSegment key){
+    public bool ContainTVal(NameSegment key){
       Contract.Requires<ArgumentNullException>(key != null, "key");
-      return ContainTacnyVal(key.Name);
+      return ContainTVal(key.Name);
+    }
+
+    public Dictionary<string, object> GetAllTVars() {
+      return _scope.Peek().GetAllTVars(new Dictionary<string, object>());
     }
 
     /// <summary>
@@ -365,10 +369,10 @@ namespace Microsoft.Dafny.Tacny{
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public bool ContainTacnyVal(string key){
+    public bool ContainTVal(string key){
       Contract.Requires<ArgumentNullException>(!string.IsNullOrEmpty(key), "key");
       if (_scope == null || _scope.Count == 0) return false;
-      return _scope.Peek().ContainTacnyVars(key);
+      return _scope.Peek().ContainTVars(key);
     }
 
     private ITactic GetTactic(string name){
@@ -392,8 +396,8 @@ namespace Microsoft.Dafny.Tacny{
       Contract.Ensures(Contract.Result<ITactic>() != null);
 
       var name = Util.GetSignature(us);
-      if(ContainTacnyVal(name)) {
-        var nameSegment = GetTacnyVarValue(name) as NameSegment;
+      if(ContainTVal(name)) {
+        var nameSegment = GetTVarValue(name) as NameSegment;
         if(nameSegment != null)
           name = nameSegment.Name;
       }
@@ -413,8 +417,8 @@ namespace Microsoft.Dafny.Tacny{
       Contract.Requires(IsTacticCall(aps));
       Contract.Ensures(Contract.Result<ITactic>() != null);
       var name = Util.GetSignature(aps);
-      if(ContainTacnyVal(name)) {
-        var nameSegment = GetTacnyVarValue(name) as NameSegment;
+      if(ContainTVal(name)) {
+        var nameSegment = GetTVarValue(name) as NameSegment;
         if(nameSegment != null)
           name = nameSegment.Name;
       }
@@ -436,8 +440,8 @@ namespace Microsoft.Dafny.Tacny{
     public bool IsTacticCall(UpdateStmt us){
       Contract.Requires(us != null);
       var name = Util.GetSignature(us);
-      if (ContainTacnyVal(name)){
-        var nameSegment = GetTacnyVarValue(name) as NameSegment;
+      if (ContainTVal(name)){
+        var nameSegment = GetTVarValue(name) as NameSegment;
         if (nameSegment != null) name = nameSegment.Name;
       }
       return IsTacticCall(name);
@@ -474,7 +478,7 @@ namespace Microsoft.Dafny.Tacny{
       foreach (var lhs in us.Lhss){
         if (!(lhs is NameSegment))
           return false;
-        if (!_scope.Peek().ContainTacnyVars((lhs as NameSegment).Name))
+        if (!_scope.Peek().ContainTVars((lhs as NameSegment).Name))
           return false;
       }
 
@@ -485,7 +489,7 @@ namespace Microsoft.Dafny.Tacny{
     public bool IsArgumentApplication(UpdateStmt us){
       Contract.Requires<ArgumentNullException>(us != null, "us");
       var ns = Util.GetNameSegment(us);
-      return _scope.Peek().ContainTacnyVars(ns.Name);
+      return _scope.Peek().ContainTVars(ns.Name);
     }
 
     /// <summary>
@@ -495,7 +499,7 @@ namespace Microsoft.Dafny.Tacny{
     /// <param name="value"></param>
     public void AddTacnyVar(IVariable key, object value){
       Contract.Requires<ArgumentNullException>(key != null, "key");
-      Contract.Requires<ArgumentException>(!ContainTacnyVal(key.Name));
+      Contract.Requires<ArgumentException>(!ContainTVal(key.Name));
       AddTacnyVar(key.Name, value);
     }
 
@@ -506,8 +510,8 @@ namespace Microsoft.Dafny.Tacny{
     /// <param name="value"></param>
     public void AddTacnyVar(string key, object value){
       Contract.Requires<ArgumentNullException>(key != null, "key");
-      Contract.Requires<ArgumentException>(!ContainTacnyVal(key));
-      _scope.Peek().AddTacnyVar(key, value);
+      Contract.Requires<ArgumentException>(!ContainTVal(key));
+      _scope.Peek().AddTVar(key, value);
     }
 
     /// <summary>
@@ -527,7 +531,7 @@ namespace Microsoft.Dafny.Tacny{
     /// <param name="value"></param>
     public void UpdateTacnyVar(string key, object value){
       Contract.Requires<ArgumentNullException>(key != null, "key");
-      _scope.Peek().UpdateLocalTacnyVar(key, value);
+      _scope.Peek().UpdateLocalTVar(key, value);
     }
 
     /// <summary>
@@ -660,15 +664,15 @@ namespace Microsoft.Dafny.Tacny{
       }
 
 
-      internal bool ContainTacnyVars(string name){
+      internal bool ContainTVars(string name){
         Contract.Requires<ArgumentNullException>(name != null, "name");
         // base case
         if (Parent == null)
           return _declaredVariables.Any(kvp => kvp.Key == name);
-        return _declaredVariables.Any(kvp => kvp.Key == name) || Parent.ContainTacnyVars(name);
+        return _declaredVariables.Any(kvp => kvp.Key == name) || Parent.ContainTVars(name);
       }
 
-      internal void AddTacnyVar(string variable, object value){
+      internal void AddTVar(string variable, object value){
         Contract.Requires<ArgumentNullException>(variable != null, "key");
         if (_declaredVariables.All(v => v.Key != variable)){
           _declaredVariables.Add(variable, value);
@@ -678,34 +682,41 @@ namespace Microsoft.Dafny.Tacny{
         }
       }
 
-      internal void UpdateLocalTacnyVar(IVariable key, object value){
+      internal void UpdateLocalTVar(IVariable key, object value){
         Contract.Requires<ArgumentNullException>(key != null, "key");
-        Contract.Requires<ArgumentException>(ContainTacnyVars(key.Name));
+        Contract.Requires<ArgumentException>(ContainTVars(key.Name));
         //, $"{key} is not declared in the current scope".ToString());
-        UpdateLocalTacnyVar(key.Name, value);
+        UpdateLocalTVar(key.Name, value);
       }
 
-      internal void UpdateLocalTacnyVar(string key, object value){
+      internal void UpdateLocalTVar(string key, object value){
         Contract.Requires<ArgumentNullException>(key != null, "key");
         //Contract.Requires<ArgumentException>(_declaredVariables.ContainsKey(key));
         if (_declaredVariables.ContainsKey(key))
           _declaredVariables[key] = value;
         else{
-          Parent.UpdateLocalTacnyVar(key, value);
+          Parent.UpdateLocalTVar(key, value);
         }
       }
 
-      internal object GetTacnyValData(string name){
+      internal object GetTValData(string name){
         Contract.Requires<ArgumentNullException>(name != null, "key");
-        //Contract.Requires<ArgumentException>(ContainTacnyVars(key));
+        //Contract.Requires<ArgumentException>(ContainTVars(key));
         Contract.Ensures(Contract.Result<object>() != null);
         if (_declaredVariables.ContainsKey(name))
           return _declaredVariables[name];
         else{
-          return Parent.GetTacnyValData(name);
+          return Parent.GetTValData(name);
         }
       }
-
+      internal Dictionary<string, object> GetAllTVars(Dictionary<string, object> toDict) {
+        _DafnyVariables.Where(x => !toDict.ContainsKey(x.Key)).ToList().ForEach(x => toDict.Add(x.Key, x.Value));
+        if (Parent == null)
+          return toDict;
+        else {
+          return Parent.GetAllTVars(toDict);
+        }
+      }
       internal List<Statement> GetGeneratedCode(){
         var code = GetGeneratedCode0();
         return code;

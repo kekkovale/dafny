@@ -19,8 +19,8 @@ namespace Microsoft.Dafny.Tacny.Expr {
     /// </summary>
     /// <param name="expr"></param>
     /// <returns></returns>
-    public static T GenEvalTacExpr<T>(ProofState state, Expression expr, Func<Tuple<ProofState, Expression>, T> f, T defaultRet){
-      if (expr is NameSegment && state.ContainTacnyVal((expr as NameSegment).Name)){
+    internal static T GenEvalTacExpr<T>(ProofState state, Expression expr, Func<Tuple<ProofState, Expression>, T> f, T defaultRet){
+      if (expr is NameSegment && state.ContainTVal((expr as NameSegment).Name)){
         return f(new Tuple<ProofState, Expression>(state, expr));
       }
       else if (expr is ApplySuffix && state.IsTacticCall(expr as ApplySuffix)){
@@ -39,17 +39,25 @@ namespace Microsoft.Dafny.Tacny.Expr {
     }
 
     public static IEnumerable<object> EvalTacExpr(Tuple<ProofState, Expression> item){
-      if(item.Item2 is NameSegment)
-        return EvalTacExpr(item.Item1, (item.Item2 as NameSegment));
-      if(item.Item2 is ApplySuffix)
-        return EvalTacExpr(item.Item1, (item.Item2 as ApplySuffix));
-      throw new NotSupportedException("unsupported tactic expression");
+      IEnumerable<object> objs;
+      if (item.Item2 is NameSegment)
+        objs = EvalTacExpr(item.Item1, (item.Item2 as NameSegment));
+      else if(item.Item2 is ApplySuffix)
+        objs = EvalTacExpr(item.Item1, (item.Item2 as ApplySuffix));
+      else throw new NotSupportedException("unsupported tactic expression");
 
+      foreach (var obj in objs) {
+        if (obj is NameSegment)
+          foreach (var i in EvalTacExpr(new Tuple<ProofState,Expression>(item.Item1, obj as Expression)))
+            yield return i;
+        else
+          yield return obj;
+      }
     }
 
     public static IEnumerable<object> EvalTacExpr(ProofState state, NameSegment ns){
-      Contract.Requires(state.ContainTacnyVal(ns.Name));
-      yield return state.GetTacnyVarValue(ns.Name);
+      Contract.Requires(state.ContainTVal(ns.Name));
+      yield return state.GetTVarValue(ns.Name);
     }
 
     public static IEnumerable<object> EvalTacExpr(ProofState state, ApplySuffix aps){
@@ -88,7 +96,6 @@ namespace Microsoft.Dafny.Tacny.Expr {
     }
 
 
-
     /// <summary>
         /// TODO:
         /// simplify tactic expression only, the dafny expression are untouched. This includes
@@ -99,11 +106,15 @@ namespace Microsoft.Dafny.Tacny.Expr {
         /// <param name="state"></param>
         /// <param name="expr"></param>
         /// <returns></returns>
-      public static
-      IEnumerable<Expression> SimpTacExpr(ProofState state, Expression expr){
+        /// 
+     public static IEnumerable<Expression> SimpTacExpr(ProofState state, Expression expr){
       Contract.Requires<ArgumentNullException>(state != null, "state");
       Contract.Requires<ArgumentNullException>(expr != null, "expr");
+      //TODO: needs traveller to fully implemnt this function
+      yield return expr.Copy();
+    }
 
+    public static IEnumerable<Statement> SimpTacExpr(ProofState state, Statement stmt) {
       throw new NotImplementedException();
     }
 
@@ -119,8 +130,8 @@ namespace Microsoft.Dafny.Tacny.Expr {
       Contract.Requires<ArgumentNullException>(expr != null, "expr");
       if(expr is NameSegment) {
         var ns = (NameSegment)expr;
-        if(state.ContainTacnyVal(ns.Name)) {
-          yield return state.GetTacnyVarValue(ns.Name);
+        if(state.ContainTVal(ns.Name)) {
+          yield return state.GetTVarValue(ns.Name);
         } else {
           yield return ns;
         }
@@ -187,7 +198,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
         var edn = (ExprDotName)expr;
         var ns = edn.Lhs as NameSegment;
         if(ns != null && state.ContainDafnyVar(ns)) {
-          var newLhs = state.GetTacnyVarValue(ns);
+          var newLhs = state.GetTVarValue(ns);
           var lhs = newLhs as Expression;
           if(lhs != null)
             yield return new ExprDotName(edn.tok, lhs, edn.SuffixName, edn.OptTypeArguments);

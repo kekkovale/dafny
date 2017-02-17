@@ -128,7 +128,7 @@ namespace Microsoft.Dafny.Tacny.Language {
 
       //TODO: need to check the datatype pf caseGuard, 
       // also need to consider the case that caseVar is a tac var
-      var srcVar = state.GetTacnyVarValue(caseVar) as NameSegment;
+      var srcVar = state.GetTVarValue(caseVar) as NameSegment;
       var srcVarData = state.GetDafnyVar(srcVar.Name);
       var datatype = state.GetDafnyVarType(srcVar.Name).AsDatatype;
 
