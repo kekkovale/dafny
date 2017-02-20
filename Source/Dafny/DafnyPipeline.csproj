@@ -185,6 +185,7 @@
     <Compile Include="Tacny\EAtomic\Variables.cs" />
     <Compile Include="Tacny\Expr\EvalExpr.cs" />
     <Compile Include="Tacny\Expr\ExpressionTree.cs" />
+    <Compile Include="Tacny\Expr\RewriteExpr.cs" />
     <Compile Include="Tacny\Expr\Zipper.cs" />
     <Compile Include="Tacny\Language\WhileCtrlStmt.cs" />
     <Compile Include="Tacny\Language\TacAppStmt.cs" />
