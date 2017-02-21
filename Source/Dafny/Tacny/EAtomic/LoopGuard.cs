@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     public override string Signature => "loop_guard";
     public override int ArgsCount => 0;
 
-    public override IEnumerable<object> Generate(Expression expression, ProofState proofState){
+    public override object Generate(Expression expression, ProofState proofState){
       throw new NotImplementedException();
     }
 

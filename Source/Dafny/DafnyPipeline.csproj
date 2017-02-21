@@ -183,7 +183,6 @@
     <Compile Include="Tacny\EAtomic\Lemmas.cs" />
     <Compile Include="Tacny\EAtomic\Params.cs" />
     <Compile Include="Tacny\EAtomic\Variables.cs" />
-    <Compile Include="Tacny\Expr\EvalExpr.cs" />
     <Compile Include="Tacny\Expr\ExpressionTree.cs" />
     <Compile Include="Tacny\Expr\RewriteExpr.cs" />
     <Compile Include="Tacny\Expr\Zipper.cs" />

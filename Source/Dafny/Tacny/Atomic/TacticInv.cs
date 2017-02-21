@@ -17,18 +17,14 @@ namespace Microsoft.Dafny.Tacny.Atomic{
       IVariable lv;
       InitArgs(state, statement, out lv, out callArguments);
 
-      var enumrator = EvalExpr.EvalTacnyExpression(state, callArguments[0]).GetEnumerator();
-
-      while (enumrator.MoveNext()){
-        if (enumrator.Current is Expression){
-          var exp = enumrator.Current as Expression;
-          var dest_stmt = new AssumeStmt(null, null, exp, null);
+      var expr = SimpTaticExpr.SimpTacExpr(state, callArguments[0]);
+        if (expr is Expression){
+          var dest_stmt = new AssumeStmt(null, null, expr, null);
           var state0 = state.Copy();
           state0.AddStatement(dest_stmt);
 
           yield return state0;
         }
-      }
     }
   }
 }

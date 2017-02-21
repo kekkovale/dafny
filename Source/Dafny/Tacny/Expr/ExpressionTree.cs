@@ -11,6 +11,7 @@ using LiteralExpr = Microsoft.Dafny.LiteralExpr;
 using QuantifierExpr = Microsoft.Dafny.QuantifierExpr;
 
 namespace Microsoft.Dafny.Tacny.Expr {
+/*
   /// <summary>
   /// Easy to manage tree representation of àn expression.
   /// </summary>
@@ -179,10 +180,6 @@ namespace Microsoft.Dafny.Tacny.Expr {
     //  }
     //}
 
-    /**
- * Create a deep copy of the entire tree, and return the copy of the called node
- * 
- * */
 
     public ExpressionTree Copy() {
       var copy = this.Copy<ExpressionTree>();
@@ -532,4 +529,5 @@ namespace Microsoft.Dafny.Tacny.Expr {
       }
     }
   }
+*/
 }

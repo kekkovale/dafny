@@ -211,6 +211,7 @@ namespace Microsoft.Dafny
       var nmodules = Translator.VerifiableModules(dafnyProgram).Count();
 
       Interpreter.ResetTacnyResultList();
+
       foreach(var prog in Translator.Translate(dafnyProgram, dafnyProgram.reporter, r)) {
 
         if (CommandLineOptions.Clo.PrintFile != null) {

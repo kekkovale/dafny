@@ -22,14 +22,14 @@ namespace Microsoft.Dafny.Tacny.Language {
       Contract.Requires(statement is WhileStmt);
       var whileStmt = statement as WhileStmt;
 
-      if (!EvalExpr.IsTopLevelTacExpr(state0, whileStmt.Guard)) {
-        foreach (var st in EvalExpr.SimpTacExpr(state0, statement)) {
-          var state = state0.Copy();
-          state.NeedVerify = true;
-          state.AddStatement(st);
-          yield return state;
-        }
+      var tryEval = SimpTaticExpr.EvalTacExpr(state0, whileStmt.Guard) as BooleanRet;
 
+      if(tryEval == null) {
+        var state = state0.Copy();
+        var st = SimpTaticExpr.SimpTacExpr(state, statement);
+        state.NeedVerify = true;
+        state.AddStatement(st);
+        yield return state;
         yield break;
       } else {
         var state = state0.Copy();
@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.Tacny.Language {
         whileCtrl.guard = whileStmt.Guard;
         whileCtrl.body = whileStmt.Body.Body;
 
-        if (ExpressionTree.EvaluateEqualityExpression(ExpressionTree.ExpressionToTree(whileCtrl.guard), state)) {
+        if (tryEval.value) {
           // insert the control frame
           whileCtrl.IsPartial = true;
           var dummyBody = new List<Statement>();
@@ -60,7 +60,10 @@ namespace Microsoft.Dafny.Tacny.Language {
     public override IEnumerable<ProofState> EvalStep(ProofState state0){
       var state = state0.Copy();
 
-      if (ExpressionTree.EvaluateEqualityExpression(ExpressionTree.ExpressionToTree(guard), state)){
+      var tryEval = SimpTaticExpr.EvalTacExpr(state, guard) as BooleanRet;
+      Contract.Assert(tryEval != null);
+
+      if(tryEval.value){
         //insert the body frame
         var bodyFrame = new DefaultTacticFrameCtrl();
         bodyFrame.InitBasicFrameCtrl(body, null);
@@ -74,7 +77,9 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
     public override bool EvalTerminated(bool childFrameRes, ProofState state){
-      return !(ExpressionTree.EvaluateEqualityExpression(ExpressionTree.ExpressionToTree(guard), state));
+      var tryEval = SimpTaticExpr.EvalTacExpr(state, guard) as BooleanRet;
+      Contract.Assert(tryEval != null);
+      return !tryEval.value;
     }
 
     public override List<Statement> AssembleStmts(List<List<Statement>> raw){

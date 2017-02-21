@@ -23,9 +23,9 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     /// <param name="expression"></param>
     /// <param name="proofState"></param>
     /// <returns></returns>
-    public override IEnumerable<object> Generate(Expression expression, ProofState proofState) {
+    public override object Generate(Expression expression, ProofState proofState) {
       var vars = proofState.GetAllDafnyVars().Values.ToList().Where(IsParam);
-      yield return vars.Select(x => x.Variable).ToList();
+      return vars.Select(x => x.Variable).ToList();
     }
   }
 }

@@ -467,7 +467,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    public virtual NameSegment CloneNameSegment(Expression expr) {
+    public virtual Expression CloneNameSegment(Expression expr) {
       var e = (NameSegment)expr;
       return new NameSegment(Tok(e.tok), e.Name, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
     }

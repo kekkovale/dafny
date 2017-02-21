@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     public override string Signature => "post_conds";
     public override int ArgsCount => 0;
 
-    public override IEnumerable<object> Generate(Expression expression, ProofState proofState) {
+    public override object Generate(Expression expression, ProofState proofState) {
 
       //need to get postconds from unresolved prog
       var prog = proofState.GetDafnyProgram();
@@ -21,9 +21,7 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
       foreach(var post in member.Ens) {
         posts.Add(post.E);
       }
-      yield return posts;
-
-
+      return posts;
     }
   }
 }

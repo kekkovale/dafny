@@ -46,12 +46,11 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       // this will cause issues when multiple variables are used
       // as the variables are updated one at a time
       foreach (var local in locals){
-        foreach (var l in EvalExpr.EvalTacnyExpression(state, suchThat.Expr)) {
+        var l = SimpTaticExpr.EvalTacExpr(state, suchThat.Expr);
           foreach (var item in (l as List<Expression>)){
             var copy = state.Copy();
             copy.UpdateTacnyVar(local, item);
             yield return copy;
-          }
         }
       }
     }

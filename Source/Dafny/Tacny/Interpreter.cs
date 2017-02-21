@@ -294,69 +294,12 @@ namespace Microsoft.Dafny.Tacny {
 
     public static IEnumerable<ProofState> EvalPredicateStmt(PredicateStmt predicate, ProofState state) {
       Contract.Requires<ArgumentNullException>(predicate != null, "predicate");
-      var expr_enum = EvalExpr.EvalTacnyExpression(state, predicate.Expr, false);
-      if(!expr_enum.GetEnumerator().MoveNext()) // in the case that the expression can't be evaluated, return as it is, i.e. macro
-      {
-        var copy = state.Copy();
-        copy.AddStatement(predicate);
-        yield return copy;
-        yield break;
-      }
-      foreach(var result in expr_enum) {
-        var resultExpression = result is IVariable ? Util.VariableToExpression(result as IVariable) : result as Expression;
-        PredicateStmt newPredicate;
 
-        var tok = predicate.Tok.Copy();
-        tok.line = TACNY_CODE_TOK_LINE;
-
-        var endTok = predicate.EndTok.Copy();
-        endTok.line = TACNY_CODE_TOK_LINE;
-
-        if(predicate is AssertStmt) {
-          newPredicate = new AssertStmt(tok, endTok, resultExpression, null, predicate.Attributes);
-        } else {
-          newPredicate = new AssumeStmt(tok, endTok, resultExpression, predicate.Attributes);
-        }
-        var copy = state.Copy();
-        copy.AddStatement(newPredicate);
-        copy.NeedVerify = true;
-        yield return copy;
-      }
-
-
-    }
-
-    public static IEnumerable<IList<Expression>> EvalDisplayExpression(ProofState state, DisplayExpression list) {
-      Contract.Requires<ArgumentNullException>(state != null, "state");
-      Contract.Requires<ArgumentNullException>(list != null, "list");
-      Contract.Ensures(Contract.Result<IEnumerable<IList<Expression>>>() != null);
-      var dict = list.Elements.ToDictionary(element => element, element => EvalExpr.EvalTacnyExpression(state, element));
-      return GenerateList(dict, null);
-    }
-
-
-    private static IEnumerable<IList<Expression>> GenerateList(Dictionary<Expression, IEnumerable<object>> elements, IList<Expression> list) {
-      Contract.Requires(elements != null);
-
-      var tmp = list ?? new List<Expression>();
-      var kvp = elements.FirstOrDefault();
-      if(kvp.Equals(default(KeyValuePair<Expression, IEnumerable<Object>>))) {
-        if(list != null)
-          yield return list;
-        else {
-          yield return new List<Expression>();
-        }
-      } else {
-
-        elements.Remove(kvp.Key);
-        foreach(var result in kvp.Value) {
-          var resultExpr = result is IVariable ? Util.VariableToExpression(result as IVariable) : result as Expression;
-          tmp.Add(resultExpr);
-          foreach(var value in GenerateList(elements, tmp)) {
-            yield return value;
-          }
-        }
-      }
+      var newPredicate = SimpTaticExpr.SimpTacExpr(state, predicate);
+      var copy = state.Copy();
+      copy.AddStatement(newPredicate);
+      copy.NeedVerify = true;
+      yield return copy;
     }
 
     public static IEnumerable<ProofState> EvalSuchThatStmt(AssignSuchThatStmt stmt, ProofState state) {
@@ -387,9 +330,8 @@ namespace Microsoft.Dafny.Tacny {
           var exprRhs = item as ExprRhs;
           if(exprRhs?.Expr is ApplySuffix) {
             var aps = (ApplySuffix)exprRhs.Expr;
-            foreach(var result in EvalExpr.EvalTacnyExpression(state, aps)) {
-              state.AddTacnyVar(declaration.Locals[index], result);
-            }
+            var result = SimpTaticExpr.EvalTacExpr(state, aps); 
+            state.AddTacnyVar(declaration.Locals[index], result);
           } else if(exprRhs?.Expr is Microsoft.Dafny.LiteralExpr) {
             state.AddTacnyVar(declaration.Locals[index], (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);
           } else if(exprRhs?.Expr is Microsoft.Dafny.NameSegment) {
@@ -416,16 +358,12 @@ namespace Microsoft.Dafny.Tacny {
         var exprRhs = item as ExprRhs;
         if(exprRhs?.Expr is ApplySuffix) {
           var aps = (ApplySuffix)exprRhs.Expr;
-          foreach(var result in EvalExpr.EvalTacnyExpression(state, aps)) {
-            state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, result);
-          }
+          var result = SimpTaticExpr.EvalTacExpr(state, aps);
+           state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, result);
         } else if(exprRhs?.Expr is Microsoft.Dafny.LiteralExpr) {
           state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);
         } else {
-          var tree = ExpressionTree.ExpressionToTree(exprRhs?.Expr);
-          var e = ExpressionTree.EvaluateExpression(tree, state);
-
-          state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, e);
+          throw new NotSupportedException("Not supported update statement");
         }
       }
       yield return state.Copy();

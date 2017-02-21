@@ -11,9 +11,9 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     public override string Signature => "variables";
     public override int ArgsCount => 0;
 
-    public override IEnumerable<object> Generate(Expression expression, ProofState proofState) {
+    public override object Generate(Expression expression, ProofState proofState) {
       var vars = proofState.GetAllDafnyVars().Values.ToList();
-      yield return vars.Select(x => x.Variable).ToList();
+      return vars.Select(x => x.Variable).ToList();
     }
   }
 }

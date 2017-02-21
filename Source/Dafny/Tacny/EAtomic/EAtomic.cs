@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     /// <param name="expression">Expression to be resolved</param>
     /// <param name="proofState">Current tactic ProofState</param>
     /// <returns>Lazily returns generated objects one at a time</returns>
-    public abstract IEnumerable<object> Generate(Expression expression, ProofState proofState);
+    public abstract object Generate(Expression expression, ProofState proofState);
   }
 
   [ContractClassFor(typeof(EAtomic))]
@@ -49,11 +49,10 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     public override string Signature { get; }
     public override int ArgsCount { get; }
 
-    public override IEnumerable<object> Generate(Expression expression, ProofState proofState) {
+    public override object Generate(Expression expression, ProofState proofState) {
       Contract.Requires(expression != null);
       Contract.Requires(proofState != null);
-
-      yield break;
+      return null;
     }
   }
 }

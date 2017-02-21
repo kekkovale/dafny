@@ -16,10 +16,9 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     /// <param name="expression"></param>
     /// <param name="proofState"></param>
     /// <returns></returns>
-    public override IEnumerable<object> Generate(Expression expression, ProofState proofState){
+    public override object Generate(Expression expression, ProofState proofState){
       var ls = proofState.Members.Values.ToList().Where(IsLemma);
-
-      yield return ls.ToList();
+       return ls.ToList();
     }
   }
 }
