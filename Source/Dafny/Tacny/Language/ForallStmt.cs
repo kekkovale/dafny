@@ -25,23 +25,44 @@ namespace Microsoft.Dafny.Tacny.Language {
  
       Contract.Assert(_stmt != null);
 
-      // Version 1: ignore range and multiple bounds
-      // i.e. ignore implication
+      // do basic simplification
+      // maybe do a check and throw an error instead?  
+      // fixme: error returns null!
+      var e = (ForallExpr) SimpTacticExpr.SimpTacExpr(state0, _stmt.Spec);
+     // var e = _stmt.Spec as ForallExpr;
 
-      var e = _stmt.Spec as ForallExpr;
+      //todo: get free vars + attributes and do renaming
+      _vars = e.BoundVars;
+
+      // we could even break  _ens into a set of all conjunctions?
+      // what about forall x (forall y) x
+      if (e.Term is BinaryExpr && (((BinaryExpr) e.Term).Op.Equals(BinaryExpr.Opcode.Imp))) {
+        var be = e.Term as BinaryExpr;
+        _range = be.E0;
+        var t = new MaybeFreeExpression(be.E1);
+        var l = new List<MaybeFreeExpression>();
+        l.Add(t);
+        _ens = l;
+      }else {
+        _range = new LiteralExpr(_stmt.Tok, true);
+        var t = new MaybeFreeExpression(e.Term);
+        var l = new List<MaybeFreeExpression>();
+        l.Add(t);
+        _ens = l;
+      }
+
+
+      
+
+
 
 
       // dummy testing
-      RenameVar rn = new RenameVar();
-      var ee = rn.CloneExpr(e);
+      //enameVar rn = new RenameVar();
+      //var ee = rn.CloneExpr(e);
 
-      _vars = e.BoundVars;
-      //fixme
-      _range = new LiteralExpr(_stmt.Tok, true);
-      var t = new MaybeFreeExpression(e.Term);
-      var l = new List<MaybeFreeExpression>();
-      l.Add(t);
-      _ens = l;
+
+
 
       this.InitBasicFrameCtrl(new List<Statement>(),null);
 
@@ -95,8 +116,7 @@ namespace Microsoft.Dafny.Tacny.Language {
         return v + "0";
       }
     }
-
-
+    
     [Pure]
     public String GenFreeVar(String var, ICollection<String> allvars) {
       while(allvars.Contains(var))
@@ -167,7 +187,22 @@ namespace Microsoft.Dafny.Tacny.Language {
       return 0;
     }
 
-    private void instVar() {
+    private void boundVars(ProofState state,Expression e) {
+      var varDict = state.GetAllDafnyVars();
+     
+
+      Zipper zip = new Zipper(e);
+    
+      Func<Expression, ISet<string>, ISet<string>> fv = (expr, set) => {
+        if (expr is NameSegment) {
+          var en = (NameSegment)expr;
+          set.Add(en.Name);
+        }
+       return set;
+      };
+      HashSet<string> hs = new HashSet<string>();
+      var els = zip.Fold(fv, hs);
+
 
     }
 

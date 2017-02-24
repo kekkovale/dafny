@@ -295,7 +295,7 @@ namespace Microsoft.Dafny.Tacny {
     public static IEnumerable<ProofState> EvalPredicateStmt(PredicateStmt predicate, ProofState state) {
       Contract.Requires<ArgumentNullException>(predicate != null, "predicate");
 
-      var newPredicate = SimpTaticExpr.SimpTacExpr(state, predicate);
+      var newPredicate = SimpTacticExpr.SimpTacExpr(state, predicate);
       var copy = state.Copy();
       copy.AddStatement(newPredicate);
       copy.NeedVerify = true;
@@ -330,7 +330,7 @@ namespace Microsoft.Dafny.Tacny {
           var exprRhs = item as ExprRhs;
           if(exprRhs?.Expr is ApplySuffix) {
             var aps = (ApplySuffix)exprRhs.Expr;
-            var result = SimpTaticExpr.EvalTacExpr(state, aps); 
+            var result = SimpTacticExpr.EvalTacExpr(state, aps); 
             state.AddTacnyVar(declaration.Locals[index], result);
           } else if(exprRhs?.Expr is Microsoft.Dafny.LiteralExpr) {
             state.AddTacnyVar(declaration.Locals[index], (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);
@@ -358,7 +358,7 @@ namespace Microsoft.Dafny.Tacny {
         var exprRhs = item as ExprRhs;
         if(exprRhs?.Expr is ApplySuffix) {
           var aps = (ApplySuffix)exprRhs.Expr;
-          var result = SimpTaticExpr.EvalTacExpr(state, aps);
+          var result = SimpTacticExpr.EvalTacExpr(state, aps);
            state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, result);
         } else if(exprRhs?.Expr is Microsoft.Dafny.LiteralExpr) {
           state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);

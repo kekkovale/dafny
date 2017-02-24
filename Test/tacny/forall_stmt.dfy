@@ -11,7 +11,7 @@ ensures false
 
 tactic t()
 {
-  tactic forall forall x :: x > 5
+  tactic forall forall x :: x == 5 ==> x >= 5
 	{
 		assume false;
 	}	

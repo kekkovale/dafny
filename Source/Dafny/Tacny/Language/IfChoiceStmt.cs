@@ -64,11 +64,11 @@ namespace Microsoft.Dafny.Tacny.Language{
       guardBodyList = GetGuadBodyList(statement, guardBodyList);
       Contract.Assert(guardBodyList.Count > 0);
 
-      var tryEval = SimpTaticExpr.EvalTacExpr(state0, guardBodyList[0].Item1) as BooleanRet;
+      var tryEval = SimpTacticExpr.EvalTacExpr(state0, guardBodyList[0].Item1) as BooleanRet;
       //check whether the top level of the first guard is tactic level or object level
       if (tryEval == null){
         var state = state0.Copy();
-        var st = SimpTaticExpr.SimpTacExpr(state, statement);
+        var st = SimpTacticExpr.SimpTacExpr(state, statement);
         state.NeedVerify = true;
         state.AddStatement(st);
         yield return state;
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.Tacny.Language{
             yield return state;
           }
           else{
-            var res = SimpTaticExpr.EvalTacExpr(state0, item.Item1) as BooleanRet;
+            var res = SimpTacticExpr.EvalTacExpr(state0, item.Item1) as BooleanRet;
             if (res.value){
               counter++;
               var state = state0.Copy();

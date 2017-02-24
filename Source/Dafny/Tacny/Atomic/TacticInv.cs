@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.Tacny.Atomic{
       IVariable lv;
       InitArgs(state, statement, out lv, out callArguments);
 
-      var expr = SimpTaticExpr.SimpTacExpr(state, callArguments[0]);
+      var expr = SimpTacticExpr.SimpTacExpr(state, callArguments[0]);
         if (expr is Expression){
           var dest_stmt = new AssumeStmt(null, null, expr, null);
           var state0 = state.Copy();

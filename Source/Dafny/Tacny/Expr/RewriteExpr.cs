@@ -11,10 +11,10 @@ namespace Microsoft.Dafny.Tacny.Expr {
     public bool value;
   }
 
-  class SimpTaticExpr : Cloner{
+  class SimpTacticExpr : Cloner{
     private ProofState _state;
 
-    private SimpTaticExpr(ProofState state) {
+    private SimpTacticExpr(ProofState state) {
       this._state = state;
     }
 
@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
     }
 
     public static object EvalTacExpr(ProofState state, Expression expr){
-      var e = new SimpTaticExpr(state);
+      var e = new SimpTacticExpr(state);
       if (e.IsTVar(expr))
         return e.EvalTVar(expr as NameSegment, true);
       else if (expr is ApplySuffix){
@@ -75,12 +75,12 @@ namespace Microsoft.Dafny.Tacny.Expr {
     }
 
     public static Statement SimpTacExpr(ProofState state, Statement stmt){
-      var cloner = new SimpTaticExpr(state);
+      var cloner = new SimpTacticExpr(state);
       return cloner.CloneStmt(stmt);
     }
 
     public static Expression SimpTacExpr(ProofState state, Expression expr){
-      var cloner = new SimpTaticExpr(state);
+      var cloner = new SimpTacticExpr(state);
       return cloner.CloneExpr(expr);
     }
 
@@ -115,10 +115,10 @@ namespace Microsoft.Dafny.Tacny.Expr {
 
   class RenameVar : Cloner {
 
-    private Dictionary<String, String> _renames;
+    private Dictionary<string, string> _renames;
 
     public RenameVar() : base() {
-      _renames = new Dictionary<String, String>();
+      _renames = new Dictionary<string, string>();
     }
 
     public void AddRename(String before, String after) {
