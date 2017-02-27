@@ -12,26 +12,20 @@ using Bpl = Microsoft.Boogie;
 using Type = System.Type;
 
 /*
-  NEW COMPILE PLAN
-
-  Each method will now have a QuickyChecker object passed in.  This will be called to perform checks etc and track the errors.
-
-  Start of each method:
-  - check for preconditions - return if false
-  - create a string to show parameter values
-
-
-  TODO:
-  1:
-  when a new function is called inside the compiler the qChecker is passed to it.  If any errors occur in that function then it is recognised as the other qChecker
-  SOLUTION: extend qChecker with a new class that takes in a qChecker as the constructor.  only checks for preconditions maybe?
-  2:
+    TODO::
   Better test gathering?  this would allow multiple errors per function as opposed to just 1 as it is now.  Is this a good thing though?
-  There at least needs to be something to handle the situation above if extra errors are found
-  3:
-  Better parameter generation, then doing this for more types.
+  
+  More paramter types and vary for bigger values with ints?
 
-  Habdle infinite loops
+  Handle infinite loops - some kind of timeout?
+
+  Multithreading.  For methods or all tests?  or break down?
+
+  In extension, only test methods that have been altered?
+
+  Support calcs and preconditions on lemma calls
+
+  use all member types or just Methods?
 */
 
 
@@ -100,45 +94,19 @@ namespace Quicky
     private readonly Program _dafnyProgram;
     private readonly Assembly _assemblyProgram;
     public readonly int TestCases;
+    private readonly bool _debug;
 
 
-    public Quicky(Program dafnyProgram, int testCases = 100) {
+    public Quicky(Program dafnyProgram, int testCases = 100, bool debug=false) {
       Contract.Requires(dafnyProgram != null);
       _dafnyProgram = dafnyProgram;
       TestCases = testCases;
-      var cSharpProgram = CompileDafnyProgram();
-      _assemblyProgram = CompileCsharpProgram(cSharpProgram);
+      QuickyCompilerHelper qch = new QuickyCompilerHelper(_dafnyProgram);
+      _assemblyProgram = qch.AssemblyProgram;
+      _debug = debug;
     }
 
-    private TextWriter CompileDafnyProgram() {
-      TextWriter tw = new StringWriter();
-      Compiler compiler = new Compiler(true) {ErrorWriter = Console.Out};
-      compiler.Compile(_dafnyProgram, tw);
-      if (QuickyMain.PrintCompiledCode) {
-        using (TextWriter writer = File.CreateText("C:\\Users\\Duncan\\Documents\\Test.cs")) {
-          writer.WriteLine(tw.ToString());
-        }
-      }
-      return tw;
-    }
-
-    private Assembly CompileCsharpProgram(TextWriter cSharpTw) { 
-      var csc = new CSharpCodeProvider(new Dictionary<string, string>() { { "CompilerVersion", "v4.0" } });
-      var parameters = new CompilerParameters(GetRequiredReferences()) {GenerateExecutable = false};
-      CompilerResults results = csc.CompileAssemblyFromSource(parameters, cSharpTw.ToString());
-      var errors = results.Errors.Cast<CompilerError>().ToList();
-      if (errors.Count > 0)  throw new QuickyCompileException(errors);
-      return results.CompiledAssembly;
-    }
-
-    private static string[] GetRequiredReferences() {
-      var system = @"System.dll";
-      var core = typeof(Enumerable).Assembly.Location;
-      var numerics = typeof(BigInteger).Assembly.Location;
-      var quicky = Assembly.GetExecutingAssembly().CodeBase.Substring(8);
-      return new[] { system, core, numerics, quicky };
-    }
-   
+    
     public void PerformTesting() {
         TestModule(_dafnyProgram.DefaultModuleDef);
     }
@@ -177,6 +145,10 @@ namespace Quicky
         Console.WriteLine("Could not generate parameters for method " + method.Name + " of type " + e.Type);
         return;
       }
+      catch (Exception) {
+        if (_debug) throw; //some other type of error has occured that shouldn't.  If _debug is on, it's thrown so programmer can see error
+        return;
+      }
 
       //todo: multithread here?
       //could do some fancy counter thing to do a few at a time and stop when error is found 
@@ -192,5 +164,53 @@ namespace Quicky
       methodInfo.Invoke(null, parameters);
 //    if outputs is ever needed, they will be in parameters after the actual input parameters (they are passed as outs)
     }
+  }
+
+  class QuickyCompilerHelper
+  {
+    private readonly Program _dafnyProgram;
+    public Assembly AssemblyProgram;
+
+    public QuickyCompilerHelper(Program dafnyProgram) {
+      _dafnyProgram = dafnyProgram;
+      var cSharpProgram = CompileDafnyProgram();
+      AssemblyProgram = CompileCsharpProgram(cSharpProgram);
+
+    }
+
+    private TextWriter CompileDafnyProgram()
+    {
+      TextWriter tw = new StringWriter();
+      Compiler compiler = new Compiler(true) { ErrorWriter = Console.Out };
+      compiler.Compile(_dafnyProgram, tw);
+      if (QuickyMain.PrintCompiledCode)
+      {
+        using (TextWriter writer = File.CreateText("C:\\Users\\Duncan\\Documents\\Test.cs"))
+        {//TODO make nicer here
+          writer.WriteLine(tw.ToString());
+        }
+      }
+      return tw;
+    }
+
+    private Assembly CompileCsharpProgram(TextWriter cSharpTw)
+    {
+      var csc = new CSharpCodeProvider(new Dictionary<string, string>() { { "CompilerVersion", "v4.0" } });
+      var parameters = new CompilerParameters(GetRequiredReferences()) { GenerateExecutable = false };
+      CompilerResults results = csc.CompileAssemblyFromSource(parameters, cSharpTw.ToString());
+      var errors = results.Errors.Cast<CompilerError>().ToList();
+      if (errors.Count > 0) throw new QuickyCompileException(errors);
+      return results.CompiledAssembly;
+    }
+
+    private static string[] GetRequiredReferences()
+    {
+      var system = @"System.dll";
+      var core = typeof(Enumerable).Assembly.Location;
+      var numerics = typeof(BigInteger).Assembly.Location;
+      var quicky = Assembly.GetExecutingAssembly().CodeBase.Substring(8);
+      return new[] { system, core, numerics, quicky };
+    }
+
   }
 }

@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Dafny;
-using Bpl=Microsoft.Boogie;
 
 namespace Quicky
 {
-  //todo: move error info into here?  can be tracked alongside precondition fails count
-  //This class is referenced from quicky compiled programs to check and react to 
   public class QuickyChecker
   {
     protected internal readonly Method Method;
@@ -29,14 +22,13 @@ namespace Quicky
     }
 
     public virtual void TrackError(int lineNum, int columnNum, string counterExamples, QuickyError.ErrorType errorType) {
-      Microsoft.Boogie.Token tok = new Microsoft.Boogie.Token(lineNum, columnNum);
       string implName = "Impl$$" + Method.FullSanitizedName;
-      var exception = new QuickyError(tok, counterExamples, errorType, implName);
+      var exception = new QuickyError(lineNum, columnNum, counterExamples, errorType, implName);
       if (!Quicky.FoundErrors.ContainsKey(Method))
         Quicky.FoundErrors.Add(Method, exception);
     }
   }
-  //TODO add this to compiler
+
   /// <summary>
   /// The nested quickyChecker is created for when another function is called.  It will act differently due and assing the error
   /// to the correct method deppending on if it was a precondition failure or otherwise.
@@ -89,14 +81,16 @@ namespace Quicky
     };
 
     public ErrorType TypeOfError;
-    public Bpl.IToken Token; //TODO remove token, just use line and col num?
+    public int Line;
+    public int Col;
     public string CounterExamples;
     public string ImplementationName;
 
     public string Message => ErrorMessages[TypeOfError] + " with parameters: " + CounterExamples;
 
-    public QuickyError(Bpl.IToken token, string counterExamples, ErrorType errorType, string impName) {
-      Token = token;
+    public QuickyError(int line, int col, string counterExamples, ErrorType errorType, string impName) {
+      Line = line;
+      Col = col;
       CounterExamples = counterExamples;
       TypeOfError = errorType;
       ImplementationName = impName;

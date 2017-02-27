@@ -42,7 +42,7 @@ namespace Quicky
     public int NumParameters => _method.Ins.Count;
 
     private List<int[]> _indexes = new List<int[]>(); //todo also have a hashset to quickly find? more memory needed but not too much?
-    private int _index = 0;
+    private int _index;
     public readonly int NumTests;
 
 
@@ -130,8 +130,7 @@ namespace Quicky
     }
 
   }
-
-  //TODO cache results for speed #gottagofast
+  
   abstract class ParameterGenerator
   {
     protected ParameterSetGenerator ParamSetGenerator;

@@ -338,7 +338,7 @@ namespace DafnyLanguage
       var quickyErrors = quicky.FoundErrors.Values;
       foreach (var error in quickyErrors) {
         string filename = System.IO.Path.GetFullPath(_document.FilePath);
-        DafnyError dafnyError = new DafnyError(System.IO.Path.GetFullPath(_document.FilePath), error.Token.line-1,error.Token.col-1,ErrorCategory.VerificationError,
+        DafnyError dafnyError = new DafnyError(System.IO.Path.GetFullPath(_document.FilePath), error.Line-1, error.Col-1,ErrorCategory.VerificationError,
           error.Message, snapshot, isRecycled); //TODO how does isRecycled work? do I need it?
         errorListHolder.AddError(dafnyError, error.ImplementationName, requestId);
       }

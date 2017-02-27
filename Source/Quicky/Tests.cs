@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using Microsoft.Dafny;
 using NUnit.Framework;
 using System.IO;
@@ -20,15 +19,15 @@ namespace Quicky
       
       Resolver resolver = new Resolver(dafnyProgram);
       resolver.ResolveProgram(dafnyProgram);
-      return new Quicky(dafnyProgram);
+      return new Quicky(dafnyProgram, 100, true);
     }
     
     [Test]
     public void TestCompiler() {
-      var quicky = GetQuicky("VariousFails.dfy");
+      GetQuicky("VariousFails.dfy");
       //if no exception is thrown, the program successfully compiled something.
     }
-    
+
 
     //Runs a file and ensures that the program finds the right errors - the dictionary should contain counts for types of errors
     public void TestForNErrors(string filename, Dictionary<QuickyError.ErrorType, int> expectedErrors) {
@@ -37,7 +36,7 @@ namespace Quicky
 
       Dictionary<QuickyError.ErrorType, int> foundErrors = new Dictionary<QuickyError.ErrorType, int>();
       foreach (var quickyError in quicky.FoundErrors.Values) {
-        Console.WriteLine("Exception on line " + quickyError.Token.line + ": ");
+        Console.WriteLine("Exception on line " + quickyError.Line + ": ");
         Console.WriteLine(quickyError.Message+"\n");
         if (foundErrors.ContainsKey(quickyError.TypeOfError))
           foundErrors[quickyError.TypeOfError]++;
