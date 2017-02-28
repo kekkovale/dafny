@@ -32,15 +32,25 @@ namespace Microsoft.Dafny.Tacny.Language {
       var e = (ForallExpr) SimpTacticExpr.SimpTacExpr(state0, _stmt.Spec);
 
       // var e = _stmt.Spec as ForallExpr;
+      // to rename expressions
       RenameVar rn = new RenameVar();
-
+      // to rename in the body of statement
+      RenameVar rnBody = new RenameVar();
+      List<String> usedVars = state0.GetAllDafnyVars().Keys.ToList();
+      usedVars.AddRange(state0.GetAllTVars().Keys.ToList());
+      
       if (_stmt.Attributes.Name.Equals("vars")) {
         var attrs = _stmt.Attributes.Args;
         for (int i = 0; i < attrs.Count; i++) {
           // todo: should really report an errors if first condition does not hold
           if (attrs[i] is NameSegment && i < e.BoundVars.Count) {
             NameSegment ns = attrs[i] as NameSegment;
-            rn.AddRename(e.BoundVars[i].Name, ns.Name);
+            String fv;
+            if(GenFreeVar(ns.Name, usedVars, out fv))
+            {
+              rnBody.AddRename(ns.Name, fv);
+            }
+            rn.AddRename(e.BoundVars[i].Name, fv);
           } // else we should have an error
           _vars = new List<BoundVar>();
           foreach (BoundVar bv in e.BoundVars) {
@@ -78,7 +88,9 @@ namespace Microsoft.Dafny.Tacny.Language {
       state.AddNewFrame(this);
 
       var bodyFrame = new DefaultTacticFrameCtrl();
-      bodyFrame.InitBasicFrameCtrl(_stmt.Body.Body, null);
+
+      var newBody = rnBody.CloneBlockStmt(_stmt.Body);
+      bodyFrame.InitBasicFrameCtrl(newBody.Body, null);
       bodyFrame.IsPartial = this.IsPartial;
       state.AddNewFrame(bodyFrame);
 
@@ -126,10 +138,14 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
     
     [Pure]
-    public String GenFreeVar(String var, ICollection<String> allvars) {
-      while(allvars.Contains(var))
-        var = NextString(var);
-      return var;
+    public bool GenFreeVar(String var, ICollection<String> allvars, out String res) {
+      res = var;
+      // not been changed 
+      if (!allvars.Contains(var))
+        return false;
+      while(allvars.Contains(res))
+        res = NextString(res);
+      return true;
     }
 
 

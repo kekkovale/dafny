@@ -1,16 +1,10 @@
 
-lemma dummyLemma(x : int)
-ensures x > 5
+lemma dummyLemma()
+ensures forall x :: x > 5
 {
-	test(); 
-}
+  var z := 0;
 
-tactic t()
-{
-  tactic forall {:vars a,b,c} forall  x :: x == 5 ==> x >= 5
-	{
-		assume false;
-	}	
+	test(); 
 }
 
 
@@ -18,7 +12,7 @@ tactic test(){
   
   tvar p :| p in post_conds();
 
-  tactic forall {:vars z} forall :: p
+  tactic forall {:vars z} p
   {
     assume z > 5;
   }
