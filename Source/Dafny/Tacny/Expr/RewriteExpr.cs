@@ -125,14 +125,19 @@ namespace Microsoft.Dafny.Tacny.Expr {
       _renames.Add(before,after);
     }
 
-    /*
-    public override BoundVar CloneBoundVar(BoundVar bv) { 
-      var bvNew = new BoundVar(Tok(bv.tok), "dummy", CloneType(bv.Type));
+    
+    public override BoundVar CloneBoundVar(BoundVar bv) {
+      String nm,name;
+      if (_renames.TryGetValue(bv.Name, out nm))
+        name = nm;
+      else {
+        name = bv.Name;
+      }
+      var bvNew = new BoundVar(Tok(bv.tok), name, CloneType(bv.Type));
       bvNew.IsGhost = bv.IsGhost;
       return bvNew;
     }
-    */
-
+ 
     public override Expression CloneNameSegment(Expression expr) {
       var e = (NameSegment) expr;
       String nm, name;

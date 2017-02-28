@@ -29,41 +29,47 @@ namespace Microsoft.Dafny.Tacny.Language {
       // maybe do a check and throw an error instead?  
       // fixme: error returns null!
       var e = (ForallExpr) SimpTacticExpr.SimpTacExpr(state0, _stmt.Spec);
-     // var e = _stmt.Spec as ForallExpr;
+      // var e = _stmt.Spec as ForallExpr;
+      RenameVar rn = new RenameVar();
 
-      //todo: get free vars + attributes and do renaming
-      _vars = e.BoundVars;
+      if (_stmt.Attributes.Name.Equals("vars")) {
+        var attrs = _stmt.Attributes.Args;
+        for (int i = 0; i < attrs.Count; i++) {
+          // todo: should really report an errors if first condition does not hold
+          if (attrs[i] is NameSegment && i < e.BoundVars.Count) {
+            NameSegment ns = attrs[i] as NameSegment;
+            rn.AddRename(e.BoundVars[i].Name, ns.Name);
+          } // else we should have an error
+          _vars = new List<BoundVar>();
+          foreach (BoundVar bv in e.BoundVars) {
+            _vars.Add(rn.CloneBoundVar(bv));
+          }
+        }
+
+      }else {
+        _vars = e.BoundVars;
+      }
+
 
       // we could even break  _ens into a set of all conjunctions?
       // what about forall x (forall y) x
       if (e.Term is BinaryExpr && (((BinaryExpr) e.Term).Op.Equals(BinaryExpr.Opcode.Imp))) {
         var be = e.Term as BinaryExpr;
-        _range = be.E0;
-        var t = new MaybeFreeExpression(be.E1);
+        _range = rn.CloneExpr(be.E0);
+        var t = new MaybeFreeExpression(rn.CloneExpr(be.E1));
         var l = new List<MaybeFreeExpression>();
         l.Add(t);
         _ens = l;
       }else {
         _range = new LiteralExpr(_stmt.Tok, true);
-        var t = new MaybeFreeExpression(e.Term);
+        var t = new MaybeFreeExpression(rn.CloneExpr(e.Term));
         var l = new List<MaybeFreeExpression>();
         l.Add(t);
         _ens = l;
       }
 
-
+      // Note that we do not need to rename variables in the body (unless the variables in vars is changed)
       
-
-
-
-
-      // dummy testing
-      //enameVar rn = new RenameVar();
-      //var ee = rn.CloneExpr(e);
-
-
-
-
       this.InitBasicFrameCtrl(new List<Statement>(),null);
 
       var state = state0.Copy();
@@ -124,9 +130,6 @@ namespace Microsoft.Dafny.Tacny.Language {
       return var;
     }
 
-    public void RenameBoundVars(String var, ref Expression e) {
-       
-    }
 
 
 
