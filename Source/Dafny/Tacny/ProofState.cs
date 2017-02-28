@@ -710,7 +710,7 @@ namespace Microsoft.Dafny.Tacny{
         }
       }
       internal Dictionary<string, object> GetAllTVars(Dictionary<string, object> toDict) {
-        _DafnyVariables.Where(x => !toDict.ContainsKey(x.Key)).ToList().ForEach(x => toDict.Add(x.Key, x.Value));
+        _declaredVariables.Where(x => !toDict.ContainsKey(x.Key)).ToList().ForEach(x => toDict.Add(x.Key, x.Value));
         if (Parent == null)
           return toDict;
         else {

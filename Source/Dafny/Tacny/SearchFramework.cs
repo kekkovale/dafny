@@ -274,7 +274,7 @@ namespace Microsoft.Dafny.Tacny {
 
       }
       //check if over-backchecked
-      if(backtackList.Exists(x => x > 0))
+      if(backtackList != null && backtackList.Exists(x => x > 0))
       {
         if (lastSucc == null)
           Console.WriteLine("!!! No more branch for the request of " +  (backtackList.Last()+1) +  "backtracking, and no branch.");
