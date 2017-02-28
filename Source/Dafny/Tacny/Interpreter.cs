@@ -330,7 +330,7 @@ namespace Microsoft.Dafny.Tacny {
           var exprRhs = item as ExprRhs;
           if(exprRhs?.Expr is ApplySuffix) {
             var aps = (ApplySuffix)exprRhs.Expr;
-            var result = SimpTacticExpr.EvalTacExpr(state, aps); 
+            var result = SimpTacticExpr.EvalTacticExpr(state, aps); 
             state.AddTacnyVar(declaration.Locals[index], result);
           } else if(exprRhs?.Expr is Microsoft.Dafny.LiteralExpr) {
             state.AddTacnyVar(declaration.Locals[index], (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);
@@ -358,7 +358,7 @@ namespace Microsoft.Dafny.Tacny {
         var exprRhs = item as ExprRhs;
         if(exprRhs?.Expr is ApplySuffix) {
           var aps = (ApplySuffix)exprRhs.Expr;
-          var result = SimpTacticExpr.EvalTacExpr(state, aps);
+          var result = SimpTacticExpr.EvalTacticExpr(state, aps);
            state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, result);
         } else if(exprRhs?.Expr is Microsoft.Dafny.LiteralExpr) {
           state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);

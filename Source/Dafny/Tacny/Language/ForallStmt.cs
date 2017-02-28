@@ -28,7 +28,9 @@ namespace Microsoft.Dafny.Tacny.Language {
       // do basic simplification
       // maybe do a check and throw an error instead?  
       // fixme: error returns null!
+      //var e = (ForallExpr) SimpTacticExpr.SimpTacExpr(state0, _stmt.Spec);
       var e = (ForallExpr) SimpTacticExpr.SimpTacExpr(state0, _stmt.Spec);
+
       // var e = _stmt.Spec as ForallExpr;
       RenameVar rn = new RenameVar();
 

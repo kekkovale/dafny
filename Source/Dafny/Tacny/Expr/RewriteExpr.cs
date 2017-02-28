@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Boogie;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -43,7 +44,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
         var eatomInst = Activator.CreateInstance(eType) as EAtomic.EAtomic;
         if (sig == eatomInst?.Signature){
           //TODO: validate input countx
-          return eatomInst?.Generate(aps, _state);
+            return eatomInst?.Generate(aps, _state);
         }
       }
       return null;
@@ -54,12 +55,12 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return false;
     }
 
-    internal object EvalETacCall(ApplySuffix aps){
+    internal object EvalETacticCall(ApplySuffix aps){
       //fucntion expression call, yet to be supported
       throw new NotImplementedException();
     }
 
-    public static object EvalTacExpr(ProofState state, Expression expr){
+    public static object EvalTacticExpr(ProofState state, Expression expr){
       var e = new SimpTacticExpr(state);
       if (e.IsTVar(expr))
         return e.EvalTVar(expr as NameSegment, true);
@@ -86,10 +87,17 @@ namespace Microsoft.Dafny.Tacny.Expr {
 
     public override Expression CloneApplySuffix(ApplySuffix e){
       if (IsEAtmoicCall(e)){
-        return (EvalEAtomExpr(e) as Expression);
+         var obj = EvalEAtomExpr(e);
+        if (obj is Expression)
+          return obj as Expression;
+        else if (obj is List<Expression>)
+          return new SetDisplayExpr(new Token(Interpreter.TACNY_CODE_TOK_LINE,0), true, obj as List<Expression>);
+        else
+          throw new NotSupportedException ("Unkonwn type to handle when simplifying an expression");
+
       }
       else if (IsETacticCall(e)){
-        return (EvalETacCall(e) as Expression);
+        return (EvalETacticCall(e) as Expression);
       }
       else
         return base.CloneApplySuffix(e);

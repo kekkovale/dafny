@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       Contract.Requires(statement is WhileStmt);
       var whileStmt = statement as WhileStmt;
 
-      var tryEval = SimpTacticExpr.EvalTacExpr(state0, whileStmt.Guard) as BooleanRet;
+      var tryEval = SimpTacticExpr.EvalTacticExpr(state0, whileStmt.Guard) as BooleanRet;
 
       if(tryEval == null) {
         var state = state0.Copy();
@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     public override IEnumerable<ProofState> EvalStep(ProofState state0){
       var state = state0.Copy();
 
-      var tryEval = SimpTacticExpr.EvalTacExpr(state, guard) as BooleanRet;
+      var tryEval = SimpTacticExpr.EvalTacticExpr(state, guard) as BooleanRet;
       Contract.Assert(tryEval != null);
 
       if(tryEval.value){
@@ -77,7 +77,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
     public override bool EvalTerminated(bool childFrameRes, ProofState state){
-      var tryEval = SimpTacticExpr.EvalTacExpr(state, guard) as BooleanRet;
+      var tryEval = SimpTacticExpr.EvalTacticExpr(state, guard) as BooleanRet;
       Contract.Assert(tryEval != null);
       return !tryEval.value;
     }

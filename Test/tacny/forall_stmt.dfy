@@ -16,9 +16,9 @@ tactic t()
 
 tactic test(){
   
-  tvar p :| post_conds();
+  tvar p :| p in post_conds();
 
-  tactic forall {:vars z} p
+  tactic forall {:vars z} forall :: p
   {
     assume z > 5;
   }
