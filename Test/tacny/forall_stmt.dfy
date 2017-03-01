@@ -14,6 +14,7 @@ tactic {:partial} test(){
 
   tactic forall {:vars z} p
   {
+    var z0 := forall z1 :: true;
     assume z > 5;
   }
 }

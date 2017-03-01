@@ -38,6 +38,11 @@ namespace Microsoft.Dafny.Tacny.Language {
       RenameVar rnBody = new RenameVar();
       List<String> usedVars = state0.GetAllDafnyVars().Keys.ToList();
       usedVars.AddRange(state0.GetAllTVars().Keys.ToList());
+ 
+      //List<String> tmp = new List<string>();
+      AllVars.DeclaredVars(_stmt.Body.Body[0],ref usedVars);
+
+ 
       
       if (_stmt.Attributes.Name.Equals("vars")) {
         var attrs = _stmt.Attributes.Args;

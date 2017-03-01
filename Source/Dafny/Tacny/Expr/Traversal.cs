@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
         TraverseExpression(e,fexpr);
       }
       foreach (Statement s in stmt.SubStatements) {
-        TraverseStatement(stmt, fstmt, fexpr);
+        TraverseStatement(s, fstmt, fexpr);
       }
     }
 
@@ -51,12 +51,26 @@ namespace Microsoft.Dafny.Tacny.Expr {
       }
     }
 
-    private void StmtVars(Statement s) {
+    private void StmtVars(Statement stmt) {
       Contract.Requires(_vars != null);
-      Contract.Requires(s != null);
+      Contract.Requires(stmt != null);
 
-      
+      if (stmt is VarDeclStmt) {
+        var s = stmt as VarDeclStmt;
+        foreach (LocalVariable l in s.Locals) {
+          _vars.Add(l.Name);
+        }
+      }
+      // FIXME: t this should really be handled by SubExpressions function in AST but doesn't seem to be correct
+      if (stmt is UpdateStmt) {
+        var s = stmt as UpdateStmt;
+        foreach (AssignmentRhs rhs in s.Rhss)
+          foreach (Expression e in rhs.SubExpressions)
+            ExprVars(e);
+      }
     }
+
+    
 
     // can also get a ref to a list as argument
     public static void DeclaredVars(Statement stmt,ref List<String> ls) {
