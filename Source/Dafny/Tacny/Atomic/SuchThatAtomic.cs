@@ -46,6 +46,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
         var l = (Expression)SimpTacticExpr.SimpTacExpr(state, dest_expr.E1);
         //TODO: currently assume the op is always "in"
         foreach (var item in (l as SetDisplayExpr).Elements) {
+          Console.WriteLine("in var");
           var copy = state.Copy();
           copy.UpdateTacnyVar(local, item);
           yield return copy;

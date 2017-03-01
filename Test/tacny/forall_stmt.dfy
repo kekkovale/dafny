@@ -8,7 +8,7 @@ ensures forall x :: x > 5
 }
 
 
-tactic test(){
+tactic {:partial} test(){
   
   tvar p :| p in post_conds();
 
