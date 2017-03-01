@@ -67,8 +67,9 @@ namespace Microsoft.Dafny.Tacny.Language{
         ParseTacticAttributes(attr.Prev);
     }
 
-    public void InitBasicFrameCtrl(List<Statement> body,  Attributes attrs, Tactic tactic = null){
-      if(tactic != null)
+    public void InitBasicFrameCtrl(List<Statement> body, bool parentPartial, Attributes attrs, Tactic tactic = null){
+      this.IsPartial = parentPartial;
+      if (tactic != null)
         ParseTacticAttributes(tactic.Attributes);
       Body = body;
       ParseTacticAttributes(attrs);
