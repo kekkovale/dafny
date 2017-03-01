@@ -602,7 +602,7 @@ namespace Microsoft.Dafny.Tacny{
         }
 
         FrameCtrl = new DefaultTacticFrameCtrl();
-        FrameCtrl.InitBasicFrameCtrl(o.Body.Body, attr, o);
+        FrameCtrl.InitBasicFrameCtrl(o.Body.Body, false, attr, o);
 
         _reporter = reporter;
         _declaredVariables = new Dictionary<string, object>();

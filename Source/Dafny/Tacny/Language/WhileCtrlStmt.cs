@@ -40,16 +40,14 @@ namespace Microsoft.Dafny.Tacny.Language {
 
         if (tryEval.value) {
           // insert the control frame
-          whileCtrl.IsPartial = true;
           var dummyBody = new List<Statement>();
           dummyBody.Add(whileStmt);
-          whileCtrl.InitBasicFrameCtrl(dummyBody, null);
+          whileCtrl.InitBasicFrameCtrl(dummyBody, true, null);
           state.AddNewFrame(whileCtrl);
 
           //insert the body frame
           var bodyFrame = new DefaultTacticFrameCtrl();
-          bodyFrame.InitBasicFrameCtrl(whileCtrl.body, null);
-          bodyFrame.IsPartial = whileCtrl.IsPartial;
+          bodyFrame.InitBasicFrameCtrl(whileCtrl.body, whileCtrl.IsPartial, null);
           state.AddNewFrame(bodyFrame);
         }
 
@@ -66,8 +64,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       if(tryEval.value){
         //insert the body frame
         var bodyFrame = new DefaultTacticFrameCtrl();
-        bodyFrame.InitBasicFrameCtrl(body, null);
-        bodyFrame.IsPartial = state.IsCurFramePartial();
+        bodyFrame.InitBasicFrameCtrl(body, state.IsCurFramePartial(), null);
         state.AddNewFrame(bodyFrame);
       }
       else{

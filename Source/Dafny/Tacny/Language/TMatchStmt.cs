@@ -90,8 +90,7 @@ namespace Microsoft.Dafny.Tacny.Language {
 
       var stmt = GetStmt() as TacnyCasesBlockStmt;
       var framectrl = new DefaultTacticFrameCtrl();
-      framectrl.InitBasicFrameCtrl(stmt.Body.Body, null);
-      framectrl.IsPartial = state0.IsCurFramePartial();
+      framectrl.InitBasicFrameCtrl(stmt.Body.Body, state0.IsCurFramePartial(), null);
       state.AddNewFrame(framectrl);
 
       var matchStmt = _rawCodeList[0][0] as MatchStmt;
@@ -156,8 +155,7 @@ namespace Microsoft.Dafny.Tacny.Language {
 
       var matchCtrl = this;
 
-      matchCtrl.IsPartial = partial;
-      matchCtrl.InitBasicFrameCtrl(dummystmt, null);
+      matchCtrl.InitBasicFrameCtrl(dummystmt, partial, null);
       state.AddNewFrame(matchCtrl);
 
       //add raw[0]
@@ -166,8 +164,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       //push a frame for the first case
       //TODO: add case variable to frame, so that variable () can refer to it
       var caseCtrl = new DefaultTacticFrameCtrl();
-      caseCtrl.InitBasicFrameCtrl(stmt.Body.Body, null);
-      caseCtrl.IsPartial = partial;
+      caseCtrl.InitBasicFrameCtrl(stmt.Body.Body, partial, null);
       state.AddNewFrame(caseCtrl);
 
       foreach(var tmp in matchStmt.Cases[0].CasePatterns) {

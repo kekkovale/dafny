@@ -58,8 +58,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       foreach(BlockStmt choice in choices) {
         state = state0.Copy();
         var orChoice = this.Copy();
-        orChoice.IsPartial = partial;
-        orChoice.InitBasicFrameCtrl(choice.Body, null);
+        orChoice.InitBasicFrameCtrl(choice.Body, partial, null);
         state.AddNewFrame(orChoice);
         yield return state;
       }

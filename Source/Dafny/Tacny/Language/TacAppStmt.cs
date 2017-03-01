@@ -14,8 +14,7 @@ namespace Microsoft.Dafny.Tacny.Language{
       var tactic = state.GetTactic(aps) as Tactic;
 
       var frameCtrl = new DefaultTacticFrameCtrl();
-      frameCtrl.IsPartial = true;
-      frameCtrl.InitBasicFrameCtrl(tactic.Body.Body, tacApsStmt.Rhss[0].Attributes, tactic);
+      frameCtrl.InitBasicFrameCtrl(tactic.Body.Body, true, tacApsStmt.Rhss[0].Attributes, tactic);
       state.AddNewFrame(frameCtrl);
 
       if(aps.Args.Count != tactic.Ins.Count)
