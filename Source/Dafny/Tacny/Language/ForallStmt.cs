@@ -81,15 +81,17 @@ namespace Microsoft.Dafny.Tacny.Language {
       }
 
       // Note that we do not need to rename variables in the body (unless the variables in vars is changed)
-      
-      this.InitBasicFrameCtrl(new List<Statement>(),null);
 
+      this.IsPartial = state0.IsCurFramePartial();
+      this.InitBasicFrameCtrl(new List<Statement>(),null);
       var state = state0.Copy();
+
       state.AddNewFrame(this);
 
       var bodyFrame = new DefaultTacticFrameCtrl();
 
       var newBody = rnBody.CloneBlockStmt(_stmt.Body);
+      bodyFrame.IsPartial = state.IsCurFramePartial();
       bodyFrame.InitBasicFrameCtrl(newBody.Body, null);
       bodyFrame.IsPartial = this.IsPartial;
       state.AddNewFrame(bodyFrame);

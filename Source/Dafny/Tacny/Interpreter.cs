@@ -319,6 +319,7 @@ namespace Microsoft.Dafny.Tacny {
           foreach(var item in EvalSuchThatStmt(declaration.Update as AssignSuchThatStmt, state)) {
             yield return item.Copy();
           }
+          yield break;
         } else {
           foreach(var item in declaration.Locals)
             state.AddTacnyVar(item, null);
