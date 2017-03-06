@@ -9,7 +9,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.VisualStudio.Text;
 using Bpl = Microsoft.Boogie;
-using Dafny = Microsoft.Dafny;
+using MDafny = Microsoft.Dafny;
 
 
 namespace DafnyLanguage
@@ -20,7 +20,7 @@ namespace DafnyLanguage
     readonly string _filename;
     readonly ITextSnapshot _snapshot;
     readonly ITextBuffer _buffer;
-    Dafny.Program _program;
+    MDafny.Program _program;
     static object bufferDafnyKey = new object();
 
     List<DafnyError> _errors = new List<DafnyError>();
@@ -38,15 +38,15 @@ namespace DafnyLanguage
     }
 
     static void Initialize() {
-      if (Dafny.DafnyOptions.O == null) {
-        var options = new Dafny.DafnyOptions();
+      if (MDafny.DafnyOptions.O == null) {
+        var options = new MDafny.DafnyOptions();
         options.ProverKillTime = 10;
         options.AutoTriggers = true;
         options.ErrorTrace = 0;
         options.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1);
         options.ModelViewFile = "-";
         options.UnicodeOutput = true;
-        Dafny.DafnyOptions.Install(options);
+        MDafny.DafnyOptions.Install(options);
 
         // Read additional options from DafnyOptions.txt
         string codebase = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
@@ -111,7 +111,7 @@ namespace DafnyLanguage
 
     #region Parsing and type checking
 
-    internal Dafny.Program ProcessResolution(bool runResolver) {
+    internal MDafny.Program ProcessResolution(bool runResolver) {
       if (!ParseAndTypeCheck(runResolver)) {
         return null;
       }
@@ -119,8 +119,8 @@ namespace DafnyLanguage
     }
 
     bool ParseAndTypeCheck(bool runResolver) {
-      Tuple<ITextSnapshot, Dafny.Program, List<DafnyError>> parseResult;
-      Dafny.Program program;
+      Tuple<ITextSnapshot, MDafny.Program, List<DafnyError>> parseResult;
+      MDafny.Program program;
       var errorReporter = new VSErrorReporter(this);
       if (_buffer.Properties.TryGetProperty(bufferDafnyKey, out parseResult) &&
          (parseResult.Item1 == _snapshot)) {
@@ -130,19 +130,19 @@ namespace DafnyLanguage
         if (program == null)
           runResolver = false;
       } else {
-        Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
-        Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
-        var parseErrors = new Dafny.Errors(errorReporter);
-        int errorCount = Dafny.Parser.Parse(_snapshot.GetText(), _filename, _filename, module, builtIns, parseErrors);
-        string errString = Dafny.Main.ParseIncludes(module, builtIns, new List<string>(), parseErrors);
+        MDafny.ModuleDecl module = new MDafny.LiteralModuleDecl(new MDafny.DefaultModuleDecl(), null);
+        MDafny.BuiltIns builtIns = new MDafny.BuiltIns();
+        var parseErrors = new MDafny.Errors(errorReporter);
+        int errorCount = MDafny.Parser.Parse(_snapshot.GetText(), _filename, _filename, module, builtIns, parseErrors);
+        string errString = MDafny.Main.ParseIncludes(module, builtIns, new List<string>(), parseErrors);
 
         if (errorCount != 0 || errString != null) {
           runResolver = false;
           program = null;
         } else {
-          program = new Dafny.Program(_filename, module, builtIns, errorReporter);
+          program = new MDafny.Program(_filename, module, builtIns, errorReporter);
         }
-        _buffer.Properties[bufferDafnyKey] = new Tuple<ITextSnapshot, Dafny.Program, List<DafnyError>>(_snapshot, program, _errors);
+        _buffer.Properties[bufferDafnyKey] = new Tuple<ITextSnapshot, MDafny.Program, List<DafnyError>>(_snapshot, program, _errors);
       }
       if (!runResolver) {
         return false;
@@ -163,7 +163,7 @@ namespace DafnyLanguage
       _errors.Add(new DafnyError(filename, line - 1, col - 1, cat, msg, _snapshot, isRecycled, null, System.IO.Path.GetFullPath(this._filename) == filename));
     }
 
-    class VSErrorReporter : Dafny.ErrorReporter
+    class VSErrorReporter : MDafny.ErrorReporter
     {
       DafnyDriver dd;
 
@@ -208,7 +208,7 @@ namespace DafnyLanguage
 
     #region Compilation
 
-    public static void Compile(Dafny.Program dafnyProgram, TextWriter outputWriter)
+    public static void Compile(MDafny.Program dafnyProgram, TextWriter outputWriter)
     {
       Microsoft.Dafny.DafnyOptions.O.SpillTargetCode = true;
       // Currently there are no provisions for specifying other files to compile with from the 
@@ -248,9 +248,9 @@ namespace DafnyLanguage
 
       void AddNestingsAsAux(IToken tok)
       {
-        while (tok != null && tok is Dafny.NestedToken)
+        while (tok != null && tok is MDafny.NestedToken)
         {
-          var nt = (Dafny.NestedToken)tok;
+          var nt = (MDafny.NestedToken)tok;
           tok = nt.Inner;
           Aux.Add(new AuxErrorInfo(tok, "Related location"));
         }
@@ -259,49 +259,49 @@ namespace DafnyLanguage
 
     public static int IncrementalVerificationMode()
     {
-      return Dafny.DafnyOptions.Clo.VerifySnapshots;
+      return MDafny.DafnyOptions.Clo.VerifySnapshots;
     }
 
     public static void SetDiagnoseTimeouts(bool v)
     {
-      Dafny.DafnyOptions.Clo.RunDiagnosticsOnTimeout = v;
+      MDafny.DafnyOptions.Clo.RunDiagnosticsOnTimeout = v;
     }
 
     public static int ChangeIncrementalVerification(int mode)
     {
-      var old = Dafny.DafnyOptions.Clo.VerifySnapshots;
+      var old = MDafny.DafnyOptions.Clo.VerifySnapshots;
       if (mode == 1 && 1 <= old)
       {
         // Disable mode 1.
-        Dafny.DafnyOptions.Clo.VerifySnapshots = 0;
+        MDafny.DafnyOptions.Clo.VerifySnapshots = 0;
       }
       else if (mode == 2 && old == 2)
       {
         // Disable mode 2.
-        Dafny.DafnyOptions.Clo.VerifySnapshots = 1;
+        MDafny.DafnyOptions.Clo.VerifySnapshots = 1;
       }
       else
       {
         // Enable mode.
-        Dafny.DafnyOptions.Clo.VerifySnapshots = mode;
+        MDafny.DafnyOptions.Clo.VerifySnapshots = mode;
       }
-      return Dafny.DafnyOptions.Clo.VerifySnapshots;
+      return MDafny.DafnyOptions.Clo.VerifySnapshots;
     }
 
     public static bool ChangeAutomaticInduction() {
-      var old = Dafny.DafnyOptions.O.Induction;
+      var old = MDafny.DafnyOptions.O.Induction;
       // toggle between modes 1 and 3
-      Dafny.DafnyOptions.O.Induction = old == 1 ? 3 : 1;
-      return Dafny.DafnyOptions.O.Induction == 3;
+      MDafny.DafnyOptions.O.Induction = old == 1 ? 3 : 1;
+      return MDafny.DafnyOptions.O.Induction == 3;
     }
 
-    public bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
+    public bool Verify(MDafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
 
-      Dafny.Translator translator = new Dafny.Translator(dafnyProgram.reporter);
-      var translatorFlags = new Dafny.Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = uniqueIdPrefix };
+      MDafny.Translator translator = new MDafny.Translator(dafnyProgram.reporter);
+      var translatorFlags = new MDafny.Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = uniqueIdPrefix };
 
 
-      var boogiePrograms = Dafny.Translator.Translate(dafnyProgram, dafnyProgram.reporter, translatorFlags);
+      var boogiePrograms = MDafny.Translator.Translate(dafnyProgram, dafnyProgram.reporter, translatorFlags);
 
       var impls = boogiePrograms.SelectMany(p => p.Item2.Implementations);
       resolver.ReInitializeVerificationErrors(requestId, impls);
@@ -313,7 +313,7 @@ namespace DafnyLanguage
         var boogieProgram = kv.Item2;
 
         // TODO(wuestholz): Maybe we should use a fixed program ID to limit the memory overhead due to the program cache in Boogie.
-        PipelineOutcome oc = BoogiePipeline(boogieProgram, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? uniqueIdPrefix : null, requestId, errorSink, er);
+        PipelineOutcome oc = BoogiePipeline(boogieProgram, 1 < MDafny.DafnyOptions.Clo.VerifySnapshots ? uniqueIdPrefix : null, requestId, errorSink, er);
         switch (oc) {
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:

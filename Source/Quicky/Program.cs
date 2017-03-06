@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Threading;
 using Microsoft.CSharp;
 using Microsoft.Dafny;
 using Bpl = Microsoft.Boogie;
@@ -35,7 +36,7 @@ namespace Quicky
   public static class QuickyMain
   {
     private static readonly ErrorReporter Reporter = new ConsoleErrorReporter();
-    public static bool PrintCompiledCode = false;
+    public static string PrintCompiledCode = null;
     
     public static Program CreateProgramFromFileName(string fileName) {
       Contract.Requires(fileName != null);
@@ -95,6 +96,7 @@ namespace Quicky
     private readonly Assembly _assemblyProgram;
     public readonly int TestCases;
     private readonly bool _debug;
+    private readonly List<Thread> _threads = new List<Thread>();
 
 
     public Quicky(Program dafnyProgram, int testCases = 100, bool debug=false) {
@@ -108,29 +110,44 @@ namespace Quicky
 
     
     public void PerformTesting() {
-        TestModule(_dafnyProgram.DefaultModuleDef);
+      foreach (var module in _dafnyProgram.CompileModules) {
+        if (module.CompileName == "_System") continue;
+        TestModule(module);
+      }
+      foreach (Thread thread in _threads)
+        thread.Join();
     }
 
     private void TestModule(ModuleDefinition module) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
-        if (topLevelDecl is ClassDecl)
-          TestClass((ClassDecl) topLevelDecl);
-        else if(topLevelDecl is LiteralModuleDecl)
-          TestModule((topLevelDecl as LiteralModuleDecl).ModuleDef);
+        if (!(topLevelDecl is ClassDecl)) continue;
+        Thread thread = new Thread(TestClassThread);
+        _threads.Add(thread);
+        thread.Start(topLevelDecl);
       }
     }
 
+    void TestClassThread(Object o) {
+      var classDecl = o as ClassDecl;
+      if(classDecl != null)
+        TestClass(classDecl);
+      else 
+        throw new Exception("TestClassThread called without a ClassDecl");
+    }
+
     private void TestClass(ClassDecl classDecl) {
+      string typeCall;
       string className = classDecl.CompileName;
-      string typeCall = className + "." + className; //TODO this may need changed for modules etc
+      if(classDecl.Module.IsDefaultModule)
+        typeCall = "__default" + "." + className;
+      else
+        typeCall = classDecl.Module.CompileName + "." + className; 
+
       Type t = _assemblyProgram.GetType(typeCall);
-    
-      foreach (var member in classDecl.Members) {
-        if (member is Method) {
-          //TODO multithread here? or for each run? both?
+      //TODO handle non-static methods?
+      foreach (var member in classDecl.Members)
+        if (member is Method && member.IsStatic)
           TestMethod((Method) member, t);
-        }
-      }
     }
 
     private void TestMethod(Method method, Type t) {
@@ -146,12 +163,11 @@ namespace Quicky
         return;
       }
       catch (Exception) {
-        if (_debug) throw; //some other type of error has occured that shouldn't.  If _debug is on, it's thrown so programmer can see error
+        if (_debug) throw; //some other type of error has occured that shouldn't.  If _debug is on, it's thrown so programmer can see error.
         return;
       }
 
-      //todo: multithread here?
-      //could do some fancy counter thing to do a few at a time and stop when error is found 
+      //todo: multithread more here?
       for (int i = 0; i < TestCases; i++) {
         TestMethodOnce(methodInfo, parameterSetGenerator);
         if (FoundErrors.ContainsKey(method))
@@ -183,10 +199,8 @@ namespace Quicky
       TextWriter tw = new StringWriter();
       Compiler compiler = new Compiler(true) { ErrorWriter = Console.Out };
       compiler.Compile(_dafnyProgram, tw);
-      if (QuickyMain.PrintCompiledCode)
-      {
-        using (TextWriter writer = File.CreateText("C:\\Users\\Duncan\\Documents\\Test.cs"))
-        {//TODO make nicer here
+      if (QuickyMain.PrintCompiledCode != null) {
+        using (TextWriter writer = File.CreateText(QuickyMain.PrintCompiledCode)) {
           writer.WriteLine(tw.ToString());
         }
       }

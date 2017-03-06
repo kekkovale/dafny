@@ -123,6 +123,10 @@
       <Project>{63400D1F-05B2-453E-9592-1EAB74B2C9CC}</Project>
       <Name>DafnyDriver</Name>
     </ProjectReference>
+    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj">
+      <Project>{3E2944E9-3E1D-4E03-A881-FB04A7A6ED67}</Project>
+      <Name>DafnyRuntime</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj">
       <Project>{fe44674a-1633-4917-99f4-57635e6fa740}</Project>
       <Name>DafnyPipeline</Name>

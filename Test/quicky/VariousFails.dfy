@@ -1,3 +1,18 @@
+method Array(a: array<int>) 
+	requires a != null && a.Length > 2
+{
+	assert a[4] == 7;
+}
+
+
+method NatTrue(n: nat) 
+	ensures n >= 0 
+{}
+
+method NatFalse(n: nat)
+	ensures n < 0
+{}
+
 method PostCondition(a: int, b: int) returns (c: int)
 	requires a > 0 && b > 0
 	ensures c == a + b
@@ -71,3 +86,9 @@ method TestBadCall(n : int)
 method TestAssert(a: int, b: int) {
   assert a <= b;
 }
+
+method RealTest(r: real) {
+	var a: real := r + 4.3;
+	assert a < r;
+}
+

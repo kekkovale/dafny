@@ -14,7 +14,7 @@ using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Utilities;
-using Dafny = Microsoft.Dafny;
+using MDafny = Microsoft.Dafny;
 
 
 namespace DafnyLanguage
@@ -102,8 +102,8 @@ namespace DafnyLanguage
 
   public class DafnySuccessResolverTag : IDafnyResolverTag
   {
-    public readonly Dafny.Program Program;
-    public DafnySuccessResolverTag(Dafny.Program program)
+    public readonly MDafny.Program Program;
+    public DafnySuccessResolverTag(MDafny.Program program)
     {
       Program = program;
     }
@@ -124,7 +124,7 @@ namespace DafnyLanguage
 
     // The 'Snapshot' and 'Program' fields should be updated and read together, so they are protected by "this"
     public ITextSnapshot Snapshot;  // may be null
-    public Dafny.Program Program;  // non-null only if the snapshot contains a Dafny program that type checks
+    public MDafny.Program Program;  // non-null only if the snapshot contains a Dafny program that type checks
     public bool RunResolver { get; set; }  // whether the resolver should be run
 
     List<DafnyError> _resolutionErrors = new List<DafnyError>();  // if nonempty, then _snapshot is the snapshot from which the errors were produced
@@ -295,7 +295,7 @@ namespace DafnyLanguage
       }
 
       ITextSnapshot snap;
-      Dafny.Program prog;
+      MDafny.Program prog;
       lock (this)
       {
         snap = Snapshot;
@@ -320,7 +320,7 @@ namespace DafnyLanguage
       string filename = _document != null ? _document.FilePath : "<program>";
       var driver = new DafnyDriver(_buffer, filename);
       List<DafnyError> newErrors;
-      Dafny.Program program;
+      MDafny.Program program;
       try
       {
         program = driver.ProcessResolution(RunResolver);

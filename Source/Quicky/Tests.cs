@@ -19,11 +19,13 @@ namespace Quicky
       
       Resolver resolver = new Resolver(dafnyProgram);
       resolver.ResolveProgram(dafnyProgram);
+      
       return new Quicky(dafnyProgram, 100, true);
     }
     
     [Test]
     public void TestCompiler() {
+      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
       GetQuicky("VariousFails.dfy");
       //if no exception is thrown, the program successfully compiled something.
     }
@@ -90,15 +92,25 @@ namespace Quicky
     [Test]
     public void TestVariousFailures() {
       string fileName = "VariousFails.dfy";
-      QuickyMain.PrintCompiledCode = true;
+      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
       var errorCounts = new Dictionary<QuickyError.ErrorType, int>() {
-        {QuickyError.ErrorType.Postcondition, 1},
-        {QuickyError.ErrorType.Assert, 1},
+        {QuickyError.ErrorType.Postcondition, 2},
+        {QuickyError.ErrorType.Assert, 3},
         {QuickyError.ErrorType.InvariantEntry, 1},
         {QuickyError.ErrorType.InvariantEnd, 1},
         {QuickyError.ErrorType.PreconditionCall, 1}
       };
       TestForNErrors(fileName, errorCounts);
+    }
+
+    [Test]
+    public void TestModules() {
+      string filename = "modules.dfy";
+      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
+      var errorCounts = new Dictionary<QuickyError.ErrorType, int>() {
+        {QuickyError.ErrorType.Assert, 2} //ignores non-static method
+      };
+      TestForNErrors(filename, errorCounts);
     }
   }
 

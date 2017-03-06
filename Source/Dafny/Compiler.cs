@@ -9,6 +9,7 @@ using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
+using System.Diagnostics.Eventing.Reader;
 using Bpl = Microsoft.Boogie;
 using System.Text;
 
@@ -61,7 +62,10 @@ namespace Microsoft.Dafny {
 
     void ReadRuntimeSystem(TextWriter wr) {
       string codebase = cce.NonNull( System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
-      string path = System.IO.Path.Combine(codebase, "DafnyRuntime.cs");
+      var runtimeFile = quickyCompile ? "QuickyRuntime.cs" : "DafnyRuntime.cs";
+      string path = System.IO.Path.Combine(codebase, runtimeFile);
+      //TODO this reference is not there by default for QuickyRuntime.cs...
+      //path is	C:\\USERS\\DUNCAN\\APPDATA\\LOCAL\\MICROSOFT\\VISUALSTUDIO\\14.0EXP\\EXTENSIONS\\MICROSOFT RESEARCH\\DAFNYLANGUAGEMODE\\1.9.3.20406\\QuickyRuntime.cs
       using (TextReader rd = new StreamReader(new FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read))) {
 //        if (quickyCompile) {
 //          for (int i = 0; i < 4; i++) {
@@ -1081,6 +1085,7 @@ namespace Microsoft.Dafny {
     }
 
     private static void CreateCounterExampleString(Method m, TextWriter wr) {
+      //TODO display contents of arrays
       if (m.Ins.Count < 1) {
         wr.WriteLine("string counterExamples = \"(no parameters for this function)\";");
         return;}
@@ -1090,6 +1095,7 @@ namespace Microsoft.Dafny {
       for (int index = 0; index < m.Ins.Count; index++) {
         var param = m.Ins[index];
         counterExamples += param.DisplayName + " = {" + index + "}";
+        //if the item is an array call a function?
         counterExampleValues += "@" + param.CompileName;
         if (index + 1 < m.Ins.Count) {
           counterExamples += ", ";
@@ -1416,6 +1422,7 @@ namespace Microsoft.Dafny {
       } else if (xType is IntType) {
         return "BigInteger.Zero";
       } else if (xType is RealType) {
+        return "Dafny.BigRational.ZERO";
         return "Dafny.BigRational.ZERO";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
@@ -3624,6 +3631,5 @@ namespace Microsoft.Dafny {
       wr.Write(")");
       TrExprList(exprs, wr, inLetExprBody);
     }
-
   }
 }

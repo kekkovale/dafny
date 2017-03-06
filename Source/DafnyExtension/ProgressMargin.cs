@@ -18,7 +18,7 @@ using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Formatting;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
-using Dafny = Microsoft.Dafny;
+using MDafny = Microsoft.Dafny;
 
 
 namespace DafnyLanguage
@@ -65,7 +65,7 @@ namespace DafnyLanguage
 
   internal class RunVerifierThreadParams
   {
-    public RunVerifierThreadParams(Dafny.Program i_program, ITextSnapshot i_snapshot, string i_requestId,
+    public RunVerifierThreadParams(MDafny.Program i_program, ITextSnapshot i_snapshot, string i_requestId,
       ResolverTagger i_errorListHolder, bool i_diagnoseTimeouts) {
       program = i_program;
       snapshot = i_snapshot;
@@ -74,7 +74,7 @@ namespace DafnyLanguage
       diagnoseTimeouts = i_diagnoseTimeouts;
     }
 
-    public Dafny.Program program;
+    public MDafny.Program program;
     public ITextSnapshot snapshot;
     public string requestId;
     public ResolverTagger errorListHolder;
@@ -83,13 +83,13 @@ namespace DafnyLanguage
 
   internal class RunQuickyThreadParams
   {
-    public Dafny.Program Program { get; }
+    public MDafny.Program Program { get; }
     public ITextSnapshot Snapshot { get; }
     public string RequestId { get; }
     public ResolverTagger ErrorListHolder { get; }
     public bool DiagnoseTimeouts { get; }
 
-    public RunQuickyThreadParams(Dafny.Program program, ITextSnapshot snapshot, string requestId,
+    public RunQuickyThreadParams(MDafny.Program program, ITextSnapshot snapshot, string requestId,
       ResolverTagger errorListHolder, bool diagnoseTimeouts) {
       Program = program;
       Snapshot = snapshot;
@@ -253,7 +253,7 @@ namespace DafnyLanguage
 
         if (resolver == null) return;
 
-        Dafny.Program prog;
+        MDafny.Program prog;
         ITextSnapshot snap;
         lock (resolver) {
           prog = resolver.Program;
@@ -386,7 +386,7 @@ namespace DafnyLanguage
       }
     }
 
-    void RunVerifier(Dafny.Program program, ITextSnapshot snapshot, string requestId, ResolverTagger errorListHolder,
+    void RunVerifier(MDafny.Program program, ITextSnapshot snapshot, string requestId, ResolverTagger errorListHolder,
       bool diagnoseTimeouts) {
       Contract.Requires(program != null);
       Contract.Requires(snapshot != null);
