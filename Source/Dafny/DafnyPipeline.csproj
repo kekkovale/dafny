@@ -177,6 +177,7 @@
     <Compile Include="Tacny\Atomic\Explore.cs" />
     <Compile Include="Tacny\Atomic\SuchThatAtomic.cs" />
     <Compile Include="Tacny\BaseTactic.cs" />
+    <Compile Include="Tacny\ErrHandler.cs" />
     <Compile Include="Tacny\EAtomic\PostCond.cs" />
     <Compile Include="Tacny\EAtomic\LoopGuard.cs" />
     <Compile Include="Tacny\EAtomic\EAtomic.cs" />

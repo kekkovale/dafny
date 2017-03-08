@@ -16,6 +16,7 @@ namespace Microsoft.Dafny.Tacny{
     private readonly List<TopLevelClassDeclaration> _topLevelClasses;
     private readonly Program _original;
 
+    public ErrHandler err;
     // Dynamic State
     public MemberDecl TargetMethod;
     public ErrorReporter Reporter;
@@ -145,11 +146,14 @@ namespace Microsoft.Dafny.Tacny{
       var parent = _scope.Peek();
       _scope.Push(new Frame(parent, ctrl));
     }
-    // note that this function can only be called either a frame is proved or isEvaluated.
-    public bool MarkCurFrameAsTerminated(bool curFrameProved){
- 
-      //assemble code in the top frame
-      _scope.Peek().FrameCtrl.MarkAsEvaluated(curFrameProved);
+    // note that this function would only be called when either a frame is proved or isEvaluated.
+    public void MarkCurFrameAsTerminated(bool curFrameProved, bool backtracked){
+
+      //assemble code in the top frame. the stata that code is null after this call, indicates
+      // the current branches has been backtrackee.
+      // 
+      bool ifbacktracked, ifbacktrackedInRecurCall = false;
+      _scope.Peek().FrameCtrl.MarkAsEvaluated(curFrameProved, out ifbacktracked);
 
       var code = _scope.Peek().FrameCtrl.GetFinalCode();
 
@@ -158,10 +162,9 @@ namespace Microsoft.Dafny.Tacny{
         _scope.Peek().Parent.FrameCtrl.AddGeneratedCode(code);
         _scope.Pop();
         if (_scope.Peek().FrameCtrl.EvalTerminated(curFrameProved, this) || IsEvaluated())
-          return MarkCurFrameAsTerminated(curFrameProved);
+          MarkCurFrameAsTerminated(curFrameProved, ifbacktrackedInRecurCall);
       }
-
-      return true;
+      backtracked = ifbacktracked || ifbacktrackedInRecurCall;
     }
 
     public IEnumerable<ProofState> EvalStep(){

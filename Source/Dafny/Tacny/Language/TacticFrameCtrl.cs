@@ -88,23 +88,23 @@ namespace Microsoft.Dafny.Tacny.Language{
     }
 
     /// <summary>
-    /// this will assemble the raw code if the raw code can be verified or parital is allowed
+    /// this will assemble the raw code if the raw code can be verified or parital is allowed,
     /// </summary>
-    public void MarkAsEvaluated(bool curFrameProved) {
-
+    public void MarkAsEvaluated(bool curFrameProved, out bool backtraced) {
+      backtraced = false;
       // only to assmeble code when the current frame is proved, 
       // or the current frame is partial and the all the stmts have been evaluated 
       if(curFrameProved || IsPartial) {
         if(Backtrack > 0) {
           Console.WriteLine(" ----- Backtrack ---- ");
           Backtrack -= 1;
-          return;
+          backtraced = true;
         }
         Assemble();
       }
     }
 
-  public List<List<Statement>> GetRawCode() {
+    public List<List<Statement>> GetRawCode() {
       return _rawCodeList;
     }
     public List<Statement> GetFinalCode() {

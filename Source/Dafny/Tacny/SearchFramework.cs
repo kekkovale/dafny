@@ -25,6 +25,7 @@ namespace Microsoft.Dafny.Tacny {
     Unresolved, // failed to resolve
     Verified,
     Failed, // resoved but cannot be proved
+    Backtracked,
     Partial, //TODO: partial when tactic and dafny succeed, but boogie fails
   }
 
@@ -55,7 +56,8 @@ namespace Microsoft.Dafny.Tacny {
 	  IEnumerable<ProofState> enumerable;      
       switch (ActiveStrategy) {
         case Strategy.Bfs:
-          enumerable = BreadthFirstSeach.Search(state, er);
+          throw new NotSupportedException("Breath first search has not been supported ");
+          //enumerable = BreadthFirstSeach.Search(state, er);
           break;
         case Strategy.Dfs:
           enumerable = DepthFirstSeach.Search(state, er);
@@ -137,14 +139,13 @@ namespace Microsoft.Dafny.Tacny {
       */
   }
 
-    
+ /*
   internal class BreadthFirstSeach : BaseSearchStrategy {
 
     internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate er){
 
       var queue = new Queue<IEnumerator<ProofState>>();
       queue.Enqueue(rootState.EvalStep().GetEnumerator());
-
 
       IEnumerator<ProofState> enumerator = Enumerable.Empty<ProofState>().GetEnumerator();
 
@@ -186,19 +187,13 @@ namespace Microsoft.Dafny.Tacny {
               throw new ArgumentOutOfRangeException();
           }
         }
-        /*
-       * when failed, check if this mmethod is evaluated , i.e. all tstmt are evalauted,
-       * if so, dischard this branch and continue with the next one
-       * otherwise, continue to evaluate the next stmt
-       */
         if(!proofState.IsEvaluated()) {
           queue.Enqueue(proofState.EvalStep().GetEnumerator());
         }
       }
     }
   }
-
-
+*/
 
 
   internal class DepthFirstSeach : BaseSearchStrategy {
@@ -208,6 +203,9 @@ namespace Microsoft.Dafny.Tacny {
       ProofState lastSucc = null;
 
       stack.Push(rootState.EvalStep().GetEnumerator());
+
+      //keep failed branched, for the purpose of analyzing failures
+      var discarded = new List<Tuple<ProofState, VerifyResult>>();
 
       IEnumerator<ProofState> enumerator = Enumerable.Empty<ProofState>().GetEnumerator();
 
@@ -228,10 +226,17 @@ namespace Microsoft.Dafny.Tacny {
         //check if any new added coded reuqires to call verifier, or reach the last line of code
         if(proofState.NeedVerify || proofState.IsEvaluated()) {
           proofState.NeedVerify = false;
-          switch(VerifyState(proofState, er)){
+          bool backtracked = false;
+
+          switch (VerifyState(proofState, er)){
             case VerifyResult.Verified:
-              proofState.MarkCurFrameAsTerminated(true);
-              lastSucc = proofState;
+              //check if the frame are evaluated, as well as requiests for backtraking 
+              proofState.MarkCurFrameAsTerminated(true, backtracked);
+              if (backtracked) {
+                lastSucc = proofState;
+                discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Backtracked));
+              }
+              
               if (proofState.IsTerminated()){
                 yield return proofState;
                 yield break;
@@ -242,15 +247,19 @@ namespace Microsoft.Dafny.Tacny {
               break;
             case VerifyResult.Failed:
               if(proofState.IsEvaluated()) {
-                proofState.MarkCurFrameAsTerminated(false);
-                lastSucc = proofState;
-                if(proofState.IsTerminated()) {
+                proofState.MarkCurFrameAsTerminated(false, backtracked);
+                if (backtracked) {
+                  lastSucc = proofState;
+                  discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Backtracked));
+                }
+                if (proofState.IsTerminated()) {
                   yield return proofState;
                     yield break;
                   }
                 }
               break;
             case VerifyResult.Unresolved:
+              discarded.Add(new Tuple<ProofState,VerifyResult>(proofState, VerifyResult.Unresolved));
               //discard current branch if fails to resolve
               continue;
             default:
@@ -270,6 +279,7 @@ namespace Microsoft.Dafny.Tacny {
         }
         else{
           backtackList = proofState.GetBackTrackCount(); // update the current bc count to the list
+          discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Failed));
         }
 
       }
