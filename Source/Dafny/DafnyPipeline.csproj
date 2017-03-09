@@ -200,6 +200,7 @@
     <Compile Include="Tacny\SearchFramework.cs" />
     <Compile Include="Tacny\tcce.cs" />
     <Compile Include="Tacny\TokenGenerator.cs" />
+    <Compile Include="Tacny\TokenTracer.cs" />
     <Compile Include="Tacny\Util.cs" />
     <Compile Include="Triggers\QuantifiersCollection.cs" />
     <Compile Include="Triggers\QuantifierSplitter.cs" />

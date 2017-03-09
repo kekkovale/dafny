@@ -235,6 +235,7 @@ namespace Microsoft.Dafny.Tacny {
 
       var search = new BaseSearchStrategy(state.GetSearchStrategy());
       var ret = search.Search(state, _errorReporterDelegate).FirstOrDefault();
+      ret.GetTokenTracer().PrettyTrace();
       return ret;
     }
 
@@ -308,7 +309,7 @@ namespace Microsoft.Dafny.Tacny {
     }
 
     public static IEnumerable<ProofState> RegisterVariable(TacticVarDeclStmt declaration, ProofState state) {
-      if(declaration.Update == null)
+      if (declaration.Update == null)
         yield break;
       var rhs = declaration.Update as UpdateStmt;
       if(rhs == null) {
@@ -317,7 +318,7 @@ namespace Microsoft.Dafny.Tacny {
           foreach(var item in declaration.Locals)
             state.AddTacnyVar(item, null);
           foreach(var item in EvalSuchThatStmt(declaration.Update as AssignSuchThatStmt, state)) {
-            yield return item.Copy();
+            yield return item;
           }
           yield break;
         } else {

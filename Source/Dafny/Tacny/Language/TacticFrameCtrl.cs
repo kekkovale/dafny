@@ -99,6 +99,7 @@ namespace Microsoft.Dafny.Tacny.Language{
           Console.WriteLine(" ----- Backtrack ---- ");
           Backtrack -= 1;
           backtraced = true;
+          return;
         }
         Assemble();
       }
@@ -122,7 +123,7 @@ namespace Microsoft.Dafny.Tacny.Language{
     }
       
     public abstract bool MatchStmt(Statement stmt, ProofState state); 
-    public abstract IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0);
+    public abstract IEnumerable <ProofState> EvalInit(Statement statement, ProofState state0);
     public abstract IEnumerable<ProofState> EvalStep(ProofState state0);
     public abstract bool EvalTerminated(bool childFrameRes, ProofState state);
     public abstract List<Statement> AssembleStmts(List<List<Statement>> raw);
@@ -139,6 +140,7 @@ namespace Microsoft.Dafny.Tacny.Language{
 
     public override IEnumerable<ProofState> EvalStep(ProofState state0){
       var statement = GetStmt();
+      state0.TopTokenTracer().Increase();
       return Interpreter.EvalStmt(statement, state0);
     }
 

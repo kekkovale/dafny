@@ -12,6 +12,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
     public override int ArgsCount => -1;
 
     public override IEnumerable<ProofState> Generate(Statement statement, ProofState state){
+      var count = 0;
       var tvds = statement as TacticVarDeclStmt;
       AssignSuchThatStmt suchThat = null;
       if (tvds != null)
@@ -48,7 +49,9 @@ namespace Microsoft.Dafny.Tacny.Atomic {
         foreach (var item in (l as SetDisplayExpr).Elements) {
           var copy = state.Copy();
           copy.UpdateTacnyVar(local, item);
+          copy.TopTokenTracer().AddBranchTrace(count);
           yield return copy;
+          count++;
         }
       }
     }
