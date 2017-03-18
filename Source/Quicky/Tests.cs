@@ -90,6 +90,16 @@ namespace Quicky
     }
 
     [Test]
+    public void TestSetsAndSequences() {
+      string filename = "SetsSequences.dfy";
+      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
+      var errorCounts = new Dictionary<QuickyError.ErrorType, int>() {
+        {QuickyError.ErrorType.Assert, 2}
+      };
+      TestForNErrors(filename, errorCounts);
+    }
+
+    [Test]
     public void TestVariousFailures() {
       string fileName = "VariousFails.dfy";
       QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
@@ -167,7 +177,7 @@ namespace Quicky
         Console.Write(intArray[i]);
       }
       Console.WriteLine("}");
-      int actualTotal = ParameterSetGenerator.Sum(intArray);
+      int actualTotal = intArray.Sum();
       Assert.AreEqual(expectedTotal, actualTotal);
     }
 

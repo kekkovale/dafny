@@ -77,8 +77,7 @@ namespace Quicky
         return new CharGenerator(this);
       if (type is RealType)
         return new RealGenerator(this);
-      if (type.IsArrayType)
-      {
+      if (type.IsArrayType) {
         ArrayClassDecl decl = type.AsArrayType;
         Contract.Assert(decl != null);
         Microsoft.Dafny.Type subType = UserDefinedType.ArrayElementType(type);
@@ -90,21 +89,34 @@ namespace Quicky
         if (userType.Name == "nat") { //becomes BigInteger, must be >=0
           return new NatGenerator(this);
         }
-        
+      }
+      else if (type is CollectionType) {
+        var collectionType = (CollectionType) type;
+        var subType = collectionType.Arg;
+        if (subType.IsArrayType || subType.IsISetType || subType.AsSeqType != null)
+          throw new UnidentifiedDafnyTypeException(type);
+        if (collectionType.AsSetType != null)
+          return new SetGenerator(this, CreateGeneratorOfType(subType));
+        if (collectionType.AsSeqType != null)
+          return new SequenceGenerator(this, CreateGeneratorOfType(subType));
       }
 
       /* Other types todo:
        * BitVectorType, ObjectType
        * userDefinedTypes -> arrays
        * ArrowType
+       * 
        * CollectionTypes: SetType, MultiSetType, SeqType, MapType
+       *  These are defines as AsCollectionType then As{whatever}
+       * 
+       * 
        * SelfType
        * ArtificialTypes: IntVarietiesSuperType, RealVarietiesSuperType
        * ParamTypeProxy, InferedTypeProxy
        * 
        */
 
-      throw new UnidentifiedDafnyTypeException(type); //TODO catch it - do not test that method
+      throw new UnidentifiedDafnyTypeException(type);
     }
 
     public object[] GetNextParameterSet() {
@@ -118,14 +130,7 @@ namespace Quicky
       return parameters;
     }
 
-    public static int Sum(int[] vals) {
-      int total = 0;
-      foreach (int t in vals) {
-        total += t;
-      }
-      return total;
-    }
-
+    //TODO precache for small numbers (1,2,3) to improve perfomance?
     public void SetCombinations(int[] arr, int len, int startPos, int[] results)
     {
       if (len == 0) {
@@ -182,8 +187,11 @@ namespace Quicky
 
     protected abstract object GetNextItem(int index);
 
-    public abstract object GetArrayOfSize(int[] indexes);
+    public abstract object GetArrayFilledWith(int[] indexes);
+    public abstract object GetSetFilledWith(int[] items);
+    public abstract object GetSequenceFilledWith(int[] items);
   }
+
 
   internal class RealGenerator : ParameterGenerator
   {
@@ -202,8 +210,16 @@ namespace Quicky
       return new BigRational(numerator, denominator);
     }
 
-    public override object GetArrayOfSize(int[] indexes) {
+    public override object GetArrayFilledWith(int[] indexes) {
       return ArrayFiller.FillArray<BigRational>(indexes, this);
+    }
+
+    public override object GetSetFilledWith(int[] items) {
+      return ArrayFiller.GetSet<BigRational>(items, this);
+    }
+
+    public override object GetSequenceFilledWith(int[] items) {
+      return ArrayFiller.GetSequence<BigRational>(items, this);
     }
   }
 
@@ -222,8 +238,16 @@ namespace Quicky
       return new BigInteger(NextRandomNumberRetriever.GetNextRandomNumber(5000));
     }
 
-    public override object GetArrayOfSize(int[] indexes) {
+    public override object GetArrayFilledWith(int[] indexes) {
       return ArrayFiller.FillArray<BigInteger>(indexes, this);
+    }
+
+    public override object GetSetFilledWith(int[] items) {
+      return ArrayFiller.GetSet<BigInteger>(items, this);
+    }
+
+    public override object GetSequenceFilledWith(int[] items) {
+      return ArrayFiller.GetSequence<BigInteger>(items, this);
     }
   }
 
@@ -235,8 +259,16 @@ namespace Quicky
       return (char) NextRandomNumberRetriever.GetNextRandomNumber(256);
     }
 
-    public override object GetArrayOfSize(int[] indexes) {
+    public override object GetArrayFilledWith(int[] indexes) {
       return ArrayFiller.FillArray<BigInteger>(indexes, this);
+    }
+
+    public override object GetSetFilledWith(int[] items) {
+      return ArrayFiller.GetSet<BigInteger>(items, this);
+    }
+
+    public override object GetSequenceFilledWith(int[] items) {
+      return ArrayFiller.GetSequence<BigInteger>(items, this);
     }
   }
 
@@ -256,8 +288,16 @@ namespace Quicky
       return new BigInteger(value);
     }
 
-    public override object GetArrayOfSize(int[] indexes) {
+    public override object GetArrayFilledWith(int[] indexes) {
       return ArrayFiller.FillArray<BigInteger>(indexes, this);
+    }
+
+    public override object GetSetFilledWith(int[] items) {
+      return ArrayFiller.GetSet<BigInteger>(items, this);
+    }
+
+    public override object GetSequenceFilledWith(int[] items) {
+      return ArrayFiller.GetSequence<BigInteger>(items, this);
     }
   }
 
@@ -269,11 +309,20 @@ namespace Quicky
       return index % 2 == 0;
     }
 
-    public override object GetArrayOfSize(int[] indexes) {
+    public override object GetArrayFilledWith(int[] indexes) {
       return ArrayFiller.FillArray<bool>(indexes, this);
+    }
+
+    public override object GetSetFilledWith(int[] items) {
+      return ArrayFiller.GetSet<bool>(items, this);
+    }
+
+    public override object GetSequenceFilledWith(int[] items) {
+      return ArrayFiller.GetSequence<bool>(items, this);
     }
   }
 
+  //TODO create generator for things with subTypes?
   class ArrayGenerator : ParameterGenerator
   {
     private readonly ParameterGenerator _itemGenerator;
@@ -283,23 +332,106 @@ namespace Quicky
 
     protected override object GetNextItem(int index) {
       if (index == 0)
-        return _itemGenerator.GetArrayOfSize(new int[0]);
+        return _itemGenerator.GetArrayFilledWith(new int[0]);
       if (index < 3) // array of size 1 containing first 2 item cases
-        return _itemGenerator.GetArrayOfSize(new[] {index-1});
+        return _itemGenerator.GetArrayFilledWith(new[] {index-1});
       if (index < 6) //arrays of size 2
-        return _itemGenerator.GetArrayOfSize(new[] {index - 3, index - 2});
+        return _itemGenerator.GetArrayFilledWith(new[] {index - 3, index - 2});
       //random size of array
       int arraySize = NextRandomNumberRetriever.GetNextRandomNumber(100);
       int[] array = new int[arraySize];
       for (int i = 0; i < arraySize; i++) {
         array[i] = NextRandomNumberRetriever.GetNextRandomNumber(99); //TODO: make this number of tests!!!
       }
-      return _itemGenerator.GetArrayOfSize(array);
+      return _itemGenerator.GetArrayFilledWith(array);
     }
 
-    public override object GetArrayOfSize(int[] indexes) {
+    public override object GetArrayFilledWith(int[] indexes) {
         //TODO need to figure out what to do about nested arrays
         throw new NotImplementedException("Nested empty array generation not yet working due to types");
+    }
+
+    public override object GetSetFilledWith(int[] items) {
+      throw new NotImplementedException();
+    }
+
+    public override object GetSequenceFilledWith(int[] items) {
+      throw new NotImplementedException();
+    }
+  }
+
+  class SetGenerator : ParameterGenerator
+  {
+    private readonly ParameterGenerator _itemGenerator;
+
+    public SetGenerator(ParameterSetGenerator parameterSetGenerator, ParameterGenerator itemGenerator) : base(parameterSetGenerator) {
+      _itemGenerator = itemGenerator;
+    }
+    
+    protected override object GetNextItem(int index) {
+      //TODO do not try to create multiple with the same items! will yeild the same set (or do same for array)
+      if (index == 0)
+        return _itemGenerator.GetSetFilledWith(new int[0]);
+      if (index < 3) // array of size 1 containing first 2 item cases
+        return _itemGenerator.GetSetFilledWith(new[] { index - 1 });
+      if (index < 6) //arrays of size 2
+        return _itemGenerator.GetSetFilledWith(new[] { index - 3, index - 2 });
+      //random size of array
+      int setSize = NextRandomNumberRetriever.GetNextRandomNumber(100);
+      int[] array = new int[setSize];
+      for (int i = 0; i < setSize; i++) {
+        array[i] = NextRandomNumberRetriever.GetNextRandomNumber(99); //TODO: make this number of tests!!!
+      }
+      return _itemGenerator.GetSetFilledWith(array); ;
+    }
+
+    public override object GetArrayFilledWith(int[] indexes) {
+      throw new NotImplementedException();
+    }
+
+    public override object GetSetFilledWith(int[] items) {
+      throw new NotImplementedException();
+    }
+
+    public override object GetSequenceFilledWith(int[] items) {
+      throw new NotImplementedException();
+    }
+  }
+
+  internal class SequenceGenerator : ParameterGenerator
+  {
+    private readonly ParameterGenerator _itemGenerator;
+
+    public SequenceGenerator(ParameterSetGenerator parameterSetGenerator, ParameterGenerator itemGenerator) : base(parameterSetGenerator) {
+      _itemGenerator = itemGenerator;
+    }
+    
+    protected override object GetNextItem(int index) {
+      if (index == 0)
+        return _itemGenerator.GetSequenceFilledWith(new int[0]);
+      if (index < 3) // array of size 1 containing first 2 item cases
+        return _itemGenerator.GetSequenceFilledWith(new[] { index - 1 });
+      if (index < 6) //arrays of size 2
+        return _itemGenerator.GetSequenceFilledWith(new[] { index - 3, index - 2 });
+      //random size of array
+      int setSize = NextRandomNumberRetriever.GetNextRandomNumber(100);
+      int[] array = new int[setSize];
+      for (int i = 0; i < setSize; i++) {
+        array[i] = NextRandomNumberRetriever.GetNextRandomNumber(99); //TODO: make this number of tests!!!
+      }
+      return _itemGenerator.GetSequenceFilledWith(array); ;
+    }
+
+    public override object GetArrayFilledWith(int[] indexes) {
+      throw new NotImplementedException();
+    }
+
+    public override object GetSetFilledWith(int[] items) {
+      throw new NotImplementedException();
+    }
+
+    public override object GetSequenceFilledWith(int[] items) {
+      throw new NotImplementedException();
     }
   }
 
@@ -307,159 +439,17 @@ namespace Quicky
   {
     public static T[] FillArray<T>(int[] indexes, ParameterGenerator generator) {
       T[] array = new T[indexes.Length];
-      for (int i = 0; i < indexes.Length; i++) {
+      for (int i = 0; i < indexes.Length; i++)
         array[i] = (T) generator.GetNextParameter(indexes[i]);
-      }
       return array;
     }
-  }
-}
 
-namespace Dafny
-{ 
-  //Taken from DafnyRuntime.cs - must be in Dafny namespace so Dafny.Rational will mention this
-  public struct BigRational
-  {
-    public static readonly BigRational ZERO = new BigRational(0);
+    public static Set<T> GetSet<T>(int[] items, ParameterGenerator generator) {
+      return Set<T>.FromElements(FillArray<T>(items, generator));
+    }
 
-    BigInteger num, den;  // invariant 1 <= den
-    public override string ToString()
-    {
-      return string.Format("({0}.0 / {1}.0)", num, den);
-    }
-    public BigRational(int n)
-    {
-      num = new BigInteger(n);
-      den = BigInteger.One;
-    }
-    public BigRational(BigInteger n, BigInteger d)
-    {
-      // requires 1 <= d
-      num = n;
-      den = d;
-    }
-    public BigInteger ToBigInteger()
-    {
-      if (0 <= num)
-      {
-        return num / den;
-      }
-      else
-      {
-        return (num - den + 1) / den;
-      }
-    }
-    /// <summary>
-    /// Returns values such that aa/dd == a and bb/dd == b.
-    /// </summary>
-    private static void Normalize(BigRational a, BigRational b, out BigInteger aa, out BigInteger bb, out BigInteger dd)
-    {
-      var gcd = BigInteger.GreatestCommonDivisor(a.den, b.den);
-      var xx = a.den / gcd;
-      var yy = b.den / gcd;
-      // We now have a == a.num / (xx * gcd) and b == b.num / (yy * gcd).
-      aa = a.num * yy;
-      bb = b.num * xx;
-      dd = a.den * yy;
-    }
-    public int CompareTo(BigRational that)
-    {
-      // simple things first
-      int asign = this.num.Sign;
-      int bsign = that.num.Sign;
-      if (asign < 0 && 0 <= bsign)
-      {
-        return -1;
-      }
-      else if (asign <= 0 && 0 < bsign)
-      {
-        return -1;
-      }
-      else if (bsign < 0 && 0 <= asign)
-      {
-        return 1;
-      }
-      else if (bsign <= 0 && 0 < asign)
-      {
-        return 1;
-      }
-      BigInteger aa, bb, dd;
-      Normalize(this, that, out aa, out bb, out dd);
-      return aa.CompareTo(bb);
-    }
-    public override int GetHashCode()
-    {
-      return num.GetHashCode() + 29 * den.GetHashCode();
-    }
-    public override bool Equals(object obj)
-    {
-      if (obj is BigRational)
-      {
-        return this == (BigRational)obj;
-      }
-      else
-      {
-        return false;
-      }
-    }
-    public static bool operator ==(BigRational a, BigRational b)
-    {
-      return a.CompareTo(b) == 0;
-    }
-    public static bool operator !=(BigRational a, BigRational b)
-    {
-      return a.CompareTo(b) != 0;
-    }
-    public static bool operator >(BigRational a, BigRational b)
-    {
-      return 0 < a.CompareTo(b);
-    }
-    public static bool operator >=(BigRational a, BigRational b)
-    {
-      return 0 <= a.CompareTo(b);
-    }
-    public static bool operator <(BigRational a, BigRational b)
-    {
-      return a.CompareTo(b) < 0;
-    }
-    public static bool operator <=(BigRational a, BigRational b)
-    {
-      return a.CompareTo(b) <= 0;
-    }
-    public static BigRational operator +(BigRational a, BigRational b)
-    {
-      BigInteger aa, bb, dd;
-      Normalize(a, b, out aa, out bb, out dd);
-      return new BigRational(aa + bb, dd);
-    }
-    public static BigRational operator -(BigRational a, BigRational b)
-    {
-      BigInteger aa, bb, dd;
-      Normalize(a, b, out aa, out bb, out dd);
-      return new BigRational(aa - bb, dd);
-    }
-    public static BigRational operator -(BigRational a)
-    {
-      return new BigRational(-a.num, a.den);
-    }
-    public static BigRational operator *(BigRational a, BigRational b)
-    {
-      return new BigRational(a.num * b.num, a.den * b.den);
-    }
-    public static BigRational operator /(BigRational a, BigRational b)
-    {
-      // Compute the reciprocal of b
-      BigRational bReciprocal;
-      if (0 < b.num)
-      {
-        bReciprocal = new BigRational(b.den, b.num);
-      }
-      else
-      {
-        // this is the case b.num < 0
-        bReciprocal = new BigRational(-b.den, -b.num);
-      }
-      return a * bReciprocal;
+    public static Sequence<T> GetSequence<T>(int[] items, ParameterGenerator generator) {
+      return Sequence<T>.FromElements(FillArray<T>(items, generator));
     }
   }
 }

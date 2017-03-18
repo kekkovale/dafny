@@ -61,11 +61,11 @@ namespace Microsoft.Dafny {
     }
 
     void ReadRuntimeSystem(TextWriter wr) {
+      if (quickyCompile)  // is passed in externaly
+        return;
       string codebase = cce.NonNull( System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
-      var runtimeFile = quickyCompile ? "QuickyRuntime.cs" : "DafnyRuntime.cs";
+      var runtimeFile = "DafnyRuntime.cs";
       string path = System.IO.Path.Combine(codebase, runtimeFile);
-      //TODO this reference is not there by default for QuickyRuntime.cs...
-      //path is	C:\\USERS\\DUNCAN\\APPDATA\\LOCAL\\MICROSOFT\\VISUALSTUDIO\\14.0EXP\\EXTENSIONS\\MICROSOFT RESEARCH\\DAFNYLANGUAGEMODE\\1.9.3.20406\\QuickyRuntime.cs
       using (TextReader rd = new StreamReader(new FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read))) {
 //        if (quickyCompile) {
 //          for (int i = 0; i < 4; i++) {
@@ -121,8 +121,10 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
-      if (quickyCompile)
+      if (quickyCompile) {
         wr.WriteLine("using Quicky;");
+        wr.WriteLine("using Dafny;"); //needed for dafny runtime values
+      }
       EmitDafnySourceAttribute(program, wr);
 
       if (!DafnyOptions.O.UseRuntimeLib) {

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Threading;
+using Dafny;
 using Microsoft.CSharp;
 using Microsoft.Dafny;
 using Bpl = Microsoft.Boogie;
@@ -14,6 +15,13 @@ using Type = System.Type;
 
 /*
     TODO::
+
+  do NOT use the dafnyRuntime at all - put it into the dafny namespace so it gets read
+
+
+
+
+
   Better test gathering?  this would allow multiple errors per function as opposed to just 1 as it is now.  Is this a good thing though?
   
   More paramter types and vary for bigger values with ints?
@@ -222,8 +230,9 @@ namespace Quicky
       var system = @"System.dll";
       var core = typeof(Enumerable).Assembly.Location;
       var numerics = typeof(BigInteger).Assembly.Location;
+      var dafnyRuntime = typeof(BigRational).Assembly.Location;
       var quicky = Assembly.GetExecutingAssembly().CodeBase.Substring(8);
-      return new[] { system, core, numerics, quicky };
+      return new[] { system, core, numerics, dafnyRuntime, quicky };
     }
 
   }

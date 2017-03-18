@@ -299,16 +299,6 @@ namespace DafnyLanguage
         RunQuickyThreadParams quickyThreadParams = new RunQuickyThreadParams(prog, snap, lastRequestId, resolver, dt);
         Thread qThread = new Thread(RunQuickyThreadRoutine);
         qThread.Start(quickyThreadParams);
-          //TODO remove dt?
-        //        //TODO multithread        
-        //        Quicky.Quicky quicky = new Quicky.Quicky(prog);
-        //        quicky.PerformTesting();
-        //        var quickyErrors = quicky.FoundErrors.Values;
-        //        foreach (var error in quickyErrors) {
-        //          DafnyError dError = new DafnyError(prog.FullName, error.Token.line-1, error.Token.col-1,
-        //          ErrorCategory.VerificationError, error.Message, snap, false);
-        //          resolver.AddError(dError, prog.Name+error.Token.line, lastRequestId); //req id- datetime?, unit id- a name - doesnt do much
-        //        }
         verificationInProgress = true;
         if (dt) {
           isDiagnosingTimeouts = false;
