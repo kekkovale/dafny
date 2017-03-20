@@ -45,12 +45,10 @@ namespace Quicky
         else
           foundErrors.Add(quickyError.TypeOfError, 1);
       }
-      
-      foreach (var error in expectedErrors.Keys)
-        Assert.AreEqual(expectedErrors[error], foundErrors[error], "Incorrect number of errors of type "+error);
-      
 
       Assert.AreEqual(expectedErrors.Count, foundErrors.Count, "Incorrect number of different types of errors found");
+      foreach (var error in expectedErrors.Keys)
+        Assert.AreEqual(expectedErrors[error], foundErrors[error], "Incorrect number of errors of type "+error);
     }
 
     [Test]
@@ -116,11 +114,22 @@ namespace Quicky
     [Test]
     public void TestModules() {
       string filename = "modules.dfy";
-      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
       var errorCounts = new Dictionary<QuickyError.ErrorType, int>() {
         {QuickyError.ErrorType.Assert, 2} //ignores non-static method
       };
       TestForNErrors(filename, errorCounts);
+    }
+
+    [Test]
+    public void TestLemmaCalls() {
+      string filename = "LemmaCall.dfy";
+      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
+
+      var errorCounts = new Dictionary<QuickyError.ErrorType, int>() {
+        {QuickyError.ErrorType.PreconditionCall, 1 }
+      };
+      TestForNErrors(filename, errorCounts);
+
     }
   }
 

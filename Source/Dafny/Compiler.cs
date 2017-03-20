@@ -1105,7 +1105,9 @@ namespace Microsoft.Dafny {
         }
       }
       counterExamples += "\"";
-      wr.WriteLine("string counterExamples = String.Format({0}, {1});", counterExamples, counterExampleValues);
+      counterExamples = string.Format("string counterExamples = String.Format({0}, {1});", counterExamples,
+        counterExampleValues);
+      wr.WriteLine(counterExamples);
     }
 
     void TrCasePatternOpt(CasePattern pat, Expression rhs, string rhs_string, int indent, TextWriter wr,
@@ -1529,6 +1531,16 @@ namespace Microsoft.Dafny {
         if (quickyCompile && stmt is AssertStmt) {
           AssertStmt assert = (AssertStmt) stmt;
           CheckExpression(assert.Expr, wr, "Assert");
+        }
+        else if (quickyCompile && stmt is UpdateStmt) {
+          //TODO quicky: look throufh all expressions for lemma calls?
+          UpdateStmt update = (UpdateStmt) stmt;
+          if (update.SubStatements.Any() && update.SubStatements.ElementAt(0) is CallStmt) {
+            CallStmt call = (CallStmt)update.SubStatements.ElementAt(0);
+            foreach (var precondition in call.Method.Req) {
+              CheckExpression(precondition.E, wr, "PreconditionCall");
+            }
+          }
         }
         Indent(indent, wr); wr.WriteLine("{ }");
         return wr;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.Dafny;
 
@@ -22,6 +23,7 @@ namespace Quicky
     }
 
     public virtual void TrackError(int lineNum, int columnNum, string counterExamples, QuickyError.ErrorType errorType) {
+      Console.WriteLine("TrackError()");
       string implName = "Impl$$" + Method.FullSanitizedName;
       var exception = new QuickyError(lineNum, columnNum, counterExamples, errorType, implName);
       if (!Quicky.FoundErrors.ContainsKey(Method))
