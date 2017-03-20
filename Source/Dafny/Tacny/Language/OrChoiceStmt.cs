@@ -55,11 +55,13 @@ namespace Microsoft.Dafny.Tacny.Language {
         }
       }
       ProofState state = null;
+      int count = 0;
       foreach(BlockStmt choice in choices) {
         state = state0.Copy();
         var orChoice = this.Copy();
         orChoice.InitBasicFrameCtrl(choice.Body, partial, null);
         state.AddNewFrame(orChoice);
+        state.TopTokenTracer().AddBranchTrace(count);
         yield return state;
       }
     }

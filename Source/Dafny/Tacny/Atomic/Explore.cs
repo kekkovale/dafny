@@ -5,9 +5,11 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Tacny.Expr;
 
-namespace Microsoft.Dafny.Tacny.Atomic {
+namespace Microsoft.Dafny.Tacny.Atomic
+{
 
-  class Explore : Atomic {
+  class Explore : Atomic
+  {
     public override string Signature => "explore";
 
     public override int ArgsCount => 2;
@@ -27,16 +29,16 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       var members0 = SimpTacticExpr.EvalTacticExpr(state, callArguments[0]);
       var members = members0 as List<MemberDecl>;
 
-      if (members == null){
+      if (members == null) {
         yield break;
       }
 
-      foreach(var member in members) {
+      foreach (var member in members) {
         MemberDecl md;
         mdIns.Clear();
         args.Clear();
 
-        if(member is NameSegment) {
+        if (member is NameSegment) {
           //TODO:
           Console.WriteLine("double check this");
           md = null;
@@ -47,98 +49,101 @@ namespace Microsoft.Dafny.Tacny.Atomic {
 
         // take the membed decl parameters
         var method = md as Method;
-        if(method != null)
+        if (method != null)
           mdIns.AddRange(method.Ins);
-        else if(md is Microsoft.Dafny.Function)
+        else if (md is Microsoft.Dafny.Function)
           mdIns.AddRange(((Microsoft.Dafny.Function)md).Formals);
         else
           Contract.Assert(false, "In Explore Atomic call," + callArguments[0] + "is neither a Method or a Function");
 
         //evaluate the arguemnts for the lemma to be called
         var ovars = SimpTacticExpr.EvalTacticExpr(state, callArguments[1]);
-          Contract.Assert(ovars != null, "In Explore Atomic call," + callArguments[1] + "is not variable");
+        Contract.Assert(ovars != null, "In Explore Atomic call," + callArguments[1] + "is not variable");
 
-          List<IVariable> vars = ovars as List<IVariable> ?? new List<IVariable>();
-          //Contract.Assert(vars != null, Util.Error.MkErr(call_arguments[0], 1, typeof(List<IVariable>)));
+        List<IVariable> vars = ovars as List<IVariable> ?? new List<IVariable>();
+        //Contract.Assert(vars != null, Util.Error.MkErr(call_arguments[0], 1, typeof(List<IVariable>)));
 
-          //for the case when no args, just add an empty list
-          if (mdIns.Count == 0){
-            args.Add(new List<IVariable>());
+        //for the case when no args, just add an empty list
+        if (mdIns.Count == 0) {
+          args.Add(new List<IVariable>());
+        }
+        for (int i = 0; i < mdIns.Count; i++) {
+          var item = mdIns[i];
+          args.Add(new List<IVariable>());
+          foreach (var arg in vars) {
+            // get variable type
+            Type type = state.GetDafnyVarType(arg.Name);
+            if (type != null) {
+              if (type is UserDefinedType && item.Type is UserDefinedType) {
+                var udt1 = type as UserDefinedType;
+                var udt2 = item.Type as UserDefinedType;
+                if (udt1.Name == udt2.Name)
+                  args[i].Add(arg);
+              } else {
+                // if variable type and current argument types match, or the type is yet to be inferred
+                if (item.Type.ToString() == type.ToString() || type is InferredTypeProxy)
+                  args[i].Add(arg);
+              }
+            } else
+              args[i].Add(arg);
           }
-          for(int i = 0; i < mdIns.Count; i++) {
-            var item = mdIns[i];
-            args.Add(new List<IVariable>());
-            foreach(var arg in vars) {
-              // get variable type
-              Type type = state.GetDafnyVarType(arg.Name);
-              if(type != null) {
-                if(type is UserDefinedType && item.Type is UserDefinedType) {
-                  var udt1 = type as UserDefinedType;
-                  var udt2 = item.Type as UserDefinedType;
-                  if(udt1.Name == udt2.Name)
-                    args[i].Add(arg);
-                } else {
-                  // if variable type and current argument types match, or the type is yet to be inferred
-                  if(item.Type.ToString() == type.ToString() || type is InferredTypeProxy)
-                    args[i].Add(arg);
-                }
-              } else
-                args[i].Add(arg);
-            }
-            /**
-             * if no type correct variables have been added we can safely return
-             * because we won't be able to generate valid calls
-             */
-            if(args[i].Count == 0) {
-              Debug.WriteLine("No type matching variables were found");
-              yield break;
-            }
+          /**
+           * if no type correct variables have been added we can safely return
+           * because we won't be able to generate valid calls
+           */
+          if (args[i].Count == 0) {
+            Debug.WriteLine("No type matching variables were found");
+            yield break;
           }
+        }
 
-          foreach(var result in PermuteArguments(args, 0, new List<NameSegment>())) {
-            // create new fresh list of items to remove multiple references to the same object
-            List<Expression> newList = result.Cast<Expression>().ToList().Copy();
-            //TODO: need to double check wirh Vito, why can't use copy ?
-            //Util.Copy.CopyExpressionList(result.Cast<Expression>().ToList());
-            ApplySuffix aps = new ApplySuffix(callArguments[0].tok, new NameSegment(callArguments[0].tok, md.Name, null),
-              newList);
-            if(lv != null) {
-              var newState = state.Copy();
-              newState.AddTacnyVar(lv, aps);
-              yield return newState;
-            } else {
-              var newState = state.Copy();
-              UpdateStmt us = new UpdateStmt(aps.tok, aps.tok, new List<Expression>(),
-                new List<AssignmentRhs> { new ExprRhs(aps) });
-              //Printer p = new Printer(Console.Out);
-              //p.PrintStatement(us,0);
-              newState.AddStatement(us);
-              yield return newState;
-            }
+        var count = 0;
+        foreach (var result in PermuteArguments(args, 0, new List<NameSegment>())) {
+          // create new fresh list of items to remove multiple references to the same object
+          List<Expression> newList = result.Cast<Expression>().ToList().Copy();
+          //TODO: need to double check wirh Vito, why can't use copy ?
+          //Util.Copy.CopyExpressionList(result.Cast<Expression>().ToList());
+          ApplySuffix aps = new ApplySuffix(callArguments[0].tok, new NameSegment(callArguments[0].tok, md.Name, null),
+            newList);
+          if (lv != null) {
+            var newState = state.Copy();
+            newState.AddTacnyVar(lv, aps);
+            yield return newState;
+          } else {
+            var newState = state.Copy();
+            UpdateStmt us = new UpdateStmt(aps.tok, aps.tok, new List<Expression>(),
+              new List<AssignmentRhs> { new ExprRhs(aps) });
+            //Printer p = new Printer(Console.Out);
+            //p.PrintStatement(us,0);
+            newState.AddStatement(us);
+            newState.TopTokenTracer().AddBranchTrace(count);
+            count++;
+            yield return newState;
           }
-        
+        }
+
       }
     }
 
 
     private static IEnumerable<List<NameSegment>> PermuteArguments(List<List<IVariable>> args, int depth, List<NameSegment> current) {
-      if(args.Count == 0)
+      if (args.Count == 0)
         yield break;
-      if(depth == args.Count) {
+      if (depth == args.Count) {
         yield return current;
         yield break;
       }
-      if (args[depth].Count == 0){
+      if (args[depth].Count == 0) {
         yield return new List<NameSegment>();
         yield break;
       }
-      for(int i = 0; i < args[depth].Count; ++i) {
+      for (int i = 0; i < args[depth].Count; ++i) {
         List<NameSegment> tmp = new List<NameSegment>();
         tmp.AddRange(current);
         IVariable iv = args[depth][i];
         NameSegment ns = new NameSegment(iv.Tok, iv.Name, null);
         tmp.Add(ns);
-        foreach(var item in PermuteArguments(args, depth + 1, tmp))
+        foreach (var item in PermuteArguments(args, depth + 1, tmp))
           yield return item;
       }
     }
