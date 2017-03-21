@@ -18,7 +18,10 @@ namespace Microsoft.Dafny {
   public class Compiler
   {
     private readonly bool quickyCompile = false;
-        
+    private int quickyVariantNameCounter = 0;
+    private Dictionary<LoopStmt, string> quickyVariantNames = new Dictionary<LoopStmt, string>();
+
+
     public Compiler() { }
 
     public Compiler(bool quickyCompile) {
@@ -958,7 +961,7 @@ namespace Microsoft.Dafny {
             } else {
               Error("Method {0} has no body", wr, m.FullName);
             }
-          } else if (m.IsGhost) {
+          } else if (m.IsGhost && !quickyCompile) {
             // nothing to compile, but we do check for assumes
             if (m.Body == null) {
               Contract.Assert(c is TraitDecl && !m.IsStatic);
@@ -1525,24 +1528,29 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(stmt != null);
       TextWriter wr = new StringWriter();
-      if (stmt.IsGhost) {
+      if (stmt.IsGhost && !quickyCompile) {
         var v = new CheckHasNoAssumes_Visitor(this, wr);
         v.Visit(stmt);
-        if (quickyCompile && stmt is AssertStmt) {
-          AssertStmt assert = (AssertStmt) stmt;
-          CheckExpression(assert.Expr, wr, "Assert");
-        }
-        else if (quickyCompile && stmt is UpdateStmt) {
-          //TODO quicky: look throufh all expressions for lemma calls?
-          UpdateStmt update = (UpdateStmt) stmt;
-          if (update.SubStatements.Any() && update.SubStatements.ElementAt(0) is CallStmt) {
-            CallStmt call = (CallStmt)update.SubStatements.ElementAt(0);
-            foreach (var precondition in call.Method.Req) {
-              CheckExpression(precondition.E, wr, "PreconditionCall");
-            }
-          }
-        }
+//        if (quickyCompile && stmt is AssertStmt) {
+//          AssertStmt assert = (AssertStmt) stmt;
+//          CheckExpression(assert.Expr, wr, "Assert");
+//        }
+//        else if (quickyCompile && stmt is UpdateStmt) {
+//          //TODO quicky: look throufh all expressions for lemma calls?
+//          UpdateStmt update = (UpdateStmt) stmt;
+//          if (update.SubStatements.Any() && update.SubStatements.ElementAt(0) is CallStmt) {
+//            CallStmt call = (CallStmt)update.SubStatements.ElementAt(0);
+//            foreach (var precondition in call.Method.Req) {
+//              CheckExpression(precondition.E, wr, "PreconditionCall");
+//            }
+//          }
+//        }
         Indent(indent, wr); wr.WriteLine("{ }");
+        return wr;
+      }
+      if(stmt is AssertStmt){  //will only be true on Quicky compiling
+        AssertStmt assert = (AssertStmt)stmt;
+        CheckExpression(assert.Expr, wr, "Assert");
         return wr;
       }
       if (stmt is PrintStmt) {
@@ -1688,8 +1696,10 @@ namespace Microsoft.Dafny {
           wr.WriteLine("while (false) { }");
         } else {
           Indent(indent, wr);
-          if (quickyCompile)
+          if (quickyCompile) {
+            SetupVariantTrack(s, wr);
             CheckLoopInvariants(s, wr, "Entry");
+          }
           wr.Write("while (");
           TrExpr(s.Guard, wr, false);
           wr.WriteLine(")");
@@ -1697,6 +1707,7 @@ namespace Microsoft.Dafny {
             wr.Write("{");
           wr.Write(TrStmt(s.Body, indent).ToString());
           if (quickyCompile) {
+            CheckVariant(s, wr);
             CheckLoopInvariants(s, wr, "End");
             wr.Write("}");
           }
@@ -1975,11 +1986,37 @@ namespace Microsoft.Dafny {
           wr.Write(TrStmt(s.Body, indent).ToString());
         }
 
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+      } else if (!quickyCompile) {
+        //just skip for quicky if stmt has no way of being compiled
+        Contract.Assert(false);
+        throw new cce.UnreachableException(); // unexpected statement
       }
+      else 
+        Console.WriteLine("Could not quicky compile stmt of type {0}", stmt.GetType());
 
       return wr;
+    }
+
+    private void SetupVariantTrack(LoopStmt stmt, TextWriter wr) {
+      //write variant and store it
+      foreach (var decrease in stmt.Decreases.Expressions) {
+        string name = "variant" + quickyVariantNameCounter++;
+        quickyVariantNames.Add(stmt, name);
+        wr.WriteLine("BigInteger {0} = new BigInteger({1});", name, int.MaxValue);
+      }
+    }
+
+    private void CheckVariant(LoopStmt stmt, TextWriter wr) {
+      foreach (var e in stmt.Decreases.Expressions) {
+        //update value
+        var name = quickyVariantNames[stmt];
+        wr.Write("BigInteger {0}2 = ", name);
+        TrExpr(e, wr, false);
+        wr.WriteLine(";");
+        wr.WriteLine("if(!({0}2 < {0}))", name);
+        wr.WriteLine("  {{ qChecker.TrackError({0}, {1}, counterExamples, QuickyError.ErrorType.Variant); return; }}", e.tok.line, e.tok.col);
+        wr.WriteLine("{0} = {0}2;", name);
+      }
     }
 
     private void CheckLoopInvariants(LoopStmt stmt, TextWriter wr, string part) { //part is either "Entry" or "End"

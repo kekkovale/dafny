@@ -382,7 +382,7 @@ namespace Quicky
       for (int i = 0; i < setSize; i++) {
         array[i] = NextRandomNumberRetriever.GetNextRandomNumber(99); //TODO: make this number of tests!!!
       }
-      return _itemGenerator.GetSetFilledWith(array); ;
+      return _itemGenerator.GetSetFilledWith(array);
     }
 
     public override object GetArrayFilledWith(int[] indexes) {
@@ -419,7 +419,7 @@ namespace Quicky
       for (int i = 0; i < setSize; i++) {
         array[i] = NextRandomNumberRetriever.GetNextRandomNumber(99); //TODO: make this number of tests!!!
       }
-      return _itemGenerator.GetSequenceFilledWith(array); ;
+      return _itemGenerator.GetSequenceFilledWith(array);
     }
 
     public override object GetArrayFilledWith(int[] indexes) {

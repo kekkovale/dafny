@@ -23,7 +23,6 @@ namespace Quicky
     }
 
     public virtual void TrackError(int lineNum, int columnNum, string counterExamples, QuickyError.ErrorType errorType) {
-      Console.WriteLine("TrackError()");
       string implName = "Impl$$" + Method.FullSanitizedName;
       var exception = new QuickyError(lineNum, columnNum, counterExamples, errorType, implName);
       if (!Quicky.FoundErrors.ContainsKey(Method))
@@ -70,7 +69,8 @@ namespace Quicky
       Assert,
       InvariantEntry,
       InvariantEnd,
-      PreconditionCall
+      PreconditionCall,
+      Variant
     }
 
     //Error messages to be displayed for certain types of failures
@@ -79,7 +79,8 @@ namespace Quicky
       {ErrorType.Assert, "Assert failed"},
       {ErrorType.InvariantEntry, "Invariant failed on entry"},
       {ErrorType.InvariantEnd, "Invariant failed at the end of a loop iteration"},
-      {ErrorType.PreconditionCall, "Precondition was not valid for method call"}
+      {ErrorType.PreconditionCall, "Precondition was not valid for method call"},
+      {ErrorType.Variant, "Decreases statement did not hold"}
     };
 
     public ErrorType TypeOfError;

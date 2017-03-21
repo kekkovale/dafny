@@ -25,7 +25,7 @@ namespace Quicky
     
     [Test]
     public void TestCompiler() {
-      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
+//      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
       GetQuicky("VariousFails.dfy");
       //if no exception is thrown, the program successfully compiled something.
     }
@@ -81,6 +81,7 @@ namespace Quicky
     [Test]
     public void TestLoopInvariantEndFail() {
       string filename = "LoopEndFail.dfy";
+//      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
       var errorCounts = new Dictionary<QuickyError.ErrorType, int>() {
         {QuickyError.ErrorType.InvariantEnd, 1}
       };
@@ -88,9 +89,18 @@ namespace Quicky
     }
 
     [Test]
+    public void TestVariantFail() {
+      string filename = "Variants.dfy";
+      var errorCounts = new Dictionary<QuickyError.ErrorType, int>() {
+        {QuickyError.ErrorType.Variant, 1}
+      };
+      TestForNErrors(filename, errorCounts);
+    }
+
+    [Test]
     public void TestSetsAndSequences() {
       string filename = "SetsSequences.dfy";
-      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
+//      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
       var errorCounts = new Dictionary<QuickyError.ErrorType, int>() {
         {QuickyError.ErrorType.Assert, 2}
       };
@@ -100,7 +110,7 @@ namespace Quicky
     [Test]
     public void TestVariousFailures() {
       string fileName = "VariousFails.dfy";
-      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
+//      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
       var errorCounts = new Dictionary<QuickyError.ErrorType, int>() {
         {QuickyError.ErrorType.Postcondition, 2},
         {QuickyError.ErrorType.Assert, 3},
@@ -123,10 +133,22 @@ namespace Quicky
     [Test]
     public void TestLemmaCalls() {
       string filename = "LemmaCall.dfy";
-      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
+//      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
 
       var errorCounts = new Dictionary<QuickyError.ErrorType, int>() {
         {QuickyError.ErrorType.PreconditionCall, 1 }
+      };
+      TestForNErrors(filename, errorCounts);
+
+    }
+
+    [Test]
+    public void TestDataTypes() {
+      string filename = "DataTypes.dfy";
+//      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
+
+      var errorCounts = new Dictionary<QuickyError.ErrorType, int>() {
+        
       };
       TestForNErrors(filename, errorCounts);
 
