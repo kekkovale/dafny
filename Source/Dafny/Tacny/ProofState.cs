@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.Tacny{
     private readonly List<TopLevelClassDeclaration> _topLevelClasses;
     private readonly Program _original;
 
-    public ErrHandler err;
+    public TacticBasicErr ErrHandler;
     // Dynamic State
     public MemberDecl TargetMethod;
     public ErrorReporter Reporter;
@@ -95,7 +95,11 @@ namespace Microsoft.Dafny.Tacny{
     public Dictionary<string, ITactic> Tactics => ActiveClass.Tactics;
     public Dictionary<string, MemberDecl> Members => ActiveClass.Members;
 
-
+    public TacticBasicErr GetErrHandler() {
+      if (ErrHandler == null)
+        ErrHandler = new TacticBasicErr(GetTokenTracer());
+      return ErrHandler;
+    }
     public Program GetDafnyProgram(){
       //Contract.Requires(_original != null, "_original");
       Contract.Ensures(Contract.Result<Program>() != null);

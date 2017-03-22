@@ -284,15 +284,17 @@ namespace Microsoft.Dafny.Tacny {
 
       }
       //check if over-backchecked
-      if(backtackList != null && backtackList.Exists(x => x > 0))
-      {
+      if (backtackList != null && backtackList.Exists(x => x > 0)) {
         if (lastSucc == null)
-          Console.WriteLine("!!! No more branch for the request of " +  (backtackList.Last()+1) +  "backtracking, and no branch.");
-        else{
-          Console.WriteLine("!!! No more branch for the request of " + lastSucc.GetOrignalTopBacktrack() + ", remaining " + (backtackList.Last()+1 > lastSucc.GetOrignalTopBacktrack() ? lastSucc.GetOrignalTopBacktrack(): backtackList.Last() + 1) + " requests, return the last one.");
+          Console.WriteLine("!!! No more branch for the request of " + (backtackList.Last() + 1) + "backtracking, and no branch.");
+        else {
+          Console.WriteLine("!!! No more branch for the request of " + lastSucc.GetOrignalTopBacktrack() + ", remaining " + (backtackList.Last() + 1 > lastSucc.GetOrignalTopBacktrack() ? lastSucc.GetOrignalTopBacktrack() : backtackList.Last() + 1) + " requests, return the last one.");
           yield return lastSucc;
         }
 
+      } else {
+        // no result is successful
+        discarded[discarded.Count - 1].Item1.GetErrHandler().ExceptionReport(0);
       }
     }
   }

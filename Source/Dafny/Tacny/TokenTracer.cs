@@ -88,5 +88,15 @@ namespace Microsoft.Dafny.Tacny
 
       Console.WriteLine("End of Trace ****|");
     }
+
+    public List<IToken> GetCallTrace() {
+      return null;
+    }
+    public void PrettyCallTrace() {
+    }
+
+    public void PrettyOrigin() {
+      Console.Write(origin.line);
+    }
   }
 }

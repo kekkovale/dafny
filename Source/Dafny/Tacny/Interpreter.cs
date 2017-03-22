@@ -235,7 +235,6 @@ namespace Microsoft.Dafny.Tacny {
 
       var search = new BaseSearchStrategy(state.GetSearchStrategy());
       var ret = search.Search(state, _errorReporterDelegate).FirstOrDefault();
-      ret.GetTokenTracer().PrettyTrace();
       return ret;
     }
 
