@@ -84,7 +84,7 @@ namespace Microsoft.Dafny.Tacny {
 
    //   ErrorReporterDelegate tmp_er =
      //   errorInfo => { er?.Invoke(new CompoundErrorInformation(errorInfo.Tok, errorInfo.Msg, errorInfo, state)); };
-      var result = Util.VerifyResolvedProg(prog, null);
+      var result = Util.VerifyResolvedProg(state, prog, null);
 /*
       ErrorReporterDelegate tmp_er =
         errorInfo => { er?.Invoke(new CompoundErrorInformation(errorInfo.Tok, errorInfo.Msg, errorInfo, state)); };

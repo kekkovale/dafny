@@ -1,21 +1,21 @@
 
-lemma dummyLemma()
-ensures forall x :: x > 5
-{
-  var z := 0;
+predicate P(x : int)
 
-	test(); 
+lemma dummyLemma()
+ensures forall x :: P(x)
+{
+  test();
 }
+
 
 
 tactic {:partial} test(){
   
   tvar p :| p in post_conds();
+  //tvar p := forall x :: P(x);
 
   tactic forall {:vars z} p
   {
-    var z0 := forall z1 :: true;
-    assume z > 5;
+	assume false;
   }
 }
-

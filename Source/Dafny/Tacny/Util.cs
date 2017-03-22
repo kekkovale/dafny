@@ -261,6 +261,12 @@ namespace Microsoft.Dafny.Tacny {
 
 #if _TACTIC_DEBUG
         Console.Write("Fail to resolve prog, skip verifier ! \n");
+        String errMsg = "";
+        foreach (var msg in prog.reporter.AllMessages[ErrorLevel.Error]) {
+          errMsg = errMsg + "\n " + msg.message;
+        }
+        state.GetErrHandler().ErrInfo = errMsg;
+
 #endif
         return null;
       }
@@ -268,7 +274,7 @@ namespace Microsoft.Dafny.Tacny {
         return prog;
     }
 
-    public static bool VerifyResolvedProg(Program program, ErrorReporterDelegate er) {
+    public static bool VerifyResolvedProg(ProofState state, Program program, ErrorReporterDelegate er) {
       Contract.Requires<ArgumentNullException>(program != null);
 /*
 #if _TACTIC_DEBUG
@@ -287,7 +293,14 @@ namespace Microsoft.Dafny.Tacny {
         PipelineOutcome tmp = BoogiePipeline(prog.Item2,
           new List<string> { program.Name }, program.Name, er,
           out stats, out errorList, program);
-        if (errorList.Count != 0) return false;
+        if (errorList.Count != 0) {
+          String errMsg = "";
+          foreach (var msg in errorList) {
+            errMsg = errMsg + "\n " + msg.FullMsg;
+          }
+          state.GetErrHandler().ErrInfo = errMsg;
+          return false;
+        }
       }
 
       return true;
