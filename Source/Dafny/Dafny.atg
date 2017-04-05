@@ -18,6 +18,7 @@ readonly Expression/*!*/ dummyExpr;
 readonly AssignmentRhs/*!*/ dummyRhs;
 readonly FrameExpression/*!*/ dummyFrameExpr;  
 readonly Statement/*!*/ dummyStmt;
+readonly Include theInclude;
 readonly ModuleDecl theModule;
 readonly BuiltIns theBuiltIns;
 readonly bool theVerifyThisFile;
@@ -138,17 +139,17 @@ static void EncodeExternAsAttribute(DeclModifierData dmod, ref Attributes attrs,
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) /* throws System.IO.IOException */ {
+public static int Parse (string/*!*/ filename, Include include, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) /* throws System.IO.IOException */ {
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   string s;
   if (filename == "stdin.dfy") {
     s = Microsoft.Boogie.ParserHelper.Fill(System.Console.In, new List<string>());
-    return Parse(s, filename, filename, module, builtIns, errors, verifyThisFile);
+    return Parse(s, filename, filename, include, module, builtIns, errors, verifyThisFile);
   } else {
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string>());
-      return Parse(s, filename, DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, module, builtIns, errors, verifyThisFile);
+      return Parse(s, filename, DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile);
     }
   }
 }
@@ -163,7 +164,7 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   Errors errors = new Errors(reporter);
-  return Parse(s, fullFilename, filename, module, builtIns, errors, verifyThisFile);
+  return Parse(s, fullFilename, filename, null, module, builtIns, errors, verifyThisFile);
 }
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
@@ -171,7 +172,7 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner with the given Errors sink.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module,
+public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
                          BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
@@ -180,11 +181,11 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
-  Parser parser = new Parser(scanner, errors, module, builtIns, verifyThisFile);
+  Parser parser = new Parser(scanner, errors, include, module, builtIns, verifyThisFile);
   parser.Parse();
   return parser.errors.ErrorCount;
 }
-public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true)
+public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true)
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
@@ -192,6 +193,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, Built
   dummyRhs = new ExprRhs(dummyExpr, null);
   dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
   dummyStmt = new ReturnStmt(Token.NoToken, Token.NoToken, null);
+  theInclude = include; // the "include" that includes this file
   theModule = module;
   theBuiltIns = builtIns;
   theVerifyThisFile = verifyThisFile;
@@ -206,6 +208,13 @@ bool IsAlternative() {
   Token x = scanner.Peek();
   return (la.kind == _lbrace && x.kind == _case)
       || la.kind == _case;
+}
+
+bool FollowedByColon() {
+  IToken x = la;
+  while (x.kind == _ident || x.kind == _openparen)
+     x = scanner.Peek();
+  return x.kind == _colon;
 }
 
 // an existential guard starts with an identifier and is then followed by
@@ -693,6 +702,7 @@ TOKENS
   star = '*'.
   notIn = "!in" CONTEXT (nonidchar).
   ellipsis = "...".
+
   reveal = "reveal".
   tactic = "tactic".
 COMMENTS FROM "/*" TO "*/" NESTED
@@ -756,7 +766,7 @@ DeclModifier<ref DeclModifierData dmod>
 TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bool isTopLevel, bool isAbstract .>
 = (. DeclModifierData dmod = new DeclModifierData(); ModuleDecl submodule;
      ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
-  	 TraitDecl/*!*/ trait;
+     TraitDecl/*!*/ trait;
   .)
   { DeclModifier<ref dmod> }
   ( SubModuleDecl<dmod, module, out submodule> (. module.TopLevelDecls.Add(submodule); .)
@@ -772,7 +782,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
 
 SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
 = (. Attributes attrs = null;  IToken/*!*/ id;
-	   List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
+     List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
      List<IToken> idPath, idExports;
      IToken idRefined = null;
      ModuleDefinition module;
@@ -820,17 +830,17 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
         // in the next big version of Dafny, don't allow the semi-colon at all.
         (. errors.Deprecated(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
     ]
-	| (. 		 
-			IToken exportId;
-			List<ExportSignature> exports = new List<ExportSignature>();;
+  | (.      
+      IToken exportId;
+      List<ExportSignature> exports = new List<ExportSignature>();;
       List<string> extends = new List<string>();
       bool provideAll = false;
       bool revealAll = false;
       bool isDefault = false;
       ExportSignature exsig;
-		.)
-		"export" (. exportId = t; .)
-		[ ModuleExport<out exportId> ]
+    .)
+    "export" (. exportId = t; .)
+    [ ModuleExport<out exportId> ]
     {
        "provides"
        ( 
@@ -852,12 +862,12 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
        ModuleExport<out id>(. extends.Add(id.val); .) 
        {"," ModuleExport<out id>  (. extends.Add(id.val); .) }
     }
-		(.
+    (.
        if (exportId.val == "export" || exportId.val == parent.Name) {
          isDefault = true;
        }
-		   submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault);
-		.)
+       submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault);
+    .)
   )
 .
 
@@ -909,9 +919,9 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ id;
-	 Type trait = null;
+   Type trait = null;
      List<Type>/*!*/ traits = new List<Type>();
-	 Attributes attrs = null;
+   Attributes attrs = null;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
      IToken bodyStart;
@@ -925,7 +935,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
   (. EncodeExternAsAttribute(dmodClass, ref attrs, id, /* needAxiom */ false); .)
   [ GenericParameters<typeArgs> ]
   ["extends" 
-  Type<out trait>		(. traits.Add(trait); .) 
+  Type<out trait>    (. traits.Add(trait); .) 
   {"," Type<out trait>  (. traits.Add(trait); .) }
   ]         
   "{"                                            (. bodyStart = t;  .)
@@ -942,31 +952,31 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
 
 TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
   = (. Contract.Requires(module != null);     
-	   Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
+     Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
      CheckDeclModifiers(dmodIn, "Traits", AllowedDeclModifiers.None);
-	   IToken/*!*/ id;
-	   Attributes attrs = null;
-	   List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
-	   List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
-	   IToken bodyStart;
+     IToken/*!*/ id;
+     Attributes attrs = null;
+     List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
+     List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
+     IToken bodyStart;
      DeclModifierData dmod; 
     .)
-	SYNC
-	"trait"
-	{ Attribute<ref attrs> }
-	NoUSIdent<out id>
-	[ GenericParameters<typeArgs> ]
-  	"{"                                            (. bodyStart = t; .)
+  SYNC
+  "trait"
+  { Attribute<ref attrs> }
+  NoUSIdent<out id>
+  [ GenericParameters<typeArgs> ]
+    "{"                                            (. bodyStart = t; .)
       {                                            (. dmod  = new DeclModifierData(); .)
         { DeclModifier<ref dmod> }
         ClassMemberDecl<dmod, members, true, false, false>
       }
     "}"
-	(. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
+  (. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
      trait.BodyStartTok = bodyStart;
      trait.BodyEndTok = t;
     .)
-	.
+  .
 
 ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl, bool isWithinAbstractModule.>
 = (. Contract.Requires(cce.NonNullElements(mm));
@@ -1067,7 +1077,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm.>
   { Attribute<ref attrs> }
   FIdentType<out id, out ty>
   ":="
-	Expression<out e, false, false>                   (. mm.Add(new ConstantField(id, id.val, e, dmod.IsGhost, ty, attrs)); .)
+  Expression<out e, false, false>                   (. mm.Add(new ConstantField(id, id.val, e, dmod.IsGhost, ty, attrs)); .)
   OldSemi
   .
 NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
@@ -1086,8 +1096,8 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     NoUSIdent<out bvId>
     [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new InferredTypeProxy(); } .)
     "|"
-    Expression<out wh, false, true>  (. td = new NewtypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); .)
-  | Type<out baseType>               (. td = new NewtypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, module, baseType, attrs); .)
+    Expression<out wh, false, true>  (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); .)
+  | Type<out baseType>               (. td = new NewtypeDecl(id, id.val, module, baseType, attrs); .)
   )
   .
 OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
@@ -1113,7 +1123,7 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
         [ ":" Type<out ty> ]   (. if (ty == null) { ty = new InferredTypeProxy(); } .)
         "|"
         Expression<out constraint, false, true>
-                               (. td = new SubsetTypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, attrs);
+                               (. td = new SubsetTypeDecl(id, id.val, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, attrs);
                                   kind = "Subset type";
                                .)
       |
@@ -1365,7 +1375,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
         SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
      }
 
-     IToken tok = theVerifyThisFile ? id : new IncludeToken(id);
+     IToken tok = id;
      if (isConstructor) {
        m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
@@ -1619,6 +1629,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      IToken/*!*/ id = Token.NoToken;  // to please compiler
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
+     Formal/*!*/ result = null;
      Type/*!*/ returnType = new BoolType();
      List<Expression/*!*/> reqs = new List<Expression/*!*/>();
      List<Expression/*!*/> ens = new List<Expression/*!*/>();
@@ -1658,7 +1669,22 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
       [ GenericParameters<typeArgs> ]
       Formals<true, isFunctionMethod, isTwoState, formals>
       ":"
-      Type<out returnType>
+      (  IF(FollowedByColon()) 
+         "("
+           (. 
+              IToken resultId;
+              Type ty;
+              bool isGhost;
+              bool isOld;
+           .)
+            GIdentType<isFunctionMethod, false, out resultId, out ty, out isGhost, out isOld>
+           /* WildIdent<out resultId, true>
+           ":"
+           Type<out ty> */
+           (. result = new Formal(resultId, resultId.val, ty, false, isGhost, isOld); .)
+         ")"
+         | Type<out returnType>
+      )
     | "..."                    (. signatureEllipsis = t; .)
     )
 
@@ -1732,12 +1758,12 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
         SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
      }
      EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ true);
-     IToken tok = theVerifyThisFile ? id : new IncludeToken(id);
+     IToken tok = id;
      if (isTwoState && isPredicate) {
         f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
                                   reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      } else if (isTwoState) {
-        f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, returnType,
+        f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, result, returnType,
                                  reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
         f = new Predicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals,
@@ -1752,7 +1778,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
         f = new TacticFunction(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      } else {
-        f = new Function(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals, returnType,
+        f = new Function(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals, result, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;
@@ -1857,7 +1883,7 @@ OneStmt<out Statement/*!*/ s>
   | AssertStmt<out s>
   | AssumeStmt<out s>
   | PrintStmt<out s>
-	| RevealStmt<out s>
+  | RevealStmt<out s>
   | UpdateStmt<out s>
   | VarDeclStatement<out s>
   | IfStmt<out s>
@@ -2439,7 +2465,7 @@ ExistentialGuard<out Expression e, bool allowLambda>
   .
 MatchStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-     Token x;  Expression/*!*/ e;  MatchCaseStmt/*!*/ c;
+     IToken x;  Expression/*!*/ e;  MatchCaseStmt/*!*/ c;
      List<MatchCaseStmt/*!*/> cases = new List<MatchCaseStmt/*!*/>();
      bool usesOptionalBraces = false;
   .)
@@ -2548,7 +2574,7 @@ RevealStmt<out Statement s>
      IToken x;  Expression e;
   .)
   "reveal"                                      (. x = t; .)
-  Expression<out e, false, true> 	
+  Expression<out e, false, true>   
   ";"                                          (. s = new RevealStmt(x, t, e); .)
   .
 
@@ -2633,7 +2659,7 @@ ModifyStmt<out Statement s>
 
 CalcStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-     Token x;
+     IToken x;
      Attributes attrs = null;
      CalcStmt.CalcOp op, calcOp = Microsoft.Dafny.CalcStmt.DefaultOp, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;
      var lines = new List<Expression>();
@@ -2795,12 +2821,12 @@ ImpliesExpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bo
       ImpliesExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
     | ExpliesOp                                               (. x = t; .)
       LogicalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>       (. // The order of operands is reversed so that it can be turned into implication during resolution 
-			                                                           e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); .)
+                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); .)
       { IF(IsExpliesOp())  /* read a reverse implication as far as possible */
         ExpliesOp                                             (. x = t; .)
         LogicalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>     (. //The order of operands is reversed so that it can be turned into implication during resolution
-				                                                         e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); 
-																															.)
+                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); 
+                                                              .)
       }
     )
   ]
@@ -3283,7 +3309,7 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
                                                                foreach (var v in exists.BoundVars) {
                                                                  LHSs.Add(new CasePattern(e.tok, v));
                                                                }
-                                                               e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);	                                                         
+                                                               e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);                                                           
                                                              }
                                                              e = new ITEExpr(x, isExistentialGuard, e, e0, e1);
                                                          .)
@@ -3300,8 +3326,8 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
     MapComprehensionExpr<x, true, out e, allowSemi, allowLambda, allowBitwiseOps>
   | "imap"                          (. x = t; .)
     MapComprehensionExpr<x, false, out e, allowSemi, allowLambda, true>
-	| "reveal"
-	  Expression<out e, false, false, allowBitwiseOps> (. e = new RevealExpr(e.tok, e); .)
+  | "reveal"
+    Expression<out e, false, false, allowBitwiseOps> (. e = new RevealExpr(e.tok, e); .)
   | NamedExpr<out e, allowSemi, allowLambda, allowBitwiseOps>
   )
   .

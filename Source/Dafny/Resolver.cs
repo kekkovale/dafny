@@ -191,8 +191,10 @@ namespace Microsoft.Dafny
     readonly Dictionary<ClassDecl, Dictionary<string, MemberDecl>> classMembers = new Dictionary<ClassDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>> datatypeMembers = new Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors = new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
-    enum BasicTypeVariety { Bool = 0, Int, Real, Bitvector, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
+    enum BasicTypeVariety { Bool = 0, Int, Real, Bitvector, Map, IMap, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
     readonly Dictionary<string, MemberDecl>[] basicTypeMembers = new Dictionary<string, MemberDecl>[] {
+      new Dictionary<string, MemberDecl>(),
+      new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
@@ -215,6 +217,32 @@ namespace Microsoft.Dafny
       var floor = new SpecialField(Token.NoToken, "Floor", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
       floor.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       basicTypeMembers[(int)BasicTypeVariety.Real].Add(floor.Name, floor);
+
+      var keys = new SpecialField(Token.NoToken, "Keys", "Keys", "", "", false, false, false, new SelfType(), null);
+      keys.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.Map].Add(keys.Name, keys);
+
+      var values = new SpecialField(Token.NoToken, "Values", "Values", "", "", false, false, false, new SelfType(), null);
+      values.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.Map].Add(values.Name, values);
+
+      var items = new SpecialField(Token.NoToken, "Items", "Items", "", "", false, false, false, new SelfType(), null);
+      items.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.Map].Add(items.Name, items);
+      // Map#Items relies on the two destructors for 2-tuples
+      builtIns.TupleType(Token.NoToken, 2, true);
+
+      var iMapKeys = new SpecialField(Token.NoToken, "Keys", "Keys", "", "", false, false, false, new SelfType(), null);
+      iMapKeys.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.IMap].Add(keys.Name, iMapKeys);
+
+      var iMapValues = new SpecialField(Token.NoToken, "Values", "Values", "", "", false, false, false, new SelfType(), null);
+      iMapValues.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.IMap].Add(values.Name, iMapValues);
+
+      var iMapItems = new SpecialField(Token.NoToken, "Items", "Items", "", "", false, false, false, new SelfType(), null);
+      iMapItems.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.IMap].Add(items.Name, iMapItems);
 
       List<Formal> formals = new List<Formal>();
       formals.Add(new Formal(Token.NoToken, "w", new UserDefinedType(Token.NoToken, "nat", null), true, false, false));
@@ -841,20 +869,13 @@ namespace Microsoft.Dafny
       ResolveOpenedImports(moduleInfo, m, useCompileSignatures, this); // opened imports do not persist
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
-      var constantDependencies = new Graph<ConstantField>();
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
       ResolveTopLevelDecls_Signatures(m, sig, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       Contract.Assert(AllTypeConstraints.Count == 0);  // signature resolution does not add any type constraints
       ResolveAttributes(m.Attributes, m, new ResolveOpts(new NoContext(m.Module), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
       SolveAllTypeConstraints();  // solve any type constraints entailed by the attributes
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies, constantDependencies);
-      }
-      // check for cycles in constant definition.
-      List<ConstantField> cycle = constantDependencies.TryFindCycle();
-      if (cycle != null) {
-        var cy = Util.Comma(" -> ", cycle, f => f.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0], "constant definition contains a cycle: {0}", cy);
+        ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       }
       Type.PopScope(moduleInfo.VisibilityScope);
       moduleInfo = oldModuleInfo;
@@ -1589,6 +1610,8 @@ namespace Microsoft.Dafny
           var members = new Dictionary<string, MemberDecl>();
           classMembers.Add(cl, members);
 
+          var preMemberErrs = reporter.Count(ErrorLevel.Error);
+
           foreach (MemberDecl m in cl.Members) {
             if (!members.ContainsKey(m.Name)) {
               members.Add(m.Name, m);
@@ -1657,8 +1680,11 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, m, "Duplicate member name: {0}", m.Name);
             }
           }
+
+          Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
+
           if (cl.IsDefaultClass) {
-            foreach (MemberDecl m in cl.Members) {
+            foreach (MemberDecl m in members.Values) {
               Contract.Assert(!m.HasStaticKeyword || DafnyOptions.O.AllowGlobals);  // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
               if (m is Function || m is Method || m is ConstantField) {
                 sig.StaticMembers[m.Name] = m;
@@ -1978,7 +2004,7 @@ namespace Microsoft.Dafny
       new NativeType("long", Int64.MinValue, 0x8000000000000000, 0, "L", false),
     };
 
-    public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies, Graph<ConstantField/*!*/>/*!*/ constantDependencies) {
+    public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
       Contract.Requires(cce.NonNullElements(codatatypeDependencies));
@@ -2082,10 +2108,10 @@ namespace Microsoft.Dafny
         if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
           ResolveIterator(iter);
-          ResolveClassMemberBodies(iter, constantDependencies);  // resolve the automatically generated members
+          ResolveClassMemberBodies(iter);  // resolve the automatically generated members
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
-          ResolveClassMemberBodies(cl, constantDependencies);
+          ResolveClassMemberBodies(cl);
         }
         allTypeParameters.PopMarker();
       }
@@ -2500,10 +2526,6 @@ namespace Microsoft.Dafny
                 // of their soundness)
                 if (fn.Ens.Count != 0) {
                   reporter.Error(MessageSource.Resolver, fn.Ens[0].tok, "a {0} is not allowed to declare any ensures clause", member.WhatKind);
-                }
-                // Also check for 'reads' clauses
-                if (fn.Reads.Count != 0) {
-                  reporter.Error(MessageSource.Resolver, fn.Reads[0].tok, "a {0} is not allowed to declare any reads clause", member.WhatKind);  // (why?)
                 }
                 if (fn.Body != null) {
                   FixpointPredicateChecks(fn.Body, fn, CallingPosition.Positive);
@@ -3384,6 +3406,9 @@ namespace Microsoft.Dafny
             break;
           case "NumericOrBitvector":
             satisfied = t.IsNumericBased() || t.IsBitVectorType;
+            break;
+          case "NumericOrBitvectorOrChar":
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType;
             break;
           case "IntLikeOrBitvector":
             satisfied = t.IsNumericBased(Type.NumericPersuation.Int) || t.IsBitVectorType;
@@ -5768,8 +5793,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < cs.Method.Ins.Count; i++) {
               argsSubstMap.Add(cs.Method.Ins[i], cs.Args[i]);
             }
-            translator.SetReporter(resolver.reporter);
-            var substituter = new Translator.AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>(), translator);
+            var substituter = new Translator.AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
             foreach (var ens in cs.Method.Ens) {
               var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
               resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(p));
@@ -5904,10 +5928,15 @@ namespace Microsoft.Dafny
       foreach (MemberDecl member in cl.Members) {
         member.EnclosingClass = cl;
         if (member is Field) {
-          // In the following, we pass in a NoContext, because any cycle formed by a redirecting-type constraints would have to
-          // dereference the heap, and such constraints are not allowed to dereference the heap so an error will be produced
-          // even if we don't detect this cycle.
-          ResolveType(member.tok, ((Field)member).Type, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
+          if (member is ConstantField) {
+            var m = (ConstantField)member;
+            ResolveType(member.tok, ((Field)member).Type, m, ResolveTypeOptionEnum.DontInfer, null);
+          } else {
+            // In the following, we pass in a NoContext, because any cycle formed by a redirecting-type constraints would have to
+            // dereference the heap, and such constraints are not allowed to dereference the heap so an error will be produced
+            // even if we don't detect this cycle.
+            ResolveType(member.tok, ((Field)member).Type, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
+          }
         } else if (member is Function) {
           var f = (Function)member;
           var ec = reporter.Count(ErrorLevel.Error);
@@ -5916,12 +5945,14 @@ namespace Microsoft.Dafny
           ResolveFunctionSignature(f);
           allTypeParameters.PopMarker();
           if (f is FixpointPredicate && ec == reporter.Count(ErrorLevel.Error)) {
-            var ff = ((FixpointPredicate)f).PrefixPredicate;
-            ff.EnclosingClass = cl;
-            allTypeParameters.PushMarker();
-            ResolveTypeParameters(ff.TypeArgs, true, ff);
-            ResolveFunctionSignature(ff);
-            allTypeParameters.PopMarker();
+            var ff = ((FixpointPredicate)f).PrefixPredicate;  // note, may be null if there was an error before the prefix predicate was generated
+            if (ff != null) {
+              ff.EnclosingClass = cl;
+              allTypeParameters.PushMarker();
+              ResolveTypeParameters(ff.TypeArgs, true, ff);
+              ResolveFunctionSignature(ff);
+              allTypeParameters.PopMarker();
+            }
           }
 
         } else if (member is Method) {
@@ -6045,7 +6076,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Assumes type parameters have already been pushed, and that all types in class members have been resolved
     /// </summary>
-    void ResolveClassMemberBodies(ClassDecl cl, Graph<ConstantField/*!*/>/*!*/ constantDependencies) {
+    void ResolveClassMemberBodies(ClassDecl cl) {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
       Contract.Requires(AllTypeConstraints.Count == 0);
@@ -6064,7 +6095,7 @@ namespace Microsoft.Dafny
             field.function.EnclosingClass = cl;
             ResolveExpression(field.constValue, new ResolveOpts(new NoContext(currentClass.Module), false));
             // make sure initialization only refers to constant field or literal expression
-            CheckConstantFieldInitialization(field, field.constValue, constantDependencies);
+            CheckConstantFieldInitialization(field, field.constValue);
             SolveAllTypeConstraints();
           }
         } else if (member is Function) {
@@ -6076,10 +6107,12 @@ namespace Microsoft.Dafny
           allTypeParameters.PopMarker();
           if (f is FixpointPredicate && ec == reporter.Count(ErrorLevel.Error)) {
             var ff = ((FixpointPredicate)f).PrefixPredicate;
-            allTypeParameters.PushMarker();
-            ResolveTypeParameters(ff.TypeArgs, false, ff);
-            ResolveFunction(ff);
-            allTypeParameters.PopMarker();
+            if (ff != null) {
+              allTypeParameters.PushMarker();
+              ResolveTypeParameters(ff.TypeArgs, false, ff);
+              ResolveFunction(ff);
+              allTypeParameters.PopMarker();
+            }
           }
 
         } else if (member is Method) {
@@ -6098,45 +6131,51 @@ namespace Microsoft.Dafny
       currentClass = null;
     }
 
-    void CheckConstantFieldInitialization(ConstantField field, Expression expr, Graph<ConstantField/*!*/>/*!*/ constantDependencies) {
-      ConstantField other;
-      if (expr is LiteralExpr) {
+   void CheckConstantFieldInitialization(ConstantField field, Expression expr) {
+     if (IsConstantExpr(field, expr)) {
         ConstrainSubtypeRelation(field.Type, expr.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
-        // we are fine
+      } else {
+          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
+      }
+      if (field.EnclosingModule.CallGraph.GetSCCSize(field) != 1) {
+        var cycle = Util.Comma(" -> ", field.EnclosingModule.CallGraph.GetSCC(field), clbl => clbl.NameRelativeToModule);
+        reporter.Error(MessageSource.Resolver, field.tok, "constant definition contains a cycle: " + cycle);
+      }
+    }
+
+    bool IsConstantExpr(ConstantField field, Expression expr) {
+      bool isConstant = false;
+      if (expr is LiteralExpr && !(expr is StaticReceiverExpr)) {
+        isConstant = true;
       } else if (expr is NameSegment) {
-        other = FindConstantField((NameSegment)expr);
+        var other = FindConstantField((NameSegment)expr);
         if (other != null) {
-          ConstrainSubtypeRelation(field.Type, other.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
-          constantDependencies.AddEdge(field, other);
-        } else {
-          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant{0}", field.Name);
+          field.EnclosingModule.CallGraph.AddEdge(field, other);
+          if (field == other) {
+            // detect self-loops here, since they don't show up in the graph's SSC methods
+            reporter.Error(MessageSource.Resolver, field.tok, "recursive dependency involving constant initialization: {0} -> {0}", field.Name);
+          }
+          isConstant = true;
         }
       } else if (expr is ExprDotName) {
         var v = (ExprDotName)expr;
         while (v.Lhs is ExprDotName) {
           v = (ExprDotName)v.Lhs;
         }
-        if (v.Lhs is NameSegment) {
-          other = FindConstantField((NameSegment)v.Lhs);
-          if (other != null) {
-            ConstrainSubtypeRelation(field.Type, other.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
-            constantDependencies.AddEdge(field, other);
-          } else {
-            reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant{0}", field.Name);
-          }
-        } else {
-          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant{0}", field.Name);
-        }
+        isConstant = IsConstantExpr(field, v.Lhs);
       } else {
         bool hasSubfield = false;
-        foreach (var ee in field.constValue.SubExpressions) {
+        isConstant = true;
+        foreach (var ee in expr.SubExpressions) {
           hasSubfield = true;
-          CheckConstantFieldInitialization(field, ee, constantDependencies);
+          if (!IsConstantExpr(field, ee)) {
+            isConstant = false;
+            break;
+          }
         }
-        if (!hasSubfield) {
-          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
-        }
+        isConstant = hasSubfield ? isConstant : false;
       }
+      return isConstant;
     }
 
     ConstantField FindConstantField(NameSegment expr) {
@@ -6530,7 +6569,12 @@ namespace Microsoft.Dafny
         ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, f, option, f.TypeArgs);
       }
-      ResolveType(f.tok, f.ResultType, f, option, f.TypeArgs);
+      if (f.Result != null) {
+        ScopePushAndReport(scope, f.Result, "parameter/return");
+        ResolveType(f.Result.tok, f.Result.Type, f, option, f.TypeArgs);
+      } else {
+        ResolveType(f.tok, f.ResultType, f, option, f.TypeArgs);
+      }
       scope.PopMarker();
     }
 
@@ -6571,9 +6615,16 @@ namespace Microsoft.Dafny
         ResolveFrameExpression(fr, FrameExpressionUse.Reads, f);
       }
       foreach (Expression r in f.Ens) {
-        ResolveExpression(r, new ResolveOpts(f, f is TwoStateFunction));  // since this is a function, the postcondition is still a one-state predicate, unless it's a two-state function
+        if (f.Result != null) {
+          scope.PushMarker();
+          scope.Push(f.Result.Name, f.Result);  // function return only visible in post-conditions
+        }
+        ResolveExpression(r, new ResolveOpts(f, f is TwoStateFunction, false, true));  // since this is a function, the postcondition is still a one-state predicate, unless it's a two-state function
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
+        if (f.Result != null) {
+          scope.PopMarker();
+        }
       }
       ResolveAttributes(f.Decreases.Attributes, null, new ResolveOpts(f, f is TwoStateFunction));
       foreach (Expression r in f.Decreases.Expressions) {
@@ -7902,6 +7953,14 @@ namespace Microsoft.Dafny
               s.Kind = ForallStmt.ParBodyKind.Assign;
             } else if (s0 is CallStmt) {
               s.Kind = ForallStmt.ParBodyKind.Call;
+              var call = (CallStmt)s.S0;
+              var method = call.Method;
+              // if the called method is not in the same module as the ForallCall stmt
+              // don't convert it to ForallExpression since the inlined called method's
+              // ensure clause might not be resolved correctly(test\dafny3\GenericSort.dfy)
+              if (method.EnclosingClass.Module != codeContext.EnclosingModule) {
+                s.CanConvert = false;
+              }
               // Additional information (namely, the postcondition of the call) will be reported later. But it cannot be
               // done yet, because the specification of the callee may not have been resolved yet.
             } else if (s0 is CalcStmt) {
@@ -8046,11 +8105,23 @@ namespace Microsoft.Dafny
 
       // first, clone the original expression
       s.OrigUnresolved = (MatchStmt)new Cloner().CloneStmt(s);
-
-      DesugarMatchStmtWithTupleExpression(s);
-
       ResolveExpression(s.Source, new ResolveOpts(codeContext, true));
       Contract.Assert(s.Source.Type != null);  // follows from postcondition of ResolveExpression
+      var errorCount = reporter.Count(ErrorLevel.Error);
+      if (s.Source is DatatypeValue) {
+        var e = (DatatypeValue)s.Source;
+        if (e.Arguments.Count < 1) {
+          reporter.Error(MessageSource.Resolver, s.Tok, "match source tuple needs at least 1 argument");
+        }
+        foreach (var arg in e.Arguments) {
+          if (arg is DatatypeValue && ((DatatypeValue)arg).Arguments.Count < 1) {
+            reporter.Error(MessageSource.Resolver, s.Tok, "match source tuple needs at least 1 argument");
+          }
+        }
+      }
+      if (reporter.Count(ErrorLevel.Error) != errorCount) {
+        return;
+      }
       UserDefinedType sourceType = null;
       DatatypeDecl dtd = null;
       PartiallyResolveTypeForMemberSelection(s.Source.tok, s.Source.Type);
@@ -8085,18 +8156,28 @@ namespace Microsoft.Dafny
         DatatypeCtor ctor = null;
         if (ctors != null) {
           Contract.Assert(dtd != null);
-          if (!ctors.TryGetValue(mc.Id, out ctor)) {
-            reporter.Error(MessageSource.Resolver, mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
+          var ctorId = mc.Id;
+          if (s.Source.Type.AsDatatype is TupleTypeDecl) {
+            var tuple = (TupleTypeDecl)s.Source.Type.AsDatatype;
+            var dims = tuple.Dims;
+            ctorId = BuiltIns.TupleTypeCtorNamePrefix + dims;
+          }
+          if (!ctors.TryGetValue(ctorId, out ctor)) {
+            reporter.Error(MessageSource.Resolver, mc.tok, "member {0} does not exist in datatype {1}", ctorId, dtd.Name);
           } else {
             Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
             mc.Ctor = ctor;
             if (ctor.Formals.Count != mc.Arguments.Count) {
-              reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
+              if (s.Source.Type.AsDatatype is TupleTypeDecl) {
+                reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
+              } else {
+                reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, ctor.Formals.Count);
+              }
             }
-            if (memberNamesUsed.Contains(mc.Id)) {
+            if (memberNamesUsed.Contains(ctorId)) {
               reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Id);
             } else {
-              memberNamesUsed.Add(mc.Id);  // add mc.Id to the set of names used
+              memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
             }
           }
         }
@@ -8159,85 +8240,6 @@ namespace Microsoft.Dafny
 
     /*
      * Convert
-     *  match (x, y)
-     *    case (Zero, _) => Zero
-     *    case (Suc(_), Zero) => x
-     *    case (Suc(a), Suc(b)) => minus(a, b)
-     * To:  
-     *  match x
-     *    case Zero => match y (originalToken)
-     *        case _ => zero
-     *    case Suc(_) => match y (AutoGeneratedToken)
-     *        case Zero => x
-     *    case Suc(a) => match y (AutoGeneratedToken)
-      *        case (b) => minus(a,b)
-     */    
-    void DesugarMatchStmtWithTupleExpression(MatchStmt me) {
-      // (x, y) is treated as a 2-tuple constructor
-      if (me.Source is DatatypeValue) {
-        var e = (DatatypeValue)me.Source;
-        if (e.Arguments.Count < 1) {
-          reporter.Error(MessageSource.Resolver, me.Tok, "match source tuple needs at least 1 argument");
-        } else {
-          Expression source = e.Arguments[0];
-          List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
-          // only keep the token for the first appearance, use autogenerated for the rest, otherwise more than one hovertext
-          // will show up in the IDE.
-          bool keepOrigToken = true; 
-          foreach (MatchCaseStmt mc in me.Cases) {
-            if (mc.CasePatterns == null || mc.CasePatterns.Count != e.Arguments.Count) {
-              reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
-            } else {
-              CasePattern cp = mc.CasePatterns[0];
-              List<CasePattern> patterns;
-              if (cp.Arguments != null) {
-                patterns = cp.Arguments;
-              } else {
-                patterns = new List<CasePattern>();
-              }
-
-              List<Statement> body = mc.Body;
-              for (int i = e.Arguments.Count; 1 <= --i; ) {
-                // others go into the body
-                body = CreateMatchCaseStmtBody(me.Tok, e.Arguments[i], mc.CasePatterns[i], body, keepOrigToken);
-              }
-              cases.Add(new MatchCaseStmt(cp.tok, cp.Id, patterns, body));
-              keepOrigToken = false;
-            }
-          }
-          me.UpdateSource(source);
-          me.UpdateCases(cases);
-        }
-      }
-    }
-
-    List<Statement> CreateMatchCaseStmtBody(Boogie.IToken tok, Expression source, CasePattern cp, List<Statement> body, bool keepToken) {
-      List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
-      List<CasePattern> patterns;
-      if (cp.Var != null) {
-        var bv = cp.Var;
-        if (LocalVariable.HasWildcardName(bv)) {
-          return body;
-        } else {
-          patterns = new List<CasePattern>();
-        }
-      } else {
-        patterns = cp.Arguments;
-      }
-      cases.Add(new MatchCaseStmt(cp.tok, cp.Id, patterns, body));
-      if (!keepToken) {
-        AutoGeneratedTokenCloner cloner = new AutoGeneratedTokenCloner();
-        source = cloner.CloneExpr(source);
-      }
-      List<Statement> list = new List<Statement>();
-      // endTok??
-      list.Add(new MatchStmt(tok, tok, source, cases, false));
-      return list;
-    }
-  
-
-    /*
-     * Convert
      *   match xs
      *     case Cons(y, Cons(z, zs)) => last(Cons(z, zs))
      *     case Cons(y, Nil) => y
@@ -8255,8 +8257,21 @@ namespace Microsoft.Dafny
         return;
       }
 
+      List<Dictionary<string, DatatypeCtor>> ctorsList = new List<Dictionary<string, DatatypeCtor>>();
+      if ((s.Source.Type.AsDatatype is TupleTypeDecl)) {
+        var udt = s.Source.Type.NormalizeExpand() as UserDefinedType;
+        foreach (Type typeArg in udt.TypeArgs) {
+          var t = typeArg.NormalizeExpand() as UserDefinedType;
+          if (t != null) {
+            dtd = cce.NonNull((DatatypeDecl)t.ResolvedClass);
+            ctorsList.Add(datatypeCtors[dtd]);
+          } else {
+            ctorsList.Add(new Dictionary<string, DatatypeCtor>());
+          }
+        }
+      }
       Type type = new InferredTypeProxy();
-      string name = FreshTempVarName("_mc#", codeContext);
+      bool keepOrigToken = true;
       foreach (MatchCaseStmt mc in s.Cases) {
         if (mc.Arguments != null) {
           // already desugared. This happens during the second pass resolver after cloning.
@@ -8264,28 +8279,40 @@ namespace Microsoft.Dafny
           return;
         }
 
-        BoundVar sourceVar = new BoundVar(new MatchCaseToken(s.Tok), name, type);
         Contract.Assert(mc.Arguments == null);
         Contract.Assert(mc.CasePatterns != null);
         Contract.Assert(ctors != null);
         DatatypeCtor ctor = null;
 
-        if (ctors.TryGetValue(mc.Id, out ctor)) {
+        if (ctors.TryGetValue(mc.Id, out ctor) || s.Source.Type.AsDatatype is TupleTypeDecl) {
           scope.PushMarker();
-          foreach (CasePattern pat in mc.CasePatterns) {
-            FindDuplicateIdentifier(pat, ctors, true);
-          }
-          List<BoundVar> arguments = new List<BoundVar>();
-          foreach (CasePattern pat in mc.CasePatterns) {
-            if (pat.Var != null) {
-              BoundVar v = pat.Var;
-              arguments.Add(v);
-            } else {
-              DesugarMatchCasePattern(mc, pat, sourceVar);
-              patterns.Add(new Tuple<CasePattern, BoundVar>(pat, sourceVar));
-              arguments.Add(sourceVar);
+          if (s.Source.Type.AsDatatype is TupleTypeDecl) {
+            int i = 0;
+            foreach (CasePattern pat in mc.CasePatterns) {
+              FindDuplicateIdentifier(pat, ctorsList[i++], true);
+            }
+          } else {
+            foreach (CasePattern pat in mc.CasePatterns) {
+              FindDuplicateIdentifier(pat, ctors, true);
             }
           }
+          List<BoundVar> arguments = new List<BoundVar>();
+          List<Statement> body = mc.Body;
+          for (int i = mc.CasePatterns.Count - 1; i >= 0; i--) {
+            string name = "_ms#" + i;
+            BoundVar sourceVar = new BoundVar(new MatchCaseToken(mc.tok), name, type);
+            var pat = mc.CasePatterns[i];
+            if (pat.Var != null) {
+              BoundVar v = pat.Var;
+              arguments.Insert(0, v);
+            } else {
+              body = DesugarMatchCasePattern(mc, pat, sourceVar, body, keepOrigToken);
+              patterns.Add(new Tuple<CasePattern, BoundVar>(pat, sourceVar));
+              arguments.Insert(0, sourceVar);
+            }
+          }
+          keepOrigToken = false;
+          mc.UpdateBody(body);
           mc.Arguments = arguments;
           mc.CasePatterns = null;
           scope.PopMarker();
@@ -8363,7 +8390,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    void DesugarMatchCasePattern(MatchCaseStmt mc, CasePattern pat, BoundVar v) {
+    List<Statement> DesugarMatchCasePattern(MatchCaseStmt mc, CasePattern pat, BoundVar v, List<Statement> body, bool keepToken) {
       // convert 
       //    case Cons(y, Cons(z, zs)) => body
       // to
@@ -8372,11 +8399,14 @@ namespace Microsoft.Dafny
 
       Expression source = new NameSegment(new AutoGeneratedToken(pat.tok), v.Name, null);
       List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
-      cases.Add(new MatchCaseStmt(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern>() : pat.Arguments, mc.Body));
+      cases.Add(new MatchCaseStmt(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern>() : pat.Arguments, body));
       List<Statement> list = new List<Statement>();
-      // endTok??
+      if (!keepToken) {
+        AutoGeneratedTokenCloner cloner = new AutoGeneratedTokenCloner();
+        source = cloner.CloneExpr(source);
+      }
       list.Add(new MatchStmt(pat.tok, pat.tok, source, cases, false));
-      mc.UpdateBody(list);
+      return list;
     }
 
     bool CombineMatchCaseStmt(MatchCaseStmt mc, List<MatchCaseStmt> newCases, Dictionary<string, MatchCaseStmt> caseMap, ICodeContext codeContext) {
@@ -9373,6 +9403,10 @@ namespace Microsoft.Dafny
         basic = BasicTypeVariety.Real;
       } else if (receiverType.IsBitVectorType) {
         basic = BasicTypeVariety.Bitvector;
+      } else if (receiverType.IsMapType) {
+        basic = BasicTypeVariety.Map;
+      } else if (receiverType.IsIMapType) {
+        basic = BasicTypeVariety.IMap;
       } else {
         basic = BasicTypeVariety.None;
       }
@@ -9380,13 +9414,28 @@ namespace Microsoft.Dafny
         MemberDecl member;
         if (basicTypeMembers[(int)basic].TryGetValue(memberName, out member)) {
           nptype = (NonProxyType)receiverType;
+          SelfType resultType = null;
+          var substType = receiverType;
           if (member is SpecialFunction) {
-            SelfType resultType = ((SpecialFunction)member).ResultType as SelfType;
-            if (resultType != null) {
-              // only one at a time.
-              SelfTypeSubstitution = new Dictionary<TypeParameter, Type>();
-              SelfTypeSubstitution.Add(resultType.TypeArg, receiverType);
+            resultType = ((SpecialFunction)member).ResultType as SelfType;
+          } else if (member is SpecialField) {
+            resultType = ((SpecialField)member).Type as SelfType;
+            MapType mapType = receiverType as MapType;
+            if (mapType != null && member.Name == "Keys") {
+              substType = new SetType(mapType.Finite, mapType.Domain);
+            } else if (mapType != null && member.Name == "Values") {
+              substType = new SetType(mapType.Finite, mapType.Range);
+            } else if (mapType != null && member.Name == "Items") {
+              var gt = new List<Type>() { mapType.Domain, mapType.Range };
+              var dt = builtIns.TupleType(member.tok, 2, true);
+              var tupleType = new UserDefinedType(member.tok, dt.Name, dt, gt);
+              substType = new SetType(mapType.Finite, tupleType);
             }
+          }
+          if (resultType != null) {
+            SelfTypeSubstitution = new Dictionary<TypeParameter, Type>();
+            SelfTypeSubstitution.Add(resultType.TypeArg, substType);
+            resultType.ResolvedType = substType;
           }
           return member;
         }
@@ -9411,7 +9460,7 @@ namespace Microsoft.Dafny
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);
-      Contract.Ensures(memberName != null || Contract.Result<Type>().Equals(t.NormalizeExpand()));
+      Contract.Ensures(memberName != null || Contract.Result<Type>() == t || Contract.Result<Type>().Equals(t.NormalizeExpand()));
       t = t.NormalizeExpand();
       if (!(t is TypeProxy)) {
         return t;  // we're good
@@ -9714,18 +9763,29 @@ namespace Microsoft.Dafny
       public readonly ICodeContext codeContext;
       public readonly bool twoState;
       public readonly bool isReveal;
+      public readonly bool isPostCondition;
 
       public ResolveOpts(ICodeContext codeContext, bool twoState) {
         Contract.Requires(codeContext != null);
         this.codeContext = codeContext;
         this.twoState = twoState;
         this.isReveal = false;
+        this.isPostCondition = false;
       }
       public ResolveOpts(ICodeContext codeContext, bool twoState, bool isReveal) {
         Contract.Requires(codeContext != null);
         this.codeContext = codeContext;
         this.twoState = twoState;
         this.isReveal = isReveal;
+        this.isPostCondition = false;
+      }
+
+      public ResolveOpts(ICodeContext codeContext, bool twoState, bool isReveal, bool isPostCondition) {
+        Contract.Requires(codeContext != null);
+        this.codeContext = codeContext;
+        this.twoState = twoState;
+        this.isReveal = isReveal;
+        this.isPostCondition = isPostCondition;
       }
     }
 
@@ -9926,7 +9986,7 @@ namespace Microsoft.Dafny
           }
           subst = BuildTypeArgumentSubstitute(subst);
           e.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
-          AddCallGraphEdge(opts.codeContext, fn, e);
+          AddCallGraphEdge(opts.codeContext, fn, e, false);
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
@@ -10076,11 +10136,13 @@ namespace Microsoft.Dafny
         ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
-            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an int-based type is allowed only from numeric and bitvector types (got {0})");
+            AddXConstraint(expr.tok, "NumericOrBitvectorOrChar", e.E.Type, "type conversion to an int-based type is allowed only from numeric, char and bitvector types (got {0})");
           } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
             AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an real-based type is allowed only from numeric and bitvector types (got {0})");
           } else if (e.ToType.IsBitVectorType) {
             AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an bitvector-based type is allowed only from numeric and bitvector types (got {0})");
+          } else if (e.ToType.IsCharType) {
+            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an char type is allowed only from numeric and bitvector types (got {0})");
           } else {
             reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
           }
@@ -10594,11 +10656,23 @@ namespace Microsoft.Dafny
 
       // first, clone the original expression
       me.OrigUnresolved = (MatchExpr)new Cloner().CloneExpr(me);
-
-      DesugarMatchExprWithTupleExpression(me);
-
       ResolveExpression(me.Source, opts);
       Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
+      var errorCount = reporter.Count(ErrorLevel.Error);
+      if (me.Source is DatatypeValue) {
+        var e = (DatatypeValue)me.Source;
+        if (e.Arguments.Count < 1) {
+          reporter.Error(MessageSource.Resolver, me.tok, "match source tuple needs at least 1 argument");
+        }
+        foreach (var arg in e.Arguments) {
+          if (arg is DatatypeValue && ((DatatypeValue)arg).Arguments.Count < 1) {
+            reporter.Error(MessageSource.Resolver, me.tok, "match source tuple needs at least 1 argument");
+          }
+        }
+      }
+      if (reporter.Count(ErrorLevel.Error) != errorCount) {
+        return;
+      }
       UserDefinedType sourceType = null;
       DatatypeDecl dtd = null;
       PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type);
@@ -10634,18 +10708,28 @@ namespace Microsoft.Dafny
         DatatypeCtor ctor = null;
         if (ctors != null) {
           Contract.Assert(dtd != null);
-          if (!ctors.TryGetValue(mc.Id, out ctor)) {
-            reporter.Error(MessageSource.Resolver, mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
+          var ctorId = mc.Id;
+          if (me.Source.Type.AsDatatype is TupleTypeDecl) {
+            var tuple = (TupleTypeDecl)me.Source.Type.AsDatatype;
+            var dims = tuple.Dims;
+            ctorId = BuiltIns.TupleTypeCtorNamePrefix + dims;
+          }
+          if (!ctors.TryGetValue(ctorId, out ctor)) {
+            reporter.Error(MessageSource.Resolver, mc.tok, "member {0} does not exist in datatype {1}", ctorId, dtd.Name);
           } else {
             Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
             mc.Ctor = ctor;
             if (ctor.Formals.Count != mc.Arguments.Count) {
-              reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
+              if (me.Source.Type.AsDatatype is TupleTypeDecl) {
+                reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
+              } else {
+                reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, ctor.Formals.Count);
+              }
             }
-            if (memberNamesUsed.Contains(mc.Id)) {
+            if (memberNamesUsed.Contains(ctorId)) {
               reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Id);
             } else {
-              memberNamesUsed.Add(mc.Id);  // add mc.Id to the set of names used
+              memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
             }
           }
         }
@@ -10703,73 +10787,6 @@ namespace Microsoft.Dafny
 
     /*
      * Convert
-     *  match (x, y)
-     *    case (Zero, _) => Zero
-     *    case (Suc(_), Zero) => x
-     *    case (Suc(a), Suc(b)) => minus(a, b)
-     * To:  
-     *  match x
-     *    case Zero => match y
-     *        case _ => zero
-     *    case Suc(_) => match y
-     *        case Zero => x
-     *    case Suc(a) => match y
-      *        case (b) => minus(a,b)
-     */
-    private void DesugarMatchExprWithTupleExpression(MatchExpr me) {
-      // (x, y) is treated as a 2-tuple constructor
-      if (me.Source is DatatypeValue) {
-        var e = (DatatypeValue)me.Source;
-        if (e.Arguments.Count < 1) {
-          reporter.Error(MessageSource.Resolver, me.tok, "match source tuple needs at least 1 argument");
-        } else {
-          Expression source = e.Arguments[0];
-          List<MatchCaseExpr> cases = new List<MatchCaseExpr>();
-          foreach (MatchCaseExpr mc in me.Cases) {
-            if (mc.CasePatterns == null || mc.CasePatterns.Count != e.Arguments.Count) {
-              reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
-            } else {
-              CasePattern cp = mc.CasePatterns[0];
-              List<CasePattern> patterns;
-              if (cp.Arguments != null) {
-                patterns = cp.Arguments;
-              } else {
-                patterns = new List<CasePattern>();
-              }
-
-              Expression body = mc.Body;
-              for (int i = e.Arguments.Count; 1 <= --i; ) {
-                // others go into the body
-                body = CreateMatchCaseExprBody(me.tok, e.Arguments[i], mc.CasePatterns[i], body);
-              }
-              cases.Add(new MatchCaseExpr(cp.tok, cp.Id, patterns, body));
-            }
-          }
-          me.UpdateSource(source);
-          me.UpdateCases(cases);
-        }
-      }
-    }
-
-    Expression CreateMatchCaseExprBody(Boogie.IToken tok, Expression source, CasePattern cp, Expression body) {
-      List<MatchCaseExpr> cases = new List<MatchCaseExpr>();
-      List<CasePattern> patterns;
-      if (cp.Var != null) {
-        var bv = cp.Var;
-        if (LocalVariable.HasWildcardName(bv)) {
-          return body;
-        } else {
-          patterns = new List<CasePattern>();
-        }
-      } else {
-        patterns = cp.Arguments;
-      }
-      cases.Add(new MatchCaseExpr(cp.tok, cp.Id, patterns, body));
-      return new MatchExpr(tok, source, cases, false);
-    }
-
-    /*
-     * Convert
      *   match xs
      *     case Cons(y, Cons(z, zs)) => last(Cons(z, zs))
      *     case Cons(y, Nil) => y
@@ -10786,9 +10803,22 @@ namespace Microsoft.Dafny
         // no constructors, there is no need to desugar
         return;
       }
+      List<Dictionary<string, DatatypeCtor>> ctorsList = new List<Dictionary<string, DatatypeCtor>>();
+      if ((me.Source.Type.AsDatatype is TupleTypeDecl)) {
+        var udt = me.Source.Type.NormalizeExpand() as UserDefinedType;
+        foreach (Type typeArg in udt.TypeArgs) {
+          var t = typeArg.NormalizeExpand() as UserDefinedType;
+          if (t != null) {
+            dtd = cce.NonNull((DatatypeDecl)t.ResolvedClass);
+            ctorsList.Add(datatypeCtors[dtd]);
+          } else {
+            ctorsList.Add(new Dictionary<string, DatatypeCtor>());
+          }
+        }
+      }
 
       Type type = new InferredTypeProxy();
-      string name = FreshTempVarName("_mc#", codeContext);
+      bool keepOrigToken = true;
       foreach (MatchCaseExpr mc in me.Cases) {
         if (mc.Arguments != null) {
           // already desugared. This happens during the second pass resolver after cloning.
@@ -10796,27 +10826,39 @@ namespace Microsoft.Dafny
           return;
         }
 
-        BoundVar sourceVar = new BoundVar(new MatchCaseToken(me.tok), name, type);
         Contract.Assert(mc.Arguments == null);
         Contract.Assert(mc.CasePatterns != null);
         Contract.Assert(ctors != null);
         DatatypeCtor ctor = null;
-        if (ctors.TryGetValue(mc.Id, out ctor)) {
+        if (ctors.TryGetValue(mc.Id, out ctor) || (me.Source.Type.AsDatatype is TupleTypeDecl)) {
           scope.PushMarker();
-          foreach (CasePattern pat in mc.CasePatterns) {
-            FindDuplicateIdentifier(pat, ctors, true);
-          }
-          List<BoundVar> arguments = new List<BoundVar>();
-          foreach (CasePattern pat in mc.CasePatterns) {
-            if (pat.Var != null) {
-              BoundVar v = pat.Var;
-              arguments.Add(v);
-            } else {
-              DesugarMatchCasePattern(mc, pat, sourceVar);
-              patterns.Add(new Tuple<CasePattern, BoundVar>(pat, sourceVar));
-              arguments.Add(sourceVar);
+          if (me.Source.Type.AsDatatype is TupleTypeDecl) {
+            int i = 0;
+            foreach (CasePattern pat in mc.CasePatterns) {
+              FindDuplicateIdentifier(pat, ctorsList[i++], true);
+            }
+          } else {
+            foreach (CasePattern pat in mc.CasePatterns) {
+              FindDuplicateIdentifier(pat, ctors, true);
             }
           }
+          List<BoundVar> arguments = new List<BoundVar>();
+          Expression body = mc.Body;
+          for (int i = mc.CasePatterns.Count-1; i>=0; i--) { 
+            string name = "_ms#" + i;
+            BoundVar sourceVar = new BoundVar(new MatchCaseToken(me.tok), name, type);
+            var pat = mc.CasePatterns[i];
+            if (pat.Var != null) {
+              BoundVar v = pat.Var;
+              arguments.Insert(0, v);
+            } else {
+              body = DesugarMatchCasePattern(mc, pat, sourceVar, body, keepOrigToken);
+              patterns.Add(new Tuple<CasePattern, BoundVar>(pat, sourceVar));
+              arguments.Insert(0, sourceVar);
+            }
+          }
+          keepOrigToken = false;
+          mc.UpdateBody(body);
           mc.Arguments = arguments;
           mc.CasePatterns = null;
           scope.PopMarker();
@@ -10860,7 +10902,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    void DesugarMatchCasePattern(MatchCaseExpr mc, CasePattern pat, BoundVar v) {
+    Expression DesugarMatchCasePattern(MatchCaseExpr mc, CasePattern pat, BoundVar v, Expression body, bool keepToken) {
       // convert 
       //    case Cons(y, Cons(z, zs)) => body
       // to
@@ -10869,9 +10911,12 @@ namespace Microsoft.Dafny
 
       Expression source = new NameSegment(new AutoGeneratedToken(pat.tok), v.Name, null);
       List<MatchCaseExpr> cases = new List<MatchCaseExpr>(); 
-      cases.Add(new MatchCaseExpr(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern>() : pat.Arguments, mc.Body));
-      MatchExpr e = new MatchExpr(pat.tok, source, cases, false);
-      mc.UpdateBody(e);
+      cases.Add(new MatchCaseExpr(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern>() : pat.Arguments, body));
+      if (!keepToken) {
+        AutoGeneratedTokenCloner cloner = new AutoGeneratedTokenCloner();
+        source = cloner.CloneExpr(source);
+      }
+      return new MatchExpr(pat.tok, source, cases, false);
     }
 
 
@@ -11138,7 +11183,7 @@ namespace Microsoft.Dafny
           receiver = new ImplicitThisExpr(expr.tok);
           receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
         }
-        r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
+        r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 2. datatype constructor
         if (pair.Item2) {
@@ -11178,7 +11223,7 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ambiguousMember.ModuleNames());
         } else {
           var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
-          r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
+          r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
         }
 
       } else {
@@ -11420,7 +11465,7 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
-            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           }
         } else {
           reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
@@ -11449,7 +11494,7 @@ namespace Microsoft.Dafny
               // nevertheless, continue creating an expression that approximates a correct one
             }
             var receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)ty.NormalizeExpand(), (ClassDecl)member.EnclosingClass, false);
-            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           }
         } else if (ty.IsDatatype) {
           // ----- LHS is a datatype
@@ -11486,7 +11531,7 @@ namespace Microsoft.Dafny
             Contract.Assert(nptype.IsRefType);  // only reference types have static methods
             receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)nptype, (ClassDecl)member.EnclosingClass, false);
           }
-          r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
+          r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
         }
       }
 
@@ -11596,7 +11641,7 @@ namespace Microsoft.Dafny
       return null;
     }
 
-    Expression ResolveExprDotCall(IToken tok, Expression receiver, MemberDecl member, List<Type> optTypeArguments, ResolveOpts opts, bool allowMethodCall) {
+    Expression ResolveExprDotCall(IToken tok, Expression receiver, MemberDecl member, List<Expression> args, List<Type> optTypeArguments, ResolveOpts opts, bool allowMethodCall) {
       Contract.Requires(tok != null);
       Contract.Requires(receiver != null);
       Contract.Requires(receiver.WasResolved());
@@ -11623,6 +11668,7 @@ namespace Microsoft.Dafny
         if (optTypeArguments != null) {
           reporter.Error(MessageSource.Resolver, tok, "a field ({0}) does not take any type arguments (got {1})", member.Name, optTypeArguments.Count);
         }
+        subst = BuildTypeArgumentSubstitute(subst);
         rr.Type = SubstType(((Field)member).Type, subst);
       } else if (member is Function) {
         var fn = (Function)member;
@@ -11640,7 +11686,7 @@ namespace Microsoft.Dafny
         }
         subst = BuildTypeArgumentSubstitute(subst);
         rr.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
-        AddCallGraphEdge(opts.codeContext, fn, rr);
+        AddCallGraphEdge(opts.codeContext, fn, rr, IsFunctionReturnValue(fn, args, opts));
       } else {
         // the member is a method
         var m = (Method)member;
@@ -11664,11 +11710,33 @@ namespace Microsoft.Dafny
         r.Function = ((ConstantField)member).function;
         r.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
         r.Type = r.Function.ResultType.StripSubsetConstraints();
-        AddCallGraphEdge(opts.codeContext, r.Function, rr);
+        AddCallGraphEdge(opts.codeContext, (ConstantField)member, rr, false);
         return r;
       } else {
         return rr;
       }
+    }
+
+    private bool IsFunctionReturnValue(Function fn, List<Expression> args, ResolveOpts opts) {
+      bool isFunctionReturnValue = true;
+      // if the call is in post-condition and it is calling itself, and the arguments matches
+      // formal parameter, then it denotes function return value.
+      if (opts.isPostCondition && opts.codeContext == fn) {
+        foreach (var arg in args) {
+          if (arg is NameSegment) {
+            var name = ((NameSegment)arg).Name;
+            IVariable v = scope.Find(name);
+            if (!(v is Formal)) {
+              isFunctionReturnValue = false;
+            }
+          } else {
+            isFunctionReturnValue = false;
+          }
+        }
+      } else {
+        isFunctionReturnValue = false;
+      }
+      return isFunctionReturnValue;
     }
 
     class MethodCallInformation
@@ -11816,12 +11884,12 @@ namespace Microsoft.Dafny
                 Contract.Assert(farg.Type.Equals(e.Args[i].Type));
               }
 #endif
-              rr.Type = SubstType(callee.ResultType, subst).StripSubsetConstraints();
+              rr.Type = SubstType(callee.ResultType, subst);
               // further bookkeeping
               if (callee is FixpointPredicate) {
                 ((FixpointPredicate)callee).Uses.Add(rr);
               }
-              AddCallGraphEdge(opts.codeContext, callee, rr);
+              AddCallGraphEdge(opts.codeContext, callee, rr, IsFunctionReturnValue(callee, e.Args, opts));
               r = rr;
             } else {
               r = new ApplyExpr(e.Lhs.tok, e.Lhs, e.Args);
@@ -12092,6 +12160,9 @@ namespace Microsoft.Dafny
     }
 
     public void ResolveFunctionCallExpr(FunctionCallExpr e, ResolveOpts opts) {
+      Contract.Requires(e != null);
+      Contract.Requires(e.Type == null);  // should not have been type checked before
+
       ResolveReceiver(e.Receiver, opts);
       Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
       NonProxyType nptype;
@@ -12156,18 +12227,17 @@ namespace Microsoft.Dafny
           }
           e.Type = SubstType(function.ResultType, subst).StripSubsetConstraints();
         }
-
-        AddCallGraphEdge(opts.codeContext, function, e);
+        AddCallGraphEdge(opts.codeContext, function, e, IsFunctionReturnValue(function, e.Args, opts));
       }
     }
 
-    private static void AddCallGraphEdge(ICodeContext callingContext, Function function, Expression e) {
+    private static void AddCallGraphEdge(ICodeContext callingContext, ICallable function, Expression e, bool isFunctionReturnValue) {
       Contract.Requires(callingContext != null);
       Contract.Requires(function != null);
       Contract.Requires(e != null);
       // Resolution termination check
       ModuleDefinition callerModule = callingContext.EnclosingModule;
-      ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingClass.Module;
+      ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingModule;
       if (callerModule == calleeModule) {
         // intra-module call; add edge in module's call graph
         var caller = callingContext as ICallable;
@@ -12183,8 +12253,10 @@ namespace Microsoft.Dafny
               ((Function)caller).AllCalls.Add(ee);
             }
           }
-          if (caller == function) {
-            function.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
+          // if the call denotes the function return value in the function postconditions, then we don't
+          // mark it as recursive.
+          if (caller == function && (function is Function) && !isFunctionReturnValue) {
+            ((Function)function).IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
           }
         }
       }
@@ -12383,13 +12455,19 @@ namespace Microsoft.Dafny
           var dd = (NewtypeDecl)udt.ResolvedClass;
           var c = GetImpliedTypeConstraint(e, dd.BaseType);
           if (dd.Var != null) {
-            c = Expression.CreateAnd(c, translator.Substitute(dd.Constraint, dd.Var, e));
+            Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
+            substMap.Add(dd.Var, e);
+            Translator.Substituter sub = new Translator.Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+            c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
           }
           return c;
         } else if (udt.ResolvedClass is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)udt.ResolvedClass;
           var c = GetImpliedTypeConstraint(e, dd.RhsWithArgument(udt.TypeArgs));
-          c = Expression.CreateAnd(c, translator.Substitute(dd.Constraint, dd.Var, e));
+          Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
+          substMap.Add(dd.Var, e);
+          Translator.Substituter sub = new Translator.Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+          c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
           return c;
         }
       }
@@ -13202,8 +13280,14 @@ namespace Microsoft.Dafny
         var e = (MatchExpr)expr;
         CheckCoCalls(e.Source, int.MaxValue, null, coCandidates);
         foreach (var kase in e.Cases) {
-          CheckCoCalls(kase.Body, destructionLevel, null, coCandidates);
+          CheckCoCalls(kase.Body, destructionLevel, coContext, coCandidates);
         }
+        return;
+      } else if (expr is ITEExpr) {
+        var e = (ITEExpr)expr;
+        CheckCoCalls(e.Test, int.MaxValue, null, coCandidates);
+        CheckCoCalls(e.Thn, destructionLevel, coContext, coCandidates);
+        CheckCoCalls(e.Els, destructionLevel, coContext, coCandidates);
         return;
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
@@ -13254,6 +13338,27 @@ namespace Microsoft.Dafny
           }
         }
         return;
+      } else if (expr is LambdaExpr) {
+        var e = (LambdaExpr)expr;
+        CheckCoCalls(e.Body, destructionLevel, coContext, coCandidates);
+        if (e.Range != null) {
+          CheckCoCalls(e.Range, int.MaxValue, null, coCandidates);
+        }
+        foreach (var read in e.Reads) {
+          CheckCoCalls(read.E, int.MaxValue, null, coCandidates);
+        }
+        return;
+      } else if (expr is MapComprehension) {
+        var e = (MapComprehension)expr;
+        foreach (var ee in Attributes.SubExpressions(e.Attributes)) {
+          CheckCoCalls(ee, int.MaxValue, null, coCandidates);
+        }
+        if (e.Range != null) {
+          CheckCoCalls(e.Range, int.MaxValue, null, coCandidates);
+        }
+        // allow co-calls in the term
+        CheckCoCalls(e.Term, destructionLevel, coContext, coCandidates);
+        return;
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
         // here, "coContext" is passed along (the use of "old" says this must be ghost code, so the compiler does not need to handle this case)
@@ -13264,8 +13369,14 @@ namespace Microsoft.Dafny
         foreach (var rhs in e.RHSs) {
           CheckCoCalls(rhs, int.MaxValue, null, coCandidates);
         }
-        CheckCoCalls(e.Body, destructionLevel, null, coCandidates);
+        CheckCoCalls(e.Body, destructionLevel, coContext, coCandidates);
         return;
+      } else if (expr is ApplyExpr) {
+        var e = (ApplyExpr)expr;
+        CheckCoCalls(e.Function, int.MaxValue, null, coCandidates);
+        foreach (var ee in e.Args) {
+          CheckCoCalls(ee, destructionLevel, null, coCandidates);
+        }
       }
 
       // Default handling:
