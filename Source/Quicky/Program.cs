@@ -120,21 +120,25 @@ namespace Quicky
         thread.Join();
     }
 
+    //TODO move multithreading to methods not classes
     private void TestModule(ModuleDefinition module) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (!(topLevelDecl is ClassDecl)) continue;
-        Thread thread = new Thread(TestClassThread);
-        _threads.Add(thread);
-        thread.Start(topLevelDecl);
+        TestClass(topLevelDecl as ClassDecl);
+        
       }
+
     }
 
-    void TestClassThread(Object o) {
-      var classDecl = o as ClassDecl;
-      if(classDecl != null)
-        TestClass(classDecl);
-      else 
-        throw new Exception("TestClassThread called without a ClassDecl");
+    void TestMethodThread(Object o) {
+      Tuple<Method, Type> tup = o as Tuple<Method, Type>;
+      if (tup != null) {
+        var method = tup.Item1;
+        var type = tup.Item2;
+        TestMethod(method, type);
+      }
+      else
+        throw new Exception("TestMethodThread called incorrectly: Requires a Tuple of Method, Type");
     }
 
     private void TestClass(ClassDecl classDecl) {
@@ -148,8 +152,12 @@ namespace Quicky
       Type t = _assemblyProgram.GetType(typeCall);
       //TODO handle non-static methods?  and ghost code?
       foreach (var member in classDecl.Members)
-        if (member is Method && member.IsStatic && !member.IsGhost)
-          TestMethod((Method) member, t);
+        if (member is Method && member.IsStatic && !member.IsGhost) { 
+          Thread thread = new Thread(TestMethodThread);
+          _threads.Add(thread);
+          Tuple<Method, Type> tup = new Tuple<Method, Type>(member as Method, t);
+          thread.Start(tup);
+}
     }
 
     private void TestMethod(Method method, Type t) {
@@ -214,7 +222,8 @@ namespace Quicky
     private Assembly CompileCsharpProgram(TextWriter cSharpTw)
     {
       var csc = new CSharpCodeProvider(new Dictionary<string, string>() { { "CompilerVersion", "v4.0" } });
-      var parameters = new CompilerParameters(GetRequiredReferences()) { GenerateExecutable = false };
+      var references = GetRequiredReferences();
+      var parameters = new CompilerParameters(references) { GenerateExecutable = false };
       CompilerResults results = csc.CompileAssemblyFromSource(parameters, cSharpTw.ToString());
       var errors = results.Errors.Cast<CompilerError>().ToList();
       if (errors.Count > 0) throw new QuickyCompileException(errors);
