@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny.Tacny.Atomic {
@@ -34,38 +33,47 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       //if(st is VarDeclStmt)
       //  Contract.Assert(false, Error.MkErr(st, 13));
 
-      if(st is TacticVarDeclStmt){
-        var tvds = st as TacticVarDeclStmt;
+      var stmt = st as TacticVarDeclStmt;
+      if(stmt != null){
+        var tvds = stmt;
         lv = tvds.Locals[0];
         callArguments = GetCallArguments(tvds.Update as UpdateStmt);
 
       } else if (st is TacticInvariantStmt){
         callArguments = new List<Expression>();
-        var expr = (st as TacticInvariantStmt).Expr as ParensExpression;
-        callArguments.Add(expr.E);
-        
-      }else if(st is UpdateStmt) {
-        var us = st as UpdateStmt;
-        if(us.Lhss.Count == 0)
-          callArguments = GetCallArguments(us);
-        else {
-          var ns = (NameSegment)us.Lhss[0];
-          if(ps.ContainTVal(ns)) {
-            //TODO: need to doubel check this
-            lv = ps.GetTVarValue(ns) as IVariable;
+        var expr = ((TacticInvariantStmt) st).Expr as ParensExpression;
+        if (expr != null) callArguments.Add(expr.E);
+      }else
+      {
+        var updateStmt = st as UpdateStmt;
+        if(updateStmt != null) {
+          var us = updateStmt;
+          if(us.Lhss.Count == 0)
             callArguments = GetCallArguments(us);
+          else {
+            var ns = (NameSegment)us.Lhss[0];
+            if(ps.ContainTVal(ns)) {
+              //TODO: need to doubel check this
+              lv = ps.GetTVarValue(ns) as IVariable;
+              callArguments = GetCallArguments(us);
+            }
           }
+        } else if((tbs = st as TacnyBlockStmt) != null) {
+          var pe = tbs.Guard as ParensExpression;
+          callArguments = pe != null ? new List<Expression> { pe.E } : new List<Expression> { tbs.Guard };
         }
-      } else if((tbs = st as TacnyBlockStmt) != null) {
-        var pe = tbs.Guard as ParensExpression;
-        callArguments = pe != null ? new List<Expression> { pe.E } : new List<Expression> { tbs.Guard };
       }
-
     }
   }
 
   [ContractClassFor(typeof(Atomic))]
   public class AtomicContract : Atomic {
+    public AtomicContract(string signature, int argsCount)
+    {
+      Signature = signature;
+      ArgsCount = argsCount;
+    }
+
     public override string Signature { get; }
     public override int ArgsCount { get; }
 

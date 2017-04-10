@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Numerics;
 
 namespace Microsoft.Dafny.Tacny.Language{
   public abstract class TacticFrameCtrl{
@@ -12,15 +11,15 @@ namespace Microsoft.Dafny.Tacny.Language{
     public bool IsEvaluated => _bodyCounter >= Body.Count;
 
     public Strategy SearchStrategy { get; set; } = Strategy.Dfs;
-    public bool IsPartial = false;
-    public int OriginalBK = -1;
-    public int Backtrack = 0;
+    public bool IsPartial;
+    public int OriginalBk = -1;
+    public int Backtrack;
 
     //a funtion with the right kind will be able to th generated code to List of statment
-    protected List<Statement> _generatedCode;
+    protected List<Statement> GeneratedCode;
     //store the tempratry code to be combined, e.g. case statments for match, wit a boolean tag indicating whether is verified
     //private readonly List<Tuple<bool, List<Statement>>> _rawCodeList;
-    protected List<List<Statement>> _rawCodeList;
+    protected List<List<Statement>> RawCodeList;
 
     public bool IncCounter() {
       _bodyCounter++;
@@ -50,9 +49,14 @@ namespace Microsoft.Dafny.Tacny.Language{
           if (arg == null)
             Backtrack = Backtrack + 1;
           else{
-            try{
-              var input = (arg as LiteralExpr).Value.ToString();
-              Backtrack = Backtrack + Int32.Parse(input);
+            try
+            {
+              var literalExpr = arg as LiteralExpr;
+              if (literalExpr != null)
+              {
+                var input = literalExpr.Value.ToString();
+                Backtrack = Backtrack + Int32.Parse(input);
+              }
             } catch (Exception){
               Backtrack = Backtrack + 1;
             }
@@ -68,23 +72,22 @@ namespace Microsoft.Dafny.Tacny.Language{
     }
 
     public void InitBasicFrameCtrl(List<Statement> body, bool parentPartial, Attributes attrs, Tactic tactic = null){
-      this.IsPartial = parentPartial;
+      IsPartial = parentPartial;
       if (tactic != null)
         ParseTacticAttributes(tactic.Attributes);
       Body = body;
       ParseTacticAttributes(attrs);
-      OriginalBK = Backtrack;
-      _generatedCode = null;
-      _rawCodeList = new List<List<Statement>>();
+      OriginalBk = Backtrack;
+      GeneratedCode = null;
+      RawCodeList = new List<List<Statement>>();
     }
 
     public void AddGeneratedCode(Statement newStmt) {
-      var l = new List<Statement>();
-      l.Add(newStmt);
-      _rawCodeList.Add(l);
+      var l = new List<Statement> {newStmt};
+      RawCodeList.Add(l);
     }
     public void AddGeneratedCode(List<Statement> newStmt) {
-      _rawCodeList.Add(newStmt);
+      RawCodeList.Add(newStmt);
     }
 
     /// <summary>
@@ -106,10 +109,10 @@ namespace Microsoft.Dafny.Tacny.Language{
     }
 
     public List<List<Statement>> GetRawCode() {
-      return _rawCodeList;
+      return RawCodeList;
     }
     public List<Statement> GetFinalCode() {
-      return _generatedCode;
+      return GeneratedCode;
     }
 
     public Statement GetStmt() {
@@ -119,7 +122,7 @@ namespace Microsoft.Dafny.Tacny.Language{
     }
 
     public void Assemble(){
-      _generatedCode = AssembleStmts(_rawCodeList);
+      GeneratedCode = AssembleStmts(RawCodeList);
     }
       
     public abstract bool MatchStmt(Statement stmt, ProofState state); 

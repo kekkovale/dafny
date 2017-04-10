@@ -1,9 +1,6 @@
 ﻿using Microsoft.Boogie;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Tacny
 {
@@ -13,38 +10,38 @@ namespace Microsoft.Dafny.Tacny
     // to keep track of execution flow
 
     private static int _default = 0;
-    public IToken origin { get; set; }
+    public IToken Origin { get; set; }
     /// <summary>
     /// a trace token will always at -1;
     /// </summary>
-    public IToken endToken{ get; set; }
+    public IToken EndToken{ get; set; }
 
     // denotes the nth branch igenerated from the code of the Token
-    private List<Tuple<IToken, int>> branchMark; 
+    private readonly List<Tuple<IToken, int>> _branchMark; 
 
     // for calls to frames and those lang stmt e.g. match
-    private List<TokenTracer> SubTraces;
+    private readonly List<TokenTracer> _subTraces;
 
     public TokenTracer(IToken origin) {
-      this.origin = origin.Copy();
-      branchMark = new List<Tuple<IToken, int>>();
-      endToken = new Microsoft.Boogie.Token(_default, _default);
-      SubTraces = new List<TokenTracer>();
+      this.Origin = origin.Copy();
+      _branchMark = new List<Tuple<IToken, int>>();
+      EndToken = new Microsoft.Boogie.Token(_default, _default);
+      _subTraces = new List<TokenTracer>();
     }
 
     public void Increase() {
-      endToken.line = endToken.line - 1;
+      EndToken.line = EndToken.line - 1;
     }
 
     public void AddBranchTrace(int idx) {
-      branchMark.Add(new Tuple<IToken, int>(endToken.Copy(), idx));
+      _branchMark.Add(new Tuple<IToken, int>(EndToken.Copy(), idx));
     }
 
     public void AddSubTrace(TokenTracer sub) {
-      SubTraces.Add(sub);
+      _subTraces.Add(sub);
     }
     public TokenTracer GenSubTrace() {
-      return new TokenTracer(endToken);
+      return new TokenTracer(EndToken);
     }
 
     internal string ToNSpace(int cnt) {
@@ -60,10 +57,10 @@ namespace Microsoft.Dafny.Tacny
       Action<String> print = x => Console.Write(tab + x);
       Action<String> println = x => Console.WriteLine(tab + x);
 
-      println("Orinal Token: " + origin.line);
+      println("Orinal Token: " + Origin.line);
       println("Branch Trace: ["); print("  ");
       var cnt = 0;
-      foreach(var item in branchMark) {
+      foreach(var item in _branchMark) {
         Console.Write(" ("+item.Item1.line +", " + item.Item2 +")");
         cnt++;
         if (cnt == 8) { cnt = 0; Console.WriteLine("");  print("  "); }
@@ -72,13 +69,13 @@ namespace Microsoft.Dafny.Tacny
 
       println("Sub Trace: [");
       cnt = 1;
-      foreach (var item in SubTraces) {
+      foreach (var item in _subTraces) {
         item.PrettyTrace(space + cnt * 2);
         cnt++;
       }
       println("]");
 
-      println("End Token: " + endToken.line);
+      println("End Token: " + EndToken.line);
     }
 
     public void PrettyTrace() {
@@ -96,7 +93,7 @@ namespace Microsoft.Dafny.Tacny
     }
 
     public void PrettyOrigin() {
-      Console.Write(origin.line);
+      Console.Write(Origin.line);
     }
   }
 }

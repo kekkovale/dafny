@@ -8,8 +8,8 @@ using Microsoft.Dafny.Tacny.Expr;
 
 namespace Microsoft.Dafny.Tacny.Language {
   class WhileCtrlStmt : TacticFrameCtrl{
-    private Expression guard;
-    private List<Statement> body;
+    private Expression _guard;
+    private List<Statement> _body;
     //default partial: true
 
     public new bool IsEvaluated => false;
@@ -22,49 +22,51 @@ namespace Microsoft.Dafny.Tacny.Language {
       Contract.Requires(statement is WhileStmt);
       var whileStmt = statement as WhileStmt;
 
-      var tryEval = SimpTacticExpr.EvalTacticExpr(state0, whileStmt.Guard) as BooleanRet;
+      if (whileStmt != null)
+      {
+        var tryEval = SimpTacticExpr.EvalTacticExpr(state0, whileStmt.Guard) as BooleanRet;
 
-      if(tryEval == null) {
-        var state = state0.Copy();
-        var st = SimpTacticExpr.SimpTacExpr(state, statement);
-        state.NeedVerify = true;
-        state.AddStatement(st);
-        yield return state;
-        yield break;
-      } else {
-        var state = state0.Copy();
-        var whileCtrl = this.Copy();
+        if(tryEval == null) {
+          var state = state0.Copy();
+          var st = SimpTacticExpr.SimpTacExpr(state, statement);
+          state.NeedVerify = true;
+          state.AddStatement(st);
+          yield return state;
+          yield break;
+        } else {
+          var state = state0.Copy();
+          var whileCtrl = this.Copy();
 
-        whileCtrl.guard = whileStmt.Guard;
-        whileCtrl.body = whileStmt.Body.Body;
+          whileCtrl._guard = whileStmt.Guard;
+          whileCtrl._body = whileStmt.Body.Body;
 
-        if (tryEval.value) {
-          // insert the control frame
-          var dummyBody = new List<Statement>();
-          dummyBody.Add(whileStmt);
-          whileCtrl.InitBasicFrameCtrl(dummyBody, true, null);
-          state.AddNewFrame(whileCtrl);
+          if (tryEval.Value) {
+            // insert the control frame
+            var dummyBody = new List<Statement> {whileStmt};
+            whileCtrl.InitBasicFrameCtrl(dummyBody, true, null);
+            state.AddNewFrame(whileCtrl);
 
-          //insert the body frame
-          var bodyFrame = new DefaultTacticFrameCtrl();
-          bodyFrame.InitBasicFrameCtrl(whileCtrl.body, whileCtrl.IsPartial, null);
-          state.AddNewFrame(bodyFrame);
+            //insert the body frame
+            var bodyFrame = new DefaultTacticFrameCtrl();
+            bodyFrame.InitBasicFrameCtrl(whileCtrl._body, whileCtrl.IsPartial, null);
+            state.AddNewFrame(bodyFrame);
+          }
+
+          yield return state;
         }
-
-        yield return state;
       }
     }
 
     public override IEnumerable<ProofState> EvalStep(ProofState state0){
       var state = state0.Copy();
 
-      var tryEval = SimpTacticExpr.EvalTacticExpr(state, guard) as BooleanRet;
+      var tryEval = SimpTacticExpr.EvalTacticExpr(state, _guard) as BooleanRet;
       Contract.Assert(tryEval != null);
 
-      if(tryEval.value){
+      if(tryEval.Value){
         //insert the body frame
         var bodyFrame = new DefaultTacticFrameCtrl();
-        bodyFrame.InitBasicFrameCtrl(body, state.IsCurFramePartial(), null);
+        bodyFrame.InitBasicFrameCtrl(_body, state.IsCurFramePartial(), null);
         state.AddNewFrame(bodyFrame);
       }
       else{
@@ -74,9 +76,9 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
     public override bool EvalTerminated(bool childFrameRes, ProofState state){
-      var tryEval = SimpTacticExpr.EvalTacticExpr(state, guard) as BooleanRet;
+      var tryEval = SimpTacticExpr.EvalTacticExpr(state, _guard) as BooleanRet;
       Contract.Assert(tryEval != null);
-      return !tryEval.value;
+      return !tryEval.Value;
     }
 
     public override List<Statement> AssembleStmts(List<List<Statement>> raw){

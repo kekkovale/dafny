@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Tacny.Expr;
@@ -27,9 +25,11 @@ namespace Microsoft.Dafny.Tacny.Atomic {
 
       var locals = new List<string>();
       if (tvds == null){
-        foreach (var item in suchThat.Lhss){
-          if (item is IdentifierExpr){
-            var id = (IdentifierExpr) item;
+        foreach (var item in suchThat.Lhss)
+        {
+          var expr = item as IdentifierExpr;
+          if (expr != null){
+            var id = expr;
             if (state.ContainTVal(id.Name))
               locals.Add(id.Name);
             else{
@@ -43,15 +43,20 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       }
 
       foreach (var local in locals){
-        var dest_expr = (suchThat.Expr as BinaryExpr);
-        var l = (Expression)SimpTacticExpr.SimpTacExpr(state, dest_expr.E1);
-        //TODO: currently assume the op is always "in"
-        foreach (var item in (l as SetDisplayExpr).Elements) {
-          var copy = state.Copy();
-          copy.UpdateTacnyVar(local, item);
-          copy.TopTokenTracer().AddBranchTrace(count);
-          yield return copy;
-          count++;
+        var destExpr = (suchThat.Expr as BinaryExpr);
+        if (destExpr != null)
+        {
+          var l = (Expression)SimpTacticExpr.SimpTacExpr(state, destExpr.E1);
+          //TODO: currently assume the op is always "in"
+          var setDisplayExpr = l as SetDisplayExpr;
+          if (setDisplayExpr != null)
+            foreach (var item in setDisplayExpr.Elements) {
+              var copy = state.Copy();
+              copy.UpdateTacnyVar(local, item);
+              copy.TopTokenTracer().AddBranchTrace(count);
+              yield return copy;
+              count++;
+            }
         }
       }
     }

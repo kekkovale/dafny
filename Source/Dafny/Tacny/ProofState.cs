@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics.Contracts;
-using System.Diagnostics.Eventing.Reader;
 using System.Linq;
-using System.Reflection;
 using Dfy = Microsoft.Dafny;
 using Microsoft.Dafny.Tacny.Language;
 
@@ -43,8 +40,7 @@ namespace Microsoft.Dafny.Tacny{
       _topLevelClasses = new List<TopLevelClassDeclaration>();
       Reporter = reporter;
 
-      var files = new List<DafnyFile>();
-      files.Add(new DafnyFile(program.FullName));
+      var files = new List<DafnyFile> {new DafnyFile(program.FullName)};
       //note the differences between this ParseCheck and the one at the top level. This function only parses but the other one resolves.
       //use the deafult error reportor, as the one from program include too much extra object/information for deep copy
       var err = Main.Parse(files, program.Name, new ConsoleErrorReporter(), out _original);
@@ -67,7 +63,7 @@ namespace Microsoft.Dafny.Tacny{
       var tactic = GetTactic(tacAps) as Tactic;
 
       var aps = ((ExprRhs) tacAps.Rhss[0]).Expr as ApplySuffix;
-      if (aps.Args.Count != tactic.Ins.Count)
+      if (tactic != null && (aps != null && aps.Args.Count != tactic.Ins.Count))
         Reporter.Error(MessageSource.Tacny, tacAps.Tok,
           $"Wrong number of method arguments (got {aps.Args.Count}, expected {tactic.Ins.Count})");
 
@@ -80,12 +76,13 @@ namespace Microsoft.Dafny.Tacny{
           throw new ArgumentException($"Dafny variable {item.Key.Name} is already declared in the current context");
       }
 
-      for (int index = 0; index < aps.Args.Count; index++){
+      for (int index = 0; index < aps.Args.Count; index++)
+      {
         var arg = aps.Args[index];
-        frame.AddTVar(tactic.Ins[index].Name, arg);
+        if (tactic != null) frame.AddTVar(tactic.Ins[index].Name, arg);
       }
 
-      frame.tokenTracer = new TokenTracer(tacAps.Tok);
+      frame.TokenTracer = new TokenTracer(tacAps.Tok);
 
       _scope.Push(frame);
       TopLevelTacApp = tacAps.Copy();
@@ -95,10 +92,9 @@ namespace Microsoft.Dafny.Tacny{
     public Dictionary<string, ITactic> Tactics => ActiveClass.Tactics;
     public Dictionary<string, MemberDecl> Members => ActiveClass.Members;
 
-    public TacticBasicErr GetErrHandler() {
-      if (ErrHandler == null)
-        ErrHandler = new TacticBasicErr(GetTokenTracer());
-      return ErrHandler;
+    public TacticBasicErr GetErrHandler()
+    {
+      return ErrHandler ?? (ErrHandler = new TacticBasicErr(GetTokenTracer()));
     }
     public Program GetDafnyProgram(){
       //Contract.Requires(_original != null, "_original");
@@ -162,12 +158,12 @@ namespace Microsoft.Dafny.Tacny{
       _scope.Peek().FrameCtrl.MarkAsEvaluated(curFrameProved, out ifbacktracked);
 
       var code = _scope.Peek().FrameCtrl.GetFinalCode();
-      var trace = _scope.Peek().tokenTracer;
+      var trace = _scope.Peek().TokenTracer;
 
       // add the assembled code to the parent frame
       if (code != null && _scope.Peek().Parent != null){
         _scope.Peek().Parent.FrameCtrl.AddGeneratedCode(code);
-        _scope.Peek().Parent.tokenTracer.AddSubTrace(trace);
+        _scope.Peek().Parent.TokenTracer.AddSubTrace(trace);
         _scope.Pop();
         if (_scope.Peek().FrameCtrl.EvalTerminated(curFrameProved, this) || IsEvaluated())
           MarkCurFrameAsTerminated(curFrameProved, ifbacktrackedInRecurCall);
@@ -184,7 +180,7 @@ namespace Microsoft.Dafny.Tacny{
     #region GETTERS
 
     internal TokenTracer GetTokenTracer(Frame f, TokenTracer tracer0) {
-      var tracer = f.tokenTracer.Copy();
+      var tracer = f.TokenTracer.Copy();
       tracer.AddSubTrace(tracer0);
 
       if (f.Parent == null)
@@ -195,14 +191,14 @@ namespace Microsoft.Dafny.Tacny{
     public TokenTracer GetTokenTracer() {
       var top = _scope.Peek();
       if (top.Parent == null)
-        return top.tokenTracer;
+        return top.TokenTracer;
       else
-       return GetTokenTracer(top.Parent, top.tokenTracer);
+       return GetTokenTracer(top.Parent, top.TokenTracer);
     }
 
     public TokenTracer TopTokenTracer() {
       var top = _scope.Peek();
-      return top.tokenTracer;
+      return top.TokenTracer;
     }
 
     public Statement GetStmt(){
@@ -219,8 +215,7 @@ namespace Microsoft.Dafny.Tacny{
 
     public List<int> GetBackTrackCount(){
       var frame = _scope.Peek();
-      var backtrack = new List<int>();
-      backtrack.Add(frame.FrameCtrl.Backtrack);
+      var backtrack = new List<int> {frame.FrameCtrl.Backtrack};
 
       while (frame.Parent != null){
         frame = frame.Parent;
@@ -231,7 +226,7 @@ namespace Microsoft.Dafny.Tacny{
     }
 
     public int GetOrignalTopBacktrack(){
-      return _scope.Peek().FrameCtrl.OriginalBK;
+      return _scope.Peek().FrameCtrl.OriginalBk;
     }
 
     public void SetBackTrackCount(List<int> cnt){
@@ -243,10 +238,7 @@ namespace Microsoft.Dafny.Tacny{
 
       for (int j = 0; j < cur.Count; j++){
         int count;
-        if (j >= tmp.Count)
-          count = cur[j];
-        else
-          count = tmp[j];
+        count = j >= tmp.Count ? cur[j] : tmp[j];
         cur[j] = count;
       }
 
@@ -290,7 +282,7 @@ namespace Microsoft.Dafny.Tacny{
     /// <param name="key">Variable name</param>
     /// <returns>bool</returns>
     public bool ContainDafnyVar(string key){
-      Contract.Requires<ArgumentNullException>(tcce.NonNull(key));
+      Contract.Requires<ArgumentNullException>(Tcce.NonNull(key));
       return _scope.Peek().ContainDafnyVar(key);
     }
 
@@ -302,7 +294,7 @@ namespace Microsoft.Dafny.Tacny{
     /// <returns>bool</returns>
 
     public bool ContainDafnyVar(NameSegment key){
-      Contract.Requires<ArgumentNullException>(tcce.NonNull(key));
+      Contract.Requires<ArgumentNullException>(Tcce.NonNull(key));
       return ContainDafnyVar(key.Name);
     }
 
@@ -313,7 +305,7 @@ namespace Microsoft.Dafny.Tacny{
     /// <returns>bool</returns>
     /// <exception cref="KeyNotFoundException">Variable does not exist in the current context</exception>
     public IVariable GetDafnyVar(string key){
-      Contract.Requires<ArgumentNullException>(tcce.NonNull(key));
+      Contract.Requires<ArgumentNullException>(Tcce.NonNull(key));
       Contract.Ensures(Contract.Result<IVariable>() != null);
       if (ContainDafnyVar(key))
         return _scope.Peek().GetDafnyVariableData(key).Variable;
@@ -327,7 +319,7 @@ namespace Microsoft.Dafny.Tacny{
     /// <returns>bool</returns>
     /// <exception cref="KeyNotFoundException">Variable does not exist in the current context</exception>
     public IVariable GetDafnyVar(NameSegment key){
-      Contract.Requires<ArgumentNullException>(tcce.NonNull(key));
+      Contract.Requires<ArgumentNullException>(Tcce.NonNull(key));
       Contract.Ensures(Contract.Result<IVariable>() != null);
       return GetDafnyVar(key.Name);
     }
@@ -347,7 +339,7 @@ namespace Microsoft.Dafny.Tacny{
     /// <returns>null if type is not known</returns>
     /// <exception cref="KeyNotFoundException">Variable does not exist in the current context</exception>
     public Dfy.Type GetDafnyVarType(IVariable variable){
-      Contract.Requires<ArgumentNullException>(tcce.NonNull(variable));
+      Contract.Requires<ArgumentNullException>(Tcce.NonNull(variable));
       Contract.Ensures(Contract.Result<Dfy.Type>() != null);
       return GetDafnyVarType(variable.Name);
     }
@@ -359,7 +351,7 @@ namespace Microsoft.Dafny.Tacny{
     /// <returns>null if type is not known</returns>
     /// <exception cref="KeyNotFoundException">Variable does not exist in the current context</exception>
     public Dfy.Type GetDafnyVarType(string key){
-      Contract.Requires<ArgumentNullException>(tcce.NonNull(key));
+      Contract.Requires<ArgumentNullException>(Tcce.NonNull(key));
       Contract.Ensures(Contract.Result<Dfy.Type>() != null);
       if (ContainDafnyVar(key))
         return GetDafnyVar(key).Type;
@@ -492,7 +484,7 @@ namespace Microsoft.Dafny.Tacny{
     }
 
     private bool IsTacticCall(string name){
-      Contract.Requires(tcce.NonNull(name));
+      Contract.Requires(Tcce.NonNull(name));
       if (name == null) return false;
       return Tactics.ContainsKey(name);
     }
@@ -590,16 +582,14 @@ namespace Microsoft.Dafny.Tacny{
     /// </summary>
     /// <param name="stmtList"></param>
     public void AddStatementRange(List<Statement> stmtList){
-      Contract.Requires<ArgumentNullException>(tcce.NonNullElements(stmtList));
+      Contract.Requires<ArgumentNullException>(Tcce.NonNullElements(stmtList));
       _scope.Peek().FrameCtrl.AddGeneratedCode(stmtList);
     }
 
     /// <summary>
     /// Return the latest unevalauted statement from the top frame
     /// </summary>
-    /// <param name="partial"></param>
     /// <returns></returns>
-
 
     public class TopLevelClassDeclaration{
       public readonly Dictionary<string, MemberDecl> Members;
@@ -617,15 +607,16 @@ namespace Microsoft.Dafny.Tacny{
     internal class Frame{
       public readonly Frame Parent;
       private readonly Dictionary<string, object> _declaredVariables; // tacny variables
-      private readonly Dictionary<string, VariableData> _DafnyVariables; // dafny variables
+      private readonly Dictionary<string, VariableData> _dafnyVariables; // dafny variables
       public TacticFrameCtrl FrameCtrl;
-      public TokenTracer tokenTracer;
+      public TokenTracer TokenTracer;
       private readonly ErrorReporter _reporter;
 
       /// <summary>
       /// Initialize the top level frame
       /// </summary>
       /// <param name="tactic"></param>
+      /// <param name="attr"></param>
       /// <param name="reporter"></param>
       public Frame(ITactic tactic, Attributes attr, ErrorReporter reporter){
         Contract.Requires<ArgumentNullException>(tactic != null, "tactic");
@@ -640,7 +631,7 @@ namespace Microsoft.Dafny.Tacny{
 
         _reporter = reporter;
         _declaredVariables = new Dictionary<string, object>();
-        _DafnyVariables = new Dictionary<string, VariableData>();
+        _dafnyVariables = new Dictionary<string, VariableData>();
 
       }
 
@@ -648,8 +639,8 @@ namespace Microsoft.Dafny.Tacny{
         Contract.Requires<ArgumentNullException>(parent != null);
         // carry over the tactic info
         _declaredVariables = new Dictionary<string, object>();
-        _DafnyVariables = new Dictionary<string, VariableData>();
-        tokenTracer = parent.tokenTracer.GenSubTrace();
+        _dafnyVariables = new Dictionary<string, VariableData>();
+        TokenTracer = parent.TokenTracer.GenSubTrace();
         Parent = parent;
         _reporter = parent._reporter;
         FrameCtrl = ctrl;
@@ -658,13 +649,13 @@ namespace Microsoft.Dafny.Tacny{
       [Pure]
       internal VariableData GetLocalDafnyVar(string name){
         //Contract.Requires(_DafnyVariables.ContainsKey(name));
-        return _DafnyVariables[name];
+        return _dafnyVariables[name];
       }
 
       internal void AddDafnyVar(string name, VariableData var){
         Contract.Requires<ArgumentNullException>(name != null, "key");
-        if (_DafnyVariables.All(v => v.Key != name)){
-          _DafnyVariables.Add(name, var);
+        if (_dafnyVariables.All(v => v.Key != name)){
+          _dafnyVariables.Add(name, var);
         }
         else{
           throw new ArgumentException($"dafny var {name} is already declared in the scope");
@@ -675,22 +666,22 @@ namespace Microsoft.Dafny.Tacny{
         Contract.Requires<ArgumentNullException>(name != null, "name");
         // base case
         if (Parent == null)
-          return _DafnyVariables.Any(kvp => kvp.Key == name);
-        return _DafnyVariables.Any(kvp => kvp.Key == name) || Parent.ContainDafnyVar(name);
+          return _dafnyVariables.Any(kvp => kvp.Key == name);
+        return _dafnyVariables.Any(kvp => kvp.Key == name) || Parent.ContainDafnyVar(name);
       }
 
 
       internal VariableData GetDafnyVariableData(string name){
 //     Contract.Requires(ContainDafnyVars(name));
-        if (_DafnyVariables.ContainsKey(name))
-          return _DafnyVariables[name];
+        if (_dafnyVariables.ContainsKey(name))
+          return _dafnyVariables[name];
         else{
           return Parent.GetDafnyVariableData(name);
         }
       }
 
       internal Dictionary<string, VariableData> GetAllDafnyVars(Dictionary<string, VariableData> toDict){
-        _DafnyVariables.Where(x => !toDict.ContainsKey(x.Key)).ToList().ForEach(x => toDict.Add(x.Key, x.Value));
+        _dafnyVariables.Where(x => !toDict.ContainsKey(x.Key)).ToList().ForEach(x => toDict.Add(x.Key, x.Value));
         if (Parent == null)
           return toDict;
         else{
@@ -794,7 +785,7 @@ namespace Microsoft.Dafny.Tacny{
         get { return _variable; }
         set{
           Contract.Assume(_variable == null); // key value should be only set once
-          Contract.Assert(tcce.NonNull(value));
+          Contract.Assert(Tcce.NonNull(value));
           _variable = value;
         }
       }

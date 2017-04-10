@@ -19,9 +19,11 @@ namespace Microsoft.Dafny.Tacny.Language{
     }
 
     private List<Tuple<Expression, List<Statement>>> GetGuadBodyList(Statement stmt,
-      List<Tuple<Expression, List<Statement>>> resList){
-      if (stmt is IfStmt){
-        return GetGuadBodyList(stmt as IfStmt, resList);
+      List<Tuple<Expression, List<Statement>>> resList)
+    {
+      var ifStmt = stmt as IfStmt;
+      if (ifStmt != null){
+        return GetGuadBodyList(ifStmt, resList);
       }
       else{
         return GetGuadBodyList(stmt as AlternativeStmt, resList);
@@ -34,15 +36,19 @@ namespace Microsoft.Dafny.Tacny.Language{
       resList.Add(new Tuple<Expression, List<Statement>>(stmt.Guard, stmt.Thn.Body));
       if (stmt.Els == null)
         return resList;
-      else if (stmt.Els is BlockStmt){
-        // else
-        var body = stmt.Els as BlockStmt;
-        resList.Add(new Tuple<Expression, List<Statement>>(null, body.Body));
-        return resList;
-      }
-      else{
-        // else if
-        return GetGuadBodyList(stmt.Els, resList);
+      else
+      {
+        var blockStmt = stmt.Els as BlockStmt;
+        if (blockStmt != null){
+          // else
+          var body = blockStmt;
+          resList.Add(new Tuple<Expression, List<Statement>>(null, body.Body));
+          return resList;
+        }
+        else{
+          // else if
+          return GetGuadBodyList(stmt.Els, resList);
+        }
       }
     }
 
@@ -56,7 +62,7 @@ namespace Microsoft.Dafny.Tacny.Language{
     }
 
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
-      bool partial = true || state0.IsCurFramePartial();
+      bool partial = true;
       List<Tuple<Expression, List<Statement>>> guardBodyList = new List<Tuple<Expression, List<Statement>>>();
 
       int counter = 0;
@@ -89,7 +95,7 @@ namespace Microsoft.Dafny.Tacny.Language{
           }
           else{
             var res = SimpTacticExpr.EvalTacticExpr(state0, item.Item1) as BooleanRet;
-            if (res.value){
+            if (res != null && res.Value){
               counter++;
               var state = state0.Copy();
               var ifChoice = this.Copy();

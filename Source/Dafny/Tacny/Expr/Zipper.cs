@@ -19,40 +19,42 @@ namespace Microsoft.Dafny.Tacny.Expr {
         private class Path {
             public Path Parent;
             public Expression Exp;
-            public int cur = 0; // Each type needs to keep track of what this means
+            public int Cur = 0; // Each type needs to keep track of what this means
         }
 
         private Path _path;
         private Expression _exp;
 
-        public Expression Exp {
-            get {
-                return _exp;
-            }
-        }
+        public Expression Exp => _exp;
 
-        public Zipper(Expression e) {
+      public Zipper(Expression e) {
             _exp = e;
             _path = null; // replace with option type?
         }
 
         public bool GoLeft() {
-            if (_path != null || _path.cur == 0)
+            if (_path != null && (_path != null || _path.Cur == 0))
                 return false;
             else {
-                _path.cur--;
-                _exp = _path.Exp.SubExpressions.ElementAt(_path.cur);
-                return true;
+              if (_path != null)
+              {
+                _path.Cur--;
+                _exp = _path.Exp.SubExpressions.ElementAt(_path.Cur);
+              }
+              return true;
             }
         }
 
         public bool GoRight() {
-            if (_path != null || _path.cur < _path.Exp.SubExpressions.Count() - 1)
+            if (_path != null && (_path != null || _path.Cur < _path.Exp.SubExpressions.Count() - 1))
                 return false;
             else {
-                _path.cur++;
-                _exp = _path.Exp.SubExpressions.ElementAt(_path.cur);
-                return true;
+              if (_path != null)
+              {
+                _path.Cur++;
+                _exp = _path.Exp.SubExpressions.ElementAt(_path.Cur);
+              }
+              return true;
             }
             return false;
         }

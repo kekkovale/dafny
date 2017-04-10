@@ -4,23 +4,23 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Tacny.Expr {
   public class BooleanRet {
-    public bool value;
+    public bool Value;
   }
 
   class SimpTacticExpr : Cloner{
-    private ProofState _state;
+    private readonly ProofState _state;
 
     private SimpTacticExpr(ProofState state) {
-      this._state = state;
+      _state = state;
     }
 
-    internal bool IsTVar(Expression expr){
-      return (expr is NameSegment && _state.ContainTVal((expr as NameSegment).Name));
+    internal bool IsTVar(Expression expr)
+    {
+      var segment = expr as NameSegment;
+      return (segment != null && _state.ContainTVal(segment.Name));
     }
 
     internal object EvalTVar(NameSegment ns, bool deref){
@@ -64,12 +64,16 @@ namespace Microsoft.Dafny.Tacny.Expr {
       var e = new SimpTacticExpr(state);
       if (e.IsTVar(expr))
         return e.EvalTVar(expr as NameSegment, true);
-      else if (expr is ApplySuffix){
-        var aps = expr as ApplySuffix;
-        if (e.IsEAtmoicCall(aps))
-          return e.EvalEAtomExpr(aps);
-        else if (e.IsETacticCall(aps))
-          return e.IsETacticCall(aps);
+      else
+      {
+        var suffix = expr as ApplySuffix;
+        if (suffix != null){
+          var aps = suffix;
+          if (e.IsEAtmoicCall(aps))
+            return e.EvalEAtomExpr(aps);
+          else if (e.IsETacticCall(aps))
+            return e.IsETacticCall(aps);
+        }
       }
       //TODO: evaluate expr as boolean and return as BooleanRet
       return null;
@@ -91,7 +95,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
         if (obj is Expression)
           return obj as Expression;
         else if (obj is List<Expression>)
-          return new SetDisplayExpr(new Token(Interpreter.TACNY_CODE_TOK_LINE,0), true, obj as List<Expression>);
+          return new SetDisplayExpr(new Token(Interpreter.TacnyCodeTokLine,0), true, obj as List<Expression>);
         else
           throw new NotSupportedException ("Unkonwn type to handle when simplifying an expression");
 
@@ -109,9 +113,11 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return base.CloneNameSegment(expr);
     }
 
-    public override Expression CloneExpr(Expression expr){
-      if (expr is ApplySuffix)
-        return CloneApplySuffix(expr as ApplySuffix);
+    public override Expression CloneExpr(Expression expr)
+    {
+      var suffix = expr as ApplySuffix;
+      if (suffix != null)
+        return CloneApplySuffix(suffix);
       else if (expr is NameSegment){
         return (CloneNameSegment(expr));
       }
@@ -123,9 +129,9 @@ namespace Microsoft.Dafny.Tacny.Expr {
 
   class RenameVar : Cloner {
 
-    private Dictionary<string, string> _renames;
+    private readonly Dictionary<string, string> _renames;
 
-    public RenameVar() : base() {
+    public RenameVar() {
       _renames = new Dictionary<string, string>();
     }
 
@@ -135,27 +141,18 @@ namespace Microsoft.Dafny.Tacny.Expr {
 
     
     public override BoundVar CloneBoundVar(BoundVar bv) {
-      String nm,name;
-      if (_renames.TryGetValue(bv.Name, out nm))
-        name = nm;
-      else {
-        name = bv.Name;
-      }
-      var bvNew = new BoundVar(Tok(bv.tok), name, CloneType(bv.Type));
-      bvNew.IsGhost = bv.IsGhost;
+      String nm;
+      var name = _renames.TryGetValue(bv.Name, out nm) ? nm : bv.Name;
+      var bvNew = new BoundVar(Tok(bv.tok), name, CloneType(bv.Type)) {IsGhost = bv.IsGhost};
       return bvNew;
     }
  
     public override Expression CloneNameSegment(Expression expr) {
       var e = (NameSegment) expr;
-      String nm, name;
-      if (_renames.TryGetValue(e.Name, out nm))
-        name = nm;
-      else {
-        name = e.Name;
-      }
+      String nm;
+      var name = _renames.TryGetValue(e.Name, out nm) ? nm : e.Name;
       return new NameSegment(Tok(e.tok), name,
-        e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+        e.OptTypeArguments?.ConvertAll(CloneType));
     }
   }
 

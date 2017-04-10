@@ -10,6 +10,11 @@ namespace Microsoft.Dafny.Tacny {
 
   [ContractClassFor(typeof(BaseTactic))]
   public abstract class BaseTacticContract : BaseTactic {
+    protected BaseTacticContract(string signature)
+    {
+      Signature = signature;
+    }
+
     public override string Signature { get; }
 
     [ContractInvariantMethod]

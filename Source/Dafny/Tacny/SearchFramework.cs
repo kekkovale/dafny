@@ -1,7 +1,5 @@
-﻿using Microsoft.Dafny;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
@@ -63,7 +61,7 @@ namespace Microsoft.Dafny.Tacny {
           enumerable = DepthFirstSeach.Search(state, er);
           break;
         case Strategy.Undefined:
-          throw new tcce.UnreachableException();
+          throw new Tcce.UnreachableException();
         default:
           enumerable = DepthFirstSeach.Search(state, er);
           break;

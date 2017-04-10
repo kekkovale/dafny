@@ -39,7 +39,7 @@ namespace Microsoft.Dafny.Tacny {
     /// <param name="us"></param>
     /// <returns></returns>
     public static string GetSignature(UpdateStmt us) {
-      Contract.Requires<ArgumentNullException>(tcce.NonNull(us));
+      Contract.Requires<ArgumentNullException>(Tcce.NonNull(us));
       Contract.Ensures(Contract.Result<string>() != null);
       var er = us.Rhss[0] as ExprRhs;
       Contract.Assert(er != null);
@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.Tacny {
     /// <param name="aps"></param>
     /// <returns></returns>
     public static string GetSignature(ApplySuffix aps) {
-      Contract.Requires<ArgumentNullException>(tcce.NonNull(aps));
+      Contract.Requires<ArgumentNullException>(Tcce.NonNull(aps));
       Contract.Ensures(Contract.Result<string>() != null);
       return aps?.Lhs.tok.val;
     }
@@ -103,10 +103,14 @@ namespace Microsoft.Dafny.Tacny {
           for (var j = 0; j < whileStmt.TInvariants.Count; j ++){
             var item = whileStmt.TInvariants[j];
             if(Compare(tacticCall.Tok, item.Tok)){
-              foreach (var gen_code in code){
+              foreach (var genCode in code){
                 //each inviariant are assmebled as assume statement
-                var expr = (gen_code as AssumeStmt).Expr;
-                whileStmt.Invariants.Insert(0, (new MaybeFreeExpression(expr)));
+                var assumeStmt = genCode as AssumeStmt;
+                if (assumeStmt != null)
+                {
+                  var expr = assumeStmt.Expr;
+                  whileStmt.Invariants.Insert(0, (new MaybeFreeExpression(expr)));
+                }
                 whileStmt.TInvariants.Remove(item);
               }
             }
@@ -150,14 +154,17 @@ namespace Microsoft.Dafny.Tacny {
       var cl = new Cloner();
       foreach(var body in bodies) {
         var md = cl.CloneMember(state.TargetMethod) as Method;
-        md.Body.Body.Clear();
-        md.Body.Body.AddRange(body.Value.Body);
-        if (result.Values.All(x => x.Name != md.Name))
-          result.Add(body.Key, md);
-        else {
-          md = new Method(md.tok, FreshMemberName(md, result.Values.ToList()), md.HasStaticKeyword, md.IsGhost, md.TypeArgs, md.Ins,
-            md.Outs, md.Req, md.Mod, md.Ens, md.Decreases, md.Body, md.Attributes, md.SignatureEllipsis);
-          result.Add(body.Key, md);
+        if (md != null)
+        {
+          md.Body.Body.Clear();
+          md.Body.Body.AddRange(body.Value.Body);
+          if (result.Values.All(x => x.Name != md.Name))
+            result.Add(body.Key, md);
+          else {
+            md = new Method(md.tok, FreshMemberName(md, result.Values.ToList()), md.HasStaticKeyword, md.IsGhost, md.TypeArgs, md.Ins,
+              md.Outs, md.Req, md.Mod, md.Ens, md.Decreases, md.Body, md.Attributes, md.SignatureEllipsis);
+            result.Add(body.Key, md);
+          }
         }
       }
       return result;
@@ -202,7 +209,7 @@ namespace Microsoft.Dafny.Tacny {
 
     public static void SetVerifyFalseAttr(MemberDecl memb) {
       var args = new List<Expression>();
-      var f = new Microsoft.Dafny.LiteralExpr(new Token(Interpreter.TACNY_CODE_TOK_LINE, 0) { val = "false" }, false);
+      var f = new Microsoft.Dafny.LiteralExpr(new Token(Interpreter.TacnyCodeTokLine, 0) { val = "false" }, false);
       args.Add(f);
       Attributes newattr = new Attributes("verify", args, memb.Attributes);
       memb.Attributes = newattr;
@@ -214,34 +221,43 @@ namespace Microsoft.Dafny.Tacny {
       var r = new Resolver(prog);
       r.ResolveProgram(prog);
       //get the generated code
-      var results = new Dictionary<UpdateStmt, List<Statement>>();
-      results.Add(state.TopLevelTacApp, state.GetGeneratedCode().Copy());
-      var body = Util.InsertCode(state, results);
+      var results = new Dictionary<UpdateStmt, List<Statement>>
+      {
+        {state.TopLevelTacApp, state.GetGeneratedCode().Copy()}
+      };
+      var body = InsertCode(state, results);
       // find the membcl in the resoved prog
-      Method dest_md = null;
+      Method destMd = null;
       foreach(var m in prog.DefaultModuleDef.TopLevelDecls) {
-        if(m.WhatKind == "class") {
-          foreach(var method in (m as DefaultClassDecl).Members) {
-            if (method.FullName == state.TargetMethod.FullName){
-              dest_md = (method as Method);
-              dest_md.Body.Body.Clear();
-              dest_md.Body.Body.AddRange(body.Body);
-            }// if some other method has tactic call, then empty the body
-            else if(method.CallsTactic){
-              method.CallsTactic = false;
-              (method as Method).Body.Body.Clear();
-              SetVerifyFalseAttr(method);
+        if(m.WhatKind == "class")
+        {
+          var defaultClassDecl = m as DefaultClassDecl;
+          if (defaultClassDecl != null)
+            foreach(var method in defaultClassDecl.Members) {
+              if (method.FullName == state.TargetMethod.FullName){
+                destMd = (method as Method);
+                if (destMd != null)
+                {
+                  destMd.Body.Body.Clear();
+                  destMd.Body.Body.AddRange(body.Body);
+                }
+              }// if some other method has tactic call, then empty the body
+              else if(method.CallsTactic){
+                method.CallsTactic = false;
+                var o = method as Method;
+                o?.Body.Body.Clear();
+                SetVerifyFalseAttr(method);
 
-            } else {
-              //set other memberdecl as verify false
-              SetVerifyFalseAttr(method);
+              } else {
+                //set other memberdecl as verify false
+                SetVerifyFalseAttr(method);
+              }
             }
-          }
         }
       }
       //
       #if _TACTIC_DEBUG
-            Console.WriteLine("********************* Tactic in : " + dest_md + " *****************");
+            Console.WriteLine("********************* Tactic in : " + destMd + " *****************");
             var printer = new Printer(Console.Out);
             //printer.PrintProgram(prog, false);
             foreach(var stmt in state.GetGeneratedCode()) {
@@ -251,10 +267,13 @@ namespace Microsoft.Dafny.Tacny {
             Console.WriteLine("********************* Stmts END *****************");
       #endif
       //
-      
-      dest_md.CallsTactic = false;
-      r.SetCurClass(dest_md.EnclosingClass as ClassDecl);
-      r.ResolveMethodBody(dest_md, state.GetDafnyProgram().DefaultModuleDef.Name);
+
+      if (destMd != null)
+      {
+        destMd.CallsTactic = false;
+        r.SetCurClass(destMd.EnclosingClass as ClassDecl);
+        r.ResolveMethodBody(destMd, state.GetDafnyProgram().DefaultModuleDef.Name);
+      }
 
 
       if (prog.reporter.Count(ErrorLevel.Error) != 0){
@@ -286,10 +305,9 @@ namespace Microsoft.Dafny.Tacny {
 */
       var boogieProg = Translator.Translate(program, program.reporter, null);
 
-      PipelineStatistics stats;
-      List<ErrorInformation> errorList;
-
       foreach (var prog in boogieProg){
+        PipelineStatistics stats;
+        List<ErrorInformation> errorList;
         PipelineOutcome tmp = BoogiePipeline(prog.Item2,
           new List<string> { program.Name }, program.Name, er,
           out stats, out errorList, program);
@@ -564,19 +582,19 @@ namespace Microsoft.Dafny.Tacny {
 
     internal class ArrayTraverse {
       public int[] Position;
-      private int[] maxLengths;
+      private readonly int[] _maxLengths;
 
       public ArrayTraverse(Array array) {
-        maxLengths = new int[array.Rank];
+        _maxLengths = new int[array.Rank];
         for (int i = 0; i < array.Rank; ++i) {
-          maxLengths[i] = array.GetLength(i) - 1;
+          _maxLengths[i] = array.GetLength(i) - 1;
         }
         Position = new int[array.Rank];
       }
 
       public bool Step() {
         for (int i = 0; i < Position.Length; ++i) {
-          if (Position[i] < maxLengths[i]) {
+          if (Position[i] < _maxLengths[i]) {
             Position[i]++;
             for (int j = 0; j < i; j++) {
               Position[j] = 0;

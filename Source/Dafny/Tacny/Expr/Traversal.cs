@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace Microsoft.Dafny.Tacny.Expr {
 
@@ -43,8 +41,9 @@ namespace Microsoft.Dafny.Tacny.Expr {
       Contract.Requires(_vars != null);
       Contract.Requires(e != null);
 
-      if (e is ComprehensionExpr) {
-        ComprehensionExpr c = e as ComprehensionExpr;
+      var expr = e as ComprehensionExpr;
+      if (expr != null) {
+        ComprehensionExpr c = expr;
         foreach (BoundVar bv in c.BoundVars) {
           _vars.Add(bv.Name);
         }
@@ -55,15 +54,17 @@ namespace Microsoft.Dafny.Tacny.Expr {
       Contract.Requires(_vars != null);
       Contract.Requires(stmt != null);
 
-      if (stmt is VarDeclStmt) {
-        var s = stmt as VarDeclStmt;
+      var declStmt = stmt as VarDeclStmt;
+      if (declStmt != null) {
+        var s = declStmt;
         foreach (LocalVariable l in s.Locals) {
           _vars.Add(l.Name);
         }
       }
       // FIXME: t this should really be handled by SubExpressions function in AST but doesn't seem to be correct
-      if (stmt is UpdateStmt) {
-        var s = stmt as UpdateStmt;
+      var updateStmt = stmt as UpdateStmt;
+      if (updateStmt != null) {
+        var s = updateStmt;
         foreach (AssignmentRhs rhs in s.Rhss)
           foreach (Expression e in rhs.SubExpressions)
             ExprVars(e);
@@ -75,9 +76,8 @@ namespace Microsoft.Dafny.Tacny.Expr {
     // can also get a ref to a list as argument
     public static void DeclaredVars(Statement stmt,ref List<String> ls) {
       Contract.Requires(ls != null);
-       AllVars v = new AllVars();
-       v._vars = ls;
-       Traversal.TraverseStatement(stmt,v.StmtVars,v.ExprVars);
+      AllVars v = new AllVars {_vars = ls};
+      Traversal.TraverseStatement(stmt,v.StmtVars,v.ExprVars);
       // is this necessary?
        ls = v._vars;
     }

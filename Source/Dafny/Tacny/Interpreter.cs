@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
@@ -7,11 +6,10 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Tacny.Expr;
-using Microsoft.Dafny.Tacny.Language;
 
 namespace Microsoft.Dafny.Tacny {
   public class Interpreter {
-    public static int TACNY_CODE_TOK_LINE = -1;
+    public static int TacnyCodeTokLine = -1;
     public static bool IfEvalTac { get; set; } = true;
 
     private static Interpreter _i;
@@ -22,8 +20,6 @@ namespace Microsoft.Dafny.Tacny {
 
     private readonly ProofState _state;
     private readonly ErrorReporter _errorReporter;
-
-    private Program _program;
 
     public static void ResetTacnyResultList(){
       if(_resultList == null)
@@ -44,10 +40,9 @@ namespace Microsoft.Dafny.Tacny {
     }
 
     private Interpreter(Program program) {
-      Contract.Requires(tcce.NonNull(program));
+      Contract.Requires(Tcce.NonNull(program));
       // initialize state
       _errorReporter = new ConsoleErrorReporter();
-      _program = program;
       _state = new ProofState(program, _errorReporter);
       _frame = new Stack<Dictionary<IVariable, Type>>();
       //_resultList = new Dictionary<UpdateStmt, List<Statement>>();
@@ -56,8 +51,8 @@ namespace Microsoft.Dafny.Tacny {
 
     [ContractInvariantMethod]
     private void ObjectInvariant() {
-      Contract.Invariant(tcce.NonNull(_state));
-      Contract.Invariant(tcce.NonNull(_frame));
+      Contract.Invariant(Tcce.NonNull(_state));
+      Contract.Invariant(Tcce.NonNull(_frame));
       Contract.Invariant(_errorReporter != null);
     }
     /// <summary>
@@ -84,7 +79,7 @@ namespace Microsoft.Dafny.Tacny {
       p.PrintMembers(new List<MemberDecl>() { result }, 0, "");
 
       watch.Stop();
-      Console.WriteLine("Time Used: " + watch.Elapsed.TotalSeconds.ToString());
+      Console.WriteLine("Time Used: " + watch.Elapsed.TotalSeconds);
 
       _errorReporterDelegate = null;
       return result;
@@ -92,7 +87,7 @@ namespace Microsoft.Dafny.Tacny {
 
 
     private MemberDecl ResolveAndUnfoldTactic(MemberDecl target, Resolver r) {
-      Contract.Requires(tcce.NonNull(target));
+      Contract.Requires(Tcce.NonNull(target));
       // initialize new stack for variables
       _frame = new Stack<Dictionary<IVariable, Type>>();
 
@@ -104,16 +99,16 @@ namespace Microsoft.Dafny.Tacny {
           .ToDictionary<IVariable, IVariable, Type>(item => item, item => item.Type);
         _frame.Push(dict);
 
-        var pre_res = _resultList.Keys.Copy();
+        var preRes = _resultList.Keys.Copy();
 
         ResolveBlockStmt(method.Body);
         dict = _frame.Pop();
         // sanity check
         Contract.Assert(_frame.Count == 0);
 
-        var new_rets = _resultList.Where(kvp => !pre_res.Contains(kvp.Key)).ToDictionary(i => i.Key, i => i.Value);
-        Contract.Assert(new_rets.Count != 0);
-        var body = Util.InsertCode(_state, new_rets);
+        var newRets = _resultList.Where(kvp => !preRes.Contains(kvp.Key)).ToDictionary(i => i.Key, i => i.Value);
+        Contract.Assert(newRets.Count != 0);
+        var body = Util.InsertCode(_state, newRets);
         method.Body.Body.Clear();
         if(body != null)
           method.Body.Body.AddRange(body.Body);
@@ -134,7 +129,7 @@ namespace Microsoft.Dafny.Tacny {
 
     // Find tactic application and resolve it
     private void ResolveBlockStmt(BlockStmt body) {
-      Contract.Requires(tcce.NonNull(body));
+      Contract.Requires(Tcce.NonNull(body));
 
       // BaseSearchStrategy.ResetProofList();
       _frame.Push(new Dictionary<IVariable, Type>());
@@ -175,11 +170,7 @@ namespace Microsoft.Dafny.Tacny {
         if (IfEvalTac){
           result = EvalTopLevelTactic(_state, list, us);
         }
-        if(result != null)
-          _resultList.Add(us.Copy(), result.GetGeneratedCode().Copy());
-        else {// when no results, just return a empty stmt list
-          _resultList.Add(us.Copy(), new List<Statement>());
-        }
+        _resultList.Add(us.Copy(), result != null ? result.GetGeneratedCode().Copy() : new List<Statement>());
       }
     }
 
@@ -202,7 +193,7 @@ namespace Microsoft.Dafny.Tacny {
     }
 
     private void ResolveIfStmt(IfStmt ifStmt) {
-      Contract.Requires(tcce.NonNull(ifStmt));
+      Contract.Requires(Tcce.NonNull(ifStmt));
       //throw new NotImplementedException();
 
       ResolveBlockStmt(ifStmt.Thn);
@@ -228,8 +219,8 @@ namespace Microsoft.Dafny.Tacny {
 
     public static ProofState EvalTopLevelTactic(ProofState state, Dictionary<IVariable, Type> variables,
       UpdateStmt tacticApplication) {
-      Contract.Requires<ArgumentNullException>(tcce.NonNull(variables));
-      Contract.Requires<ArgumentNullException>(tcce.NonNull(tacticApplication));
+      Contract.Requires<ArgumentNullException>(Tcce.NonNull(variables));
+      Contract.Requires<ArgumentNullException>(Tcce.NonNull(tacticApplication));
       Contract.Requires<ArgumentNullException>(state != null, "state");
       state.InitState(tacticApplication, variables);
 
@@ -254,39 +245,45 @@ namespace Microsoft.Dafny.Tacny {
         }
       }
       // no frame control is triggered
-      if(enumerable == null) {
-        if(stmt is TacticVarDeclStmt) {
-          enumerable = RegisterVariable(stmt as TacticVarDeclStmt, state);
+      if(enumerable == null)
+      {
+        var declaration = stmt as TacticVarDeclStmt;
+        if(declaration != null) {
+          enumerable = RegisterVariable(declaration, state);
         }  else if(stmt is AssignSuchThatStmt) {
           enumerable = EvalSuchThatStmt((AssignSuchThatStmt)stmt, state);
         } else if(stmt is PredicateStmt) {
           enumerable = EvalPredicateStmt((PredicateStmt)stmt, state);
         } else if(stmt is TacticInvariantStmt){
           enumerable = new Atomic.TacticInv().Generate(stmt, state);
-        } else if(stmt is UpdateStmt) {
-          var us = stmt as UpdateStmt;
-          if(state.IsLocalAssignment(us)) {
-            enumerable = UpdateLocalValue(us, state);
-          } else if(state.IsArgumentApplication(us)) {
-            //TODO: argument application ??
-          } else {
-            // apply atomic
-            string sig = Util.GetSignature(us);
-            //Firstly, check if this is a projection function
-            var types =
-              Assembly.GetAssembly(typeof(Atomic.Atomic))
-                .GetTypes()
-                .Where(t => t.IsSubclassOf(typeof(Atomic.Atomic)));
-            foreach(var fType in types) {
-              var porjInst = Activator.CreateInstance(fType) as Atomic.Atomic;
-              if(sig == porjInst?.Signature) {
-                //TODO: validate input countx
-                enumerable = porjInst?.Generate(us, state);
+        } else
+        {
+          var updateStmt = stmt as UpdateStmt;
+          if(updateStmt != null) {
+            var us = updateStmt;
+            if(state.IsLocalAssignment(us)) {
+              enumerable = UpdateLocalValue(us, state);
+            } else if(state.IsArgumentApplication(us)) {
+              //TODO: argument application ??
+            } else {
+              // apply atomic
+              string sig = Util.GetSignature(us);
+              //Firstly, check if this is a projection function
+              var types =
+                Assembly.GetAssembly(typeof(Atomic.Atomic))
+                  .GetTypes()
+                  .Where(t => t.IsSubclassOf(typeof(Atomic.Atomic)));
+              foreach(var fType in types) {
+                var porjInst = Activator.CreateInstance(fType) as Atomic.Atomic;
+                if(sig == porjInst?.Signature) {
+                  //TODO: validate input countx
+                  enumerable = porjInst?.Generate(us, state);
+                }
               }
             }
+          } else {// default action as macro
+            enumerable = DefaultAction(stmt, state);
           }
-        } else {// default action as macro
-          enumerable = DefaultAction(stmt, state);
         }
       }
       return enumerable;
@@ -311,12 +308,14 @@ namespace Microsoft.Dafny.Tacny {
       if (declaration.Update == null)
         yield break;
       var rhs = declaration.Update as UpdateStmt;
-      if(rhs == null) {
+      if(rhs == null)
+      {
         // check if rhs is SuchThatStmt
-        if(declaration.Update is AssignSuchThatStmt) {
+        var stmt = declaration.Update as AssignSuchThatStmt;
+        if(stmt != null) {
           foreach(var item in declaration.Locals)
             state.AddTacnyVar(item, null);
-          foreach(var item in EvalSuchThatStmt(declaration.Update as AssignSuchThatStmt, state)) {
+          foreach(var item in EvalSuchThatStmt(stmt, state)) {
             yield return item;
           }
           yield break;

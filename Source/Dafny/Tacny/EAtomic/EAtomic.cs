@@ -24,9 +24,10 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
             Assembly.GetAssembly(typeof(EAtomic))
               .GetTypes()
               .Where(t => t.IsSubclassOf(typeof(EAtomic)));
-      foreach(var eType in types) {
+      foreach(var eType in types)
+      {
         var eatomInst = Activator.CreateInstance(eType) as EAtomic;
-        EATomicSigList.Add(eatomInst.Signature);
+        if (eatomInst != null) EATomicSigList.Add(eatomInst.Signature);
       }
     }
 
@@ -46,6 +47,12 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
 
   [ContractClassFor(typeof(EAtomic))]
   public class EAtomicContract : EAtomic {
+    public EAtomicContract(string signature, int argsCount)
+    {
+      Signature = signature;
+      ArgsCount = argsCount;
+    }
+
     public override string Signature { get; }
     public override int ArgsCount { get; }
 

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Boogie;
+﻿using System.Collections.Generic;
 using Microsoft.Dafny.Tacny.Expr;
 
 namespace Microsoft.Dafny.Tacny.Atomic{
@@ -18,10 +13,10 @@ namespace Microsoft.Dafny.Tacny.Atomic{
       InitArgs(state, statement, out lv, out callArguments);
 
       var expr = SimpTacticExpr.SimpTacExpr(state, callArguments[0]);
-        if (expr is Expression){
-          var dest_stmt = new AssumeStmt(null, null, expr, null);
+        if (expr != null){
+          var destStmt = new AssumeStmt(null, null, expr, null);
           var state0 = state.Copy();
-          state0.AddStatement(dest_stmt);
+          state0.AddStatement(destStmt);
 
           yield return state0;
         }

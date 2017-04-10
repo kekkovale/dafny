@@ -8,7 +8,7 @@ using Microsoft.Dafny;
 /// </summary>
 
 namespace Microsoft.Dafny.Tacny {
-  public class tcce {
+  public class Tcce {
     [Pure]
     public static bool NonNull<T>(T t) where T : class {
       return t != null;
@@ -40,13 +40,10 @@ namespace Microsoft.Dafny.Tacny {
       return collection != null && NonNullElements(collection.TopologicallySortedComponents());
     }
 
-    [Pure]
     public static void BeginExpose(object o) {}
 
-    [Pure]
     public static void EndExpose() {}
 
-    [Pure]
     public static void LoopInvariant(bool p) {
       Contract.Assert(p);
     }
@@ -57,7 +54,6 @@ namespace Microsoft.Dafny.Tacny {
         return true;
       }
 
-      [Pure]
       public static void AssignSame(object o, object p) {}
 
       [Pure]

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -48,8 +47,9 @@ namespace Microsoft.Dafny.Tacny.Language {
         var attrs = _stmt.Attributes.Args;
         for (int i = 0; i < attrs.Count; i++) {
           // todo: should really report an errors if first condition does not hold
-          if (attrs[i] is NameSegment && i < e.BoundVars.Count) {
-            NameSegment ns = attrs[i] as NameSegment;
+          var segment = attrs[i] as NameSegment;
+          if (segment != null && i < e.BoundVars.Count) {
+            NameSegment ns = segment;
             String fv;
             if(GenFreeVar(ns.Name, usedVars, out fv))
             {
@@ -70,23 +70,22 @@ namespace Microsoft.Dafny.Tacny.Language {
 
       // we could even break  _ens into a set of all conjunctions?
       // what about forall x (forall y) x
-      if (e.Term is BinaryExpr && (((BinaryExpr) e.Term).Op.Equals(BinaryExpr.Opcode.Imp))) {
-        var be = e.Term as BinaryExpr;
+      var expr = e.Term as BinaryExpr;
+      if (expr != null && (expr.Op.Equals(BinaryExpr.Opcode.Imp))) {
+        var be = expr;
         _range = rn.CloneExpr(be.E0);
         var t = new MaybeFreeExpression(rn.CloneExpr(be.E1));
-        var l = new List<MaybeFreeExpression>();
-        l.Add(t);
+        var l = new List<MaybeFreeExpression> {t};
         _ens = l;
       }else {
         _range = new LiteralExpr(_stmt.Tok, true);
         var t = new MaybeFreeExpression(rn.CloneExpr(e.Term));
-        var l = new List<MaybeFreeExpression>();
-        l.Add(t);
+        var l = new List<MaybeFreeExpression> {t};
         _ens = l;
       }
 
       // Note that we do not need to rename variables in the body (unless the variables in vars is changed)
-      this.InitBasicFrameCtrl(new List<Statement>(), state0.IsCurFramePartial(), null);
+      InitBasicFrameCtrl(new List<Statement>(), state0.IsCurFramePartial(), null);
       var state = state0.Copy();
 
       state.AddNewFrame(this);
@@ -95,7 +94,7 @@ namespace Microsoft.Dafny.Tacny.Language {
 
       var newBody = rnBody.CloneBlockStmt(_stmt.Body);
       bodyFrame.InitBasicFrameCtrl(newBody.Body, state.IsCurFramePartial(), null);
-      bodyFrame.IsPartial = this.IsPartial;
+      bodyFrame.IsPartial = IsPartial;
       state.AddNewFrame(bodyFrame);
 
       yield return state;
@@ -109,7 +108,7 @@ namespace Microsoft.Dafny.Tacny.Language {
 
     // not sure about this?
     public override bool EvalTerminated(bool childFrameRes, ProofState state) {
-      return _rawCodeList.Count == 1;
+      return RawCodeList.Count == 1;
     }
 
     public override List<Statement> AssembleStmts(List<List<Statement>> raw) {
@@ -122,8 +121,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       //FIXME: update tokens
       var body = new Dafny.BlockStmt(start, end, stmts);
       var stmt = new Dafny.ForallStmt(start, end, _vars, null, _range, _ens, body);
-      var list = new List<Statement>();
-      list.Add(stmt);
+      var list = new List<Statement> {stmt};
       return list;
     }
 
@@ -170,19 +168,17 @@ namespace Microsoft.Dafny.Tacny.Language {
     public static bool IsForallShape(Expression e) {
       Contract.Requires(e != null);
 
-      if (e is Microsoft.Dafny.ForallExpr) {
-        var fall = e as Microsoft.Dafny.ForallExpr;
-        if (fall.LogicalBody() is BinaryExpr) {
-          var body = fall.LogicalBody() as BinaryExpr;
-          if (body?.Op == BinaryExpr.Opcode.Imp) {
-            return true;
-          }
-          else {
-            return false;
-          }
-        }
+    var fall = e as Microsoft.Dafny.ForallExpr;
+    if (fall?.LogicalBody() is BinaryExpr) {
+      var body = fall.LogicalBody() as BinaryExpr;
+      if (body?.Op == BinaryExpr.Opcode.Imp) {
+        return true;
       }
-      return false;
+      else {
+        return false;
+      }
+    }
+    return false;
     }
 
     public static IEnumerable<ProofState> EvalNext(Statement statement, ProofState state0) {
@@ -208,19 +204,20 @@ namespace Microsoft.Dafny.Tacny.Language {
       return new Dafny.ForallStmt(start, end, _vars, null, _range, _ens, body);
     }
 
-    private int freeVars() {
+    private int FreeVars() {
       return 0;
     }
 
-    private void boundVars(ProofState state,Expression e) {
+    private void BoundVars(ProofState state,Expression e) {
       var varDict = state.GetAllDafnyVars();
      
 
       Zipper zip = new Zipper(e);
     
       Func<Expression, ISet<string>, ISet<string>> fv = (expr, set) => {
-        if (expr is NameSegment) {
-          var en = (NameSegment)expr;
+        var segment = expr as NameSegment;
+        if (segment != null) {
+          var en = segment;
           set.Add(en.Name);
         }
        return set;

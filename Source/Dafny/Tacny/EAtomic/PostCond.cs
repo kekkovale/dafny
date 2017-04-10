@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Tacny.EAtomic {
   class PostCond : EAtomic {
@@ -15,13 +12,18 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
       var prog = proofState.GetDafnyProgram();
 
       var tld = prog.DefaultModuleDef.TopLevelDecls.FirstOrDefault(x => x.Name == proofState.ActiveClass.Name) as ClassDecl;
-      var member = tld.Members.FirstOrDefault(x => x.Name == proofState.TargetMethod.Name) as Method;
+      if (tld != null)
+      {
+        var member = tld.Members.FirstOrDefault(x => x.Name == proofState.TargetMethod.Name) as Method;
 
-      var posts = new List<Expression>();
-      foreach(var post in member.Ens) {
-        posts.Add(post.E);
+        var posts = new List<Expression>();
+        if (member != null)
+          foreach(var post in member.Ens) {
+            posts.Add(post.E);
+          }
+        return posts;
       }
-      return posts;
+      return null;
     }
   }
 }

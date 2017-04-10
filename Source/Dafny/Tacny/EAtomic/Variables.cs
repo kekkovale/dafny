@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Dafny;
-
+﻿using System.Linq;
 
 // Project the all dafny variables in the current scope of the calling method/function
 

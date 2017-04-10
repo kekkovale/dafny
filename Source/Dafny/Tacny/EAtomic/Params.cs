@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Dafny;
+﻿using System.Linq;
 
 namespace Microsoft.Dafny.Tacny.EAtomic {
   class Params : EAtomic {
@@ -8,13 +6,14 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     public override int ArgsCount => 0;
 
     // parameters can be checked by combine the type Formal and the InParam attribute
-    private static bool IsParam(ProofState.VariableData var) {
-      if(var.Variable is Microsoft.Dafny.Formal) {
-        var v = var.Variable as Microsoft.Dafny.Formal;
+    private static bool IsParam(ProofState.VariableData var)
+    {
+      var formal = var.Variable as Formal;
+      if(formal != null) {
+        var v = formal;
         return v.InParam;
       } else
         return false;
-
     }
 
     /// <summary>

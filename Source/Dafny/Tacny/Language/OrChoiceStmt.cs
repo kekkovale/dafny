@@ -10,15 +10,17 @@ namespace Microsoft.Dafny.Tacny.Language {
     [Pure]
     public override bool MatchStmt(Statement statement, ProofState state) {
       Contract.Requires(statement != null);
-      if(statement is Dafny.IfStmt) {
-        var ifstmt = statement as Dafny.IfStmt;
+      var stmt = statement as IfStmt;
+      if(stmt != null) {
+        var ifstmt = stmt;
         if(ifstmt.Guard == null)
           return true;
         else
           return false;
       }
-      if(statement is AlternativeStmt) {
-        var ifstmt = statement as AlternativeStmt;
+      var alternativeStmt = statement as AlternativeStmt;
+      if(alternativeStmt != null) {
+        var ifstmt = alternativeStmt;
         // todo: should we allow just a single wildcard (*) or require that all are as we do now?
         foreach(GuardedAlternative a in ifstmt.Alternatives) {
           if(!(a.Guard is WildcardExpr))
@@ -36,28 +38,29 @@ namespace Microsoft.Dafny.Tacny.Language {
       Contract.Requires(MatchStmt(statement, state0));
       //Contract.Requires(statement is TacnyCasesBlockStmt);
 
-      bool partial = true || state0.IsCurFramePartial();
+      bool partial = true;
 
       List<BlockStmt> choices = new List<BlockStmt>();
 
-      if(statement is Dafny.IfStmt) {
-        var ifstmt = statement as Dafny.IfStmt;
+      var stmt = statement as IfStmt;
+      if(stmt != null) {
+        var ifstmt = stmt;
         if(ifstmt.Thn != null)
           choices.Add(ifstmt.Thn as BlockStmt);
         if(ifstmt.Els != null)
           choices.Add(ifstmt.Els as BlockStmt);
       }
-      if(statement is AlternativeStmt) {
-        var ifstmt = statement as AlternativeStmt;
+      var alternativeStmt = statement as AlternativeStmt;
+      if(alternativeStmt != null) {
+        var ifstmt = alternativeStmt;
         foreach(GuardedAlternative a in ifstmt.Alternatives) {
           if(a.Body != null && a.Body.Count != 0)
             choices.Add(new BlockStmt(a.Body.First().Tok, a.Body.Last().EndTok, a.Body));
         }
       }
-      ProofState state = null;
       int count = 0;
       foreach(BlockStmt choice in choices) {
-        state = state0.Copy();
+        var state = state0.Copy();
         var orChoice = this.Copy();
         orChoice.InitBasicFrameCtrl(choice.Body, partial, null);
         state.AddNewFrame(orChoice);
@@ -72,7 +75,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
     public override bool EvalTerminated(bool childFrameRes, ProofState ps){
-      return _rawCodeList.Count == 1;
+      return RawCodeList.Count == 1;
     }
 
     public override List<Statement> AssembleStmts(List<List<Statement>> raw){

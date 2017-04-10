@@ -1,32 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Boogie;
-using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny.Tacny
 {
   public class TacticBasicErr
   {
-    private TokenTracer token;
+    private readonly TokenTracer _token;
     public string ErrInfo { get; set; }
-    public static int reportMode = 0; // 0 for brief mode, 1 for full mode
+    public static int ReportMode = 0; // 0 for brief mode, 1 for full mode
     public TacticBasicErr(TokenTracer t) {
-      this.token = t;
+      _token = t;
     }
 
     public void ExceptionReport(int mode) {
       Console.WriteLine("\n================ Tactic Error: ================");
       switch (mode){
         case 1:
-          token.PrettyTrace();
+          _token.PrettyTrace();
           break;
         case 0:
         default:
           Console.Write("Fail in applying tactic in line ");
-          token.PrettyOrigin(); Console.WriteLine("");
+          _token.PrettyOrigin(); Console.WriteLine("");
           Console.WriteLine(ErrInfo);
           break;
       }

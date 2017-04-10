@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -34,25 +33,17 @@ namespace Microsoft.Dafny.Tacny.Atomic
       }
 
       foreach (var member in members) {
-        MemberDecl md;
         mdIns.Clear();
         args.Clear();
 
-        if (member is NameSegment) {
-          //TODO:
-          Console.WriteLine("double check this");
-          md = null;
-          // md = state.GetDafnyProgram().  Members.FirstOrDefault(i => i.Key == (member as NameSegment)?.Name).Value;
-        } else {
-          md = member as MemberDecl;
-        }
+        var md = (MemberDecl) member;
 
         // take the membed decl parameters
         var method = md as Method;
         if (method != null)
           mdIns.AddRange(method.Ins);
-        else if (md is Microsoft.Dafny.Function)
-          mdIns.AddRange(((Microsoft.Dafny.Function)md).Formals);
+        else if (md is Function)
+          mdIns.AddRange(((Function) md).Formals);
         else
           Contract.Assert(false, "In Explore Atomic call," + callArguments[0] + "is neither a Method or a Function");
 
@@ -76,7 +67,7 @@ namespace Microsoft.Dafny.Tacny.Atomic
             if (type != null) {
               if (type is UserDefinedType && item.Type is UserDefinedType) {
                 var udt1 = type as UserDefinedType;
-                var udt2 = item.Type as UserDefinedType;
+                var udt2 = (UserDefinedType) item.Type;
                 if (udt1.Name == udt2.Name)
                   args[i].Add(arg);
               } else {
