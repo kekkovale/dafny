@@ -25,8 +25,9 @@ namespace Quicky
     
     [Test]
     public void TestCompiler() {
-//      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
+      QuickyMain.PrintCompiledCode = "C:\\Users\\Duncan\\Documents\\Test.cs";
       GetQuicky("VariousFails.dfy");
+//      GetQuicky("Zip.dfy");
       //if no exception is thrown, the program successfully compiled something.
     }
 

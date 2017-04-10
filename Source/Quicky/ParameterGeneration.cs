@@ -1,22 +1,28 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using Dafny;
 using Microsoft.Dafny;
+using Type = Microsoft.Dafny.Type;
 
 namespace Quicky
 {
-  class UnidentifiedDafnyTypeException : Exception
+  public class UnidentifiedDafnyTypeException : Exception
   {
-    public readonly Microsoft.Dafny.Type Type;
-    public UnidentifiedDafnyTypeException(Microsoft.Dafny.Type type) : base(CreateMessage(type)) {
-      Type = type;
+    public readonly List<Type> Types;
+    public UnidentifiedDafnyTypeException(List<Type> types) : base(CreateMessage(types)) {
+      Types = types;
     }
 
-    private static string CreateMessage(Microsoft.Dafny.Type type) {
-      string message = "Quicky does not recognise the type: " + type;
+    private static string CreateMessage(List<Type> types) {
+      string message = "Quicky does not recognise the types: ";
+      for (int i = 0; i < types.Count; i++) {
+        message += types[i];
+        if(i < types.Count-1)
+          message += ", ";
+      }
       return message;
     }
   }
@@ -31,12 +37,18 @@ namespace Quicky
         return Random.Next(max);
       }
     }
+
+    public static int GetNextRandomNumber(int min, int max) {
+      lock (Random) {
+        return Random.Next(min, max);
+      }
+    }
   }
 
   /// <summary>
   /// Given a method, this has the ability to return a set of parameters that would run through the function
   /// </summary>
-  class ParameterSetGenerator
+  public class ParameterSetGenerator
   {
     public readonly QuickyChecker QuickyChecker;
     private readonly Method _method;
@@ -49,6 +61,8 @@ namespace Quicky
     private int _index;
     public readonly int NumTests;
 
+    private List<Type> invalidTypes = new List<Type>();
+
 
     public ParameterSetGenerator(Quicky quicky, Method method)
     {
@@ -59,12 +73,14 @@ namespace Quicky
       _fullParamSize = _method.Ins.Count + _method.Outs.Count + 1; //1 is quickychecker
       NumTests = quicky.TestCases;
       CreateGenerators();
-      SetAllCombs();
+      SetAllCombinations();
     }
 
     private void CreateGenerators() {
       foreach (var param in _method.Ins)
         _parameterGenerators.Add(CreateGeneratorOfType(param.SyntacticType));
+      if(invalidTypes.Count > 0)
+        throw new UnidentifiedDafnyTypeException(invalidTypes);
     }
 
     private ParameterGenerator CreateGeneratorOfType(Microsoft.Dafny.Type type)
@@ -93,8 +109,10 @@ namespace Quicky
       else if (type is CollectionType) {
         var collectionType = (CollectionType) type;
         var subType = collectionType.Arg;
-        if (subType.IsArrayType || subType.IsISetType || subType.AsSeqType != null)
-          throw new UnidentifiedDafnyTypeException(type);
+        if (subType.IsArrayType || subType.IsISetType || subType.AsSeqType != null) {
+          invalidTypes.Add(type);
+          return null;
+        }
         if (collectionType.AsSetType != null)
           return new SetGenerator(this, CreateGeneratorOfType(subType));
         if (collectionType.AsSeqType != null)
@@ -116,7 +134,8 @@ namespace Quicky
        * 
        */
 
-      throw new UnidentifiedDafnyTypeException(type);
+      invalidTypes.Add(type);
+      return null;
     }
 
     public object[] GetNextParameterSet() {
@@ -130,33 +149,18 @@ namespace Quicky
       return parameters;
     }
 
-    //TODO precache for small numbers (1,2,3) to improve perfomance?
-    public void SetCombinations(int[] arr, int len, int startPos, int[] results)
-    {
-      if (len == 0) {
-        //create new instance of results so the result is not coppied to other ones
-        _indexes.Add((int[]) results.Clone());
-        return;
-      }
-      for (int i = startPos; i <= arr.Length - len; i++) {
-        results[results.Length - len] = arr[i];
-        SetCombinations(arr, len-1, i+1, results);
-      }
-    }
-
-
-    private void SetAllCombs() {
+    private void SetAllCombinations() {
       //make a 0 array of size
       _indexes = new List<int[]>(NumParameters) {new int[NumParameters]};
       for (int i = 0; i < NumParameters; i++) {
         _indexes[0][i] = 0;
       }
       for (int i = 0; i < NumTests; i++) {
-        SetComb(_indexes[i]);
+        SetCombination(_indexes[i]);
       }
     }
     
-    private void SetComb(int[] prev) {
+    private void SetCombination(int[] prev) {
       for (int i = 0; i < prev.Length; i++) {
         if (_indexes.Count >= NumTests) return;
         int[] newContainer = (int[]) prev.Clone();
@@ -172,13 +176,9 @@ namespace Quicky
   abstract class ParameterGenerator
   {
     protected object[] CachedValues;
-    public System.Type ReturnType { get; protected set; }
 
     protected ParameterGenerator(ParameterSetGenerator parameterSetGenerator) {
       CachedValues = new object[parameterSetGenerator.NumTests];
-    }
-    protected ParameterGenerator(int numTests) {
-      CachedValues = new object[numTests];
     }
 
     public object GetNextParameter(int index) {
@@ -284,7 +284,7 @@ namespace Quicky
         case 3: return new BigInteger(10);
       }
       //TODO need to get a range of random numbers depending on index and number of test cases (will also be defined by number of parameters) 
-      int value = NextRandomNumberRetriever.GetNextRandomNumber(5000);
+      int value = NextRandomNumberRetriever.GetNextRandomNumber(-5000, 5000);
       return new BigInteger(value);
     }
 

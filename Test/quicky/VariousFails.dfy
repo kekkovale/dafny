@@ -92,3 +92,21 @@ method RealTest(r: real) {
 	assert a < r;
 }
 
+method TestBool(b: bool) 
+	requires b
+{
+	assert b;
+}
+
+method TestChar(c: char)
+	requires c != 'e'
+{
+	assert c != 'e';
+}
+
+
+method TestCallToInvalid(i: int)
+{
+	TestBadCall(i);
+}
+

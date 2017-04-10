@@ -150,27 +150,25 @@ namespace Quicky
         typeCall = classDecl.Module.CompileName + "." + className; 
 
       Type t = _assemblyProgram.GetType(typeCall);
-      //TODO handle non-static methods?  and ghost code?
       foreach (var member in classDecl.Members)
         if (member is Method && member.IsStatic && !member.IsGhost) { 
           Thread thread = new Thread(TestMethodThread);
           _threads.Add(thread);
           Tuple<Method, Type> tup = new Tuple<Method, Type>(member as Method, t);
           thread.Start(tup);
-}
+        }
     }
 
     private void TestMethod(Method method, Type t) {
       Contract.Requires(t != null && method != null);
       if (method.Ins.Count < 1) return; //no paramaters, cannot really test.  May do later to show what's wrong?
-
       MethodInfo methodInfo = t.GetMethod(method.CompileName);
       ParameterSetGenerator parameterSetGenerator;
       try {
         parameterSetGenerator = new ParameterSetGenerator(this, method);
       }
       catch (UnidentifiedDafnyTypeException e) {
-        Console.WriteLine("Could not generate parameters for method " + method.Name + " of type " + e.Type);
+        Console.WriteLine(e.Message);
         return;
       }
       catch (Exception) {
@@ -178,7 +176,6 @@ namespace Quicky
         return;
       }
 
-      //todo: multithread more here?
       for (int i = 0; i < TestCases; i++) {
         TestMethodOnce(methodInfo, parameterSetGenerator);
         if (FoundErrors.ContainsKey(method))
