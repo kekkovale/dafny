@@ -24,7 +24,7 @@ namespace DafnyLanguage.Refactoring
       var module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
       var builtIns = new BuiltIns();
       var parseErrors = new Errors(errorReporter);
-      var errorCount = Parser.Parse(_snapshot.GetText(), _filename, _filename, module, builtIns, parseErrors);
+      var errorCount = Parser.Parse(_snapshot.GetText(), _filename, _filename, null, module, builtIns, parseErrors);
       var errString = Main.ParseIncludes(module, builtIns, new List<string>(), parseErrors);
       if (errorCount != 0 || errString != null) return null;
 
