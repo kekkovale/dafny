@@ -75,7 +75,9 @@ namespace Microsoft.Dafny.Tacny {
     public static VerifyResult VerifyState(ProofState state, ErrorReporterDelegate er) {
       // at the momemnt,we don't propagate errors from buanches to user, no need to use er, in the future this will
       // come to play when repair kicks in
-
+      if (state.IsTimeOut()){
+        return VerifyResult.Failed;
+      }
       var prog =  Util.GenerateResolvedProg(state);
       if (prog == null)
         return VerifyResult.Unresolved;

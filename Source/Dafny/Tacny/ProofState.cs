@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Dfy = Microsoft.Dafny;
@@ -20,6 +21,7 @@ namespace Microsoft.Dafny.Tacny{
 
     //not all the eval step requires to be verified, e.g. var decl
     public bool NeedVerify { set; get; } = false;
+    
 
     public UpdateStmt TopLevelTacApp;
 /*
@@ -39,7 +41,6 @@ namespace Microsoft.Dafny.Tacny{
       Datatypes = new Dictionary<string, DatatypeDecl>();
       _topLevelClasses = new List<TopLevelClassDeclaration>();
       Reporter = reporter;
-
       var files = new List<DafnyFile> {new DafnyFile(program.FullName)};
       //note the differences between this ParseCheck and the one at the top level. This function only parses but the other one resolves.
       //use the deafult error reportor, as the one from program include too much extra object/information for deep copy
@@ -143,9 +144,20 @@ namespace Microsoft.Dafny.Tacny{
       }
     }
 
+    public bool IsTimeOut(){
+      var top = _scope.Peek();
+      if(top.FrameCtrl.TimeStamp != 0 && top.FrameCtrl.TimeStamp <= Interpreter.Timer.Elapsed.Seconds) 
+        return true;
+
+      return false;
+    }
 
     public void AddNewFrame(TacticFrameCtrl ctrl){
       var parent = _scope.Peek();
+      if (parent.FrameCtrl.TimeStamp != 0){
+        if (ctrl.TimeStamp == 0 || parent.FrameCtrl.TimeStamp < ctrl.TimeStamp)
+          ctrl.TimeStamp = parent.FrameCtrl.TimeStamp;
+      }
       _scope.Push(new Frame(parent, ctrl));
     }
     // note that this function would only be called when either a frame is proved or isEvaluated.

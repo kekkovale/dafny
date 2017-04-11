@@ -21,7 +21,12 @@ namespace Microsoft.Dafny.Tacny {
     private readonly ProofState _state;
     private readonly ErrorReporter _errorReporter;
 
+    public static Stopwatch Timer;
+
     public static void ResetTacnyResultList(){
+      if (Timer == null)
+        Timer = new Stopwatch();
+
       if(_resultList == null)
         _resultList = new Dictionary<UpdateStmt, List<Statement>>();
       else
@@ -70,6 +75,7 @@ namespace Microsoft.Dafny.Tacny {
       Contract.Requires(target != null);
       Stopwatch watch = new Stopwatch();
       watch.Start();
+      Timer.Restart();
       _i = new Interpreter(program);
       _errorReporterDelegate = erd;
       Type.BackupScopes();

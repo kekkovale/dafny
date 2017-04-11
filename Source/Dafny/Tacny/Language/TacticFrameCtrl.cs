@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 
@@ -14,13 +15,14 @@ namespace Microsoft.Dafny.Tacny.Language{
     public bool IsPartial;
     public int OriginalBk = -1;
     public int Backtrack;
+    public int TimeStamp = 0;
 
     //a funtion with the right kind will be able to th generated code to List of statment
     protected List<Statement> GeneratedCode;
     //store the tempratry code to be combined, e.g. case statments for match, wit a boolean tag indicating whether is verified
     //private readonly List<Tuple<bool, List<Statement>>> _rawCodeList;
     protected List<List<Statement>> RawCodeList;
-
+    
     public bool IncCounter() {
       _bodyCounter++;
       return _bodyCounter + 1 < Body.Count;
@@ -30,6 +32,8 @@ namespace Microsoft.Dafny.Tacny.Language{
       if (attr == null){
         return;
       }
+      Expression arg;
+      LiteralExpr literalExpr;
       switch(attr.Name) {
         case "search":
           var expr = attr.Args.FirstOrDefault();
@@ -45,21 +49,42 @@ namespace Microsoft.Dafny.Tacny.Language{
           IsPartial = true;
           break;
         case "backtrack":
-          var arg = attr.Args.FirstOrDefault();
+          arg = attr.Args.FirstOrDefault();
           if (arg == null)
             Backtrack = Backtrack + 1;
           else{
-            try
-            {
-              var literalExpr = arg as LiteralExpr;
+            try{
+              literalExpr = arg as LiteralExpr;
               if (literalExpr != null)
               {
                 var input = literalExpr.Value.ToString();
                 Backtrack = Backtrack + Int32.Parse(input);
               }
-            } catch (Exception){
+            }
+            catch (Exception){
               Backtrack = Backtrack + 1;
             }
+          }
+          break;
+        case "timeout":
+          int timeout = 0;
+          arg = attr.Args.FirstOrDefault();
+          if (arg == null)
+            timeout = 10;
+          else{
+            try{
+              literalExpr = arg as LiteralExpr;
+              if (literalExpr != null){
+                var input = literalExpr.Value.ToString();
+                timeout = Int32.Parse(input);
+              }
+            }
+            catch (Exception){
+              timeout = 0;
+            }
+          }
+          if (timeout != 0){
+            TimeStamp = Interpreter.Timer.Elapsed.Seconds + timeout;
           }
           break;
         default:
