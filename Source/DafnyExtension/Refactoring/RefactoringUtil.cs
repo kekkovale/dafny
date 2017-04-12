@@ -61,7 +61,7 @@ namespace DafnyLanguage.Refactoring
             case ErrorCategory.AuxInformation:
               return false;
             default:
-              throw new tcce.UnreachableException();
+              throw new Tcce.UnreachableException();
           }
       });
     }

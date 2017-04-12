@@ -550,7 +550,7 @@ namespace DafnyLanguage.Refactoring
           tag = FindExprTag(r);
           break;
         default:
-          throw new tcce.UnreachableException();
+          throw new Tcce.UnreachableException();
       }
       AddTag(tag);
       return tag;
@@ -683,7 +683,7 @@ namespace DafnyLanguage.Refactoring
             sr.Write("decreases ");
             break;
           default:
-            throw new tcce.UnreachableException();
+            throw new Tcce.UnreachableException();
         }
         pr.PrintExpression(mfe.E, mfe.IsFree);
       }
