@@ -593,7 +593,7 @@ namespace Microsoft.Dafny.Tacny{
     /// Add new dafny stmt to the top frame
     /// </summary>
     /// <param name="stmtList"></param>
-    public void AddStatementRange(List<Statement> stmtList){
+    public void AddStatements(List<Statement> stmtList){
       Contract.Requires<ArgumentNullException>(Tcce.NonNullElements(stmtList));
       _scope.Peek().FrameCtrl.AddGeneratedCode(stmtList);
     }
@@ -762,23 +762,30 @@ namespace Microsoft.Dafny.Tacny{
 
       internal List<Statement> GetGeneratedCode0(List<Statement> stmts = null){
         Contract.Ensures(Contract.Result<List<Statement>>() != null);
+        //try to get the generated code from the current framectrl
         List<Statement> code = FrameCtrl.GetFinalCode();
         if (code != null){
-// terminated, so just use the assembly code 
+          // there exists the generated code in the current framectrl. It means
+          // the frame is terminated, so continue the process. The following action to assemble 
+          // the code depents on whether the current frame is the root. If root, just return code, otherwise, forward 
+          // the generated code the parent frame to coniue assemble the code.
         }
         else if (stmts != null){
-          // for the case when code are addded by child, and the child has assembly the code for parent
+          // this is the case when the child frame has assmeble the code with both the child and parent's raw code
+          // and then forwards its the generated code through stmt. see the else branch for (Parent == null)
           code = stmts;
         }
         else{
-          // new code from child and not terminated, just assmeble the current one 
+          // no generated code: it is the case when the current frame is not terminated, so
+          // just use the raw code as the generated code 
           code = FrameCtrl.AssembleStmts(FrameCtrl.GetRawCode());
         }
 
         if (Parent == null)
           return code.Copy();
         else{
-          // parent is always not yet terminated, so assmebly code for it
+          // parent is not terminated, so assmeble the parent's code together with the child code, 
+          // and then foward the generated code to the parent
           var parRawCode = Parent.FrameCtrl.GetRawCode().Copy();
           parRawCode.Add(code);
           var parCode = Parent.FrameCtrl.AssembleStmts(parRawCode);
