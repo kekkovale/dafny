@@ -95,7 +95,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
         if (obj is Expression)
           return obj as Expression;
         else if (obj is List<Expression>)
-          return new SetDisplayExpr(new Token(Interpreter.TacnyCodeTokLine,0), true, obj as List<Expression>);
+          return new SetDisplayExpr(new Token(Interpreter.TacticCodeTokLine,0), true, obj as List<Expression>);
         else
           throw new NotSupportedException ("Unkonwn type to handle when simplifying an expression");
 

@@ -9,7 +9,7 @@ using Microsoft.Dafny.Tacny.Expr;
 
 namespace Microsoft.Dafny.Tacny {
   public class Interpreter {
-    public static int TacnyCodeTokLine = -1;
+    public static int TacticCodeTokLine = -1;
     public static bool IfEvalTac { get; set; } = true;
 
     private static Interpreter _i;

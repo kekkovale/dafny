@@ -145,7 +145,7 @@ namespace Microsoft.Dafny.Tacny.Language {
         }
 
         //var matchStmt = GenerateMatchStmt(state.TacticApplication.Tok.line, srcVar.Copy(), datatype, fList);
-        var matchStmt = GenerateMatchStmt(Interpreter.TacnyCodeTokLine, srcVar.Copy(), datatype, fList);
+        var matchStmt = GenerateMatchStmt(Interpreter.TacticCodeTokLine, srcVar.Copy(), datatype, fList);
 
         //use a dummystmt to creat a frame for match, note that this stmts is never be evaluated
         var dummystmt = new List<Statement>();
@@ -220,7 +220,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       Contract.Requires(datatype != null);
       Contract.Ensures(Contract.Result<MatchStmt>() != null);
       List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
-      int index = Interpreter.TacnyCodeTokLine;//line + 1;
+      int index = Interpreter.TacticCodeTokLine;//line + 1;
 
 
       for (int j = 0; j < datatype.Ctors.Count; j++){

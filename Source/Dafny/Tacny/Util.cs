@@ -209,7 +209,7 @@ namespace Microsoft.Dafny.Tacny {
 
     public static void SetVerifyFalseAttr(MemberDecl memb) {
       var args = new List<Expression>();
-      var f = new Microsoft.Dafny.LiteralExpr(new Token(Interpreter.TacnyCodeTokLine, 0) { val = "false" }, false);
+      var f = new Microsoft.Dafny.LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0) { val = "false" }, false);
       args.Add(f);
       Attributes newattr = new Attributes("verify", args, memb.Attributes);
       memb.Attributes = newattr;

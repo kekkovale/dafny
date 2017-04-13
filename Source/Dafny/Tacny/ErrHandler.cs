@@ -6,7 +6,7 @@ namespace Microsoft.Dafny.Tacny
   {
     private readonly TokenTracer _token;
     public string ErrInfo { get; set; }
-    public static int ReportMode = 0; // 0 for brief mode, 1 for full mode
+    public static int ReportMode = 1; // 0 for brief mode, 1 for full mode
     public TacticBasicErr(TokenTracer t) {
       _token = t;
     }

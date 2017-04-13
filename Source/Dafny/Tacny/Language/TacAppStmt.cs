@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Tacny.Language{
   public class TacAppStmt : TacticFrameCtrl{
@@ -20,7 +21,32 @@ namespace Microsoft.Dafny.Tacny.Language{
         var frameCtrl = new DefaultTacticFrameCtrl();
         if (tactic != null)
         {
-          frameCtrl.InitBasicFrameCtrl(tactic.Body.Body, true, tacApsStmt.Rhss[0].Attributes, tactic);
+
+          List<Statement> body = new List<Statement>();
+          if (tactic.Req != null) {
+            foreach (var expr in tactic.Req) {
+              body.Add(
+                new TacticAssertStmt(
+                  new Token(Interpreter.TacticCodeTokLine, 0) { val = "tassert" },
+                  new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
+                  expr.E,
+                  null, false));
+            }
+          }
+          body.AddRange(tactic.Body.Body);
+          if (tactic.Ens != null) {
+            foreach (var expr in tactic.Ens) {
+              body.Add(
+                new TacticAssertStmt(
+                  new Token(Interpreter.TacticCodeTokLine, 0) { val = "tassert" },
+                  new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
+                  expr.E,
+                  null, false));
+            }
+          }
+
+    
+          frameCtrl.InitBasicFrameCtrl(body, true, tacApsStmt.Rhss[0].Attributes, tactic);
           state.AddNewFrame(frameCtrl);
 
           if(aps != null && aps.Args.Count != tactic.Ins.Count)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Boogie;
 using Dfy = Microsoft.Dafny;
 using Microsoft.Dafny.Tacny.Language;
 
@@ -637,9 +638,33 @@ namespace Microsoft.Dafny.Tacny{
         if (o == null){
           throw new NotSupportedException("tactic functions are not yet supported");
         }
+        List<Statement> body = new List<Statement>();
+        if (o.Req != null)
+        {
+          foreach (var expr in o.Req)
+          {
+            body.Add(
+              new TacticAssertStmt(
+                new Token(Interpreter.TacticCodeTokLine, 0) { val = "tassert" },
+                new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
+                expr.E,
+                null, false));
+          }
+        }
+        body.AddRange(o.Body.Body);
+        if (o.Ens != null) {
+          foreach (var expr in o.Ens) {
+            body.Add(
+              new TacticAssertStmt(
+                new Token(Interpreter.TacticCodeTokLine, 0) { val = "tassert" },
+                new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
+                expr.E,
+                null, false));
+          }
+        }
 
         FrameCtrl = new DefaultTacticFrameCtrl();
-        FrameCtrl.InitBasicFrameCtrl(o.Body.Body, false, attr, o);
+        FrameCtrl.InitBasicFrameCtrl(body, false, attr, o);
 
         _reporter = reporter;
         _declaredVariables = new Dictionary<string, object>();
