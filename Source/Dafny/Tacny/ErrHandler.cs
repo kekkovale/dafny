@@ -15,14 +15,14 @@ namespace Microsoft.Dafny.Tacny
       Console.WriteLine("\n================ Tactic Error: ================");
       switch (ReportMode) {
         case 1:
-          Console.Write("Fail in applying tactic in line ");
+          Console.Write("Fail to apply tactic in line ");
           _token.PrettyOrigin(); Console.WriteLine("");
           Console.WriteLine(ErrInfo);
           _token.PrettyTrace();
           break;
         case 0:
         default:
-          Console.Write("Fail in applying tactic in line ");
+          Console.Write("Fail to apply tactic in line ");
           _token.PrettyOrigin(); Console.WriteLine("");
           Console.WriteLine(ErrInfo);
           break;
