@@ -11,10 +11,13 @@ namespace Microsoft.Dafny.Tacny
       _token = t;
     }
 
-    public void ExceptionReport(int mode) {
+    public void ExceptionReport() {
       Console.WriteLine("\n================ Tactic Error: ================");
-      switch (mode){
+      switch (ReportMode) {
         case 1:
+          Console.Write("Fail in applying tactic in line ");
+          _token.PrettyOrigin(); Console.WriteLine("");
+          Console.WriteLine(ErrInfo);
           _token.PrettyTrace();
           break;
         case 0:

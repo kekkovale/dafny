@@ -6156,8 +6156,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-    // This should really just be TacnyBlockStmt
-    public class TacnyForallStmt : TStatement
+    // This should really just be TacticBlockStmt
+    public class TacticForallStmt : TStatement
     {
         public readonly BlockStmt Body;
         public readonly Expression Spec;
@@ -6172,7 +6172,7 @@ namespace Microsoft.Dafny {
             Contract.Invariant(Spec != null);
         }
 
-        public TacnyForallStmt(IToken tok, IToken endTok, Expression e, BlockStmt body)
+        public TacticForallStmt(IToken tok, IToken endTok, Expression e, BlockStmt body)
         : base(tok, endTok)
         {
             Contract.Requires(tok != null);
@@ -6184,7 +6184,7 @@ namespace Microsoft.Dafny {
             this.Spec = e;
         }
 
-        public TacnyForallStmt(IToken tok, IToken endTok, Expression e, BlockStmt body, Attributes attrs)
+        public TacticForallStmt(IToken tok, IToken endTok, Expression e, BlockStmt body, Attributes attrs)
         : base(tok, endTok)
         {
             Contract.Requires(tok != null);
@@ -6199,8 +6199,8 @@ namespace Microsoft.Dafny {
 
     }
 
-    // This should really just be TacnyBlockStmt
-    public class TacnyBasicBlockStmt : TStatement
+    // This should really just be TacticBlockStmt
+    public class TacticBasicBlockStmt : TStatement
     {
         public readonly BlockStmt Body;
         public virtual string WhatKind => "BasicBlockStmt";
@@ -6212,7 +6212,7 @@ namespace Microsoft.Dafny {
             Contract.Invariant(Body != null);
         }
 
-        public TacnyBasicBlockStmt(IToken tok, IToken endTok, BlockStmt body)
+        public TacticBasicBlockStmt(IToken tok, IToken endTok, BlockStmt body)
         : base(tok, endTok) {
             Contract.Requires(tok != null);
             Contract.Requires(endTok != null);
@@ -6221,7 +6221,7 @@ namespace Microsoft.Dafny {
             this.Body = body;
         }
 
-        public TacnyBasicBlockStmt(IToken tok, IToken endTok, Attributes attrs, BlockStmt body)
+        public TacticBasicBlockStmt(IToken tok, IToken endTok, Attributes attrs, BlockStmt body)
         : base(tok, endTok) {
             Contract.Requires(tok != null);
             Contract.Requires(endTok != null);
@@ -6235,7 +6235,7 @@ namespace Microsoft.Dafny {
 
 
     // GG: why is this a blcokStmt (why not SingleCase or something?)
-    public class TacnyBlockStmt : TStatement {
+    public class TacticBlockStmt : TStatement {
     public readonly Expression Guard;
     public readonly BlockStmt Body;
     public virtual string WhatKind => "BlockStmt";
@@ -6246,7 +6246,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Body != null);
     }
  
-    public TacnyBlockStmt(IToken tok, IToken endTok, Expression guard, BlockStmt body)
+    public TacticBlockStmt(IToken tok, IToken endTok, Expression guard, BlockStmt body)
         : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -6256,7 +6256,7 @@ namespace Microsoft.Dafny {
       this.Body = body;
     }
 
-    public TacnyBlockStmt(IToken tok, IToken endTok, Expression guard, Attributes attrs, BlockStmt body)
+    public TacticBlockStmt(IToken tok, IToken endTok, Expression guard, Attributes attrs, BlockStmt body)
         : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -6282,9 +6282,9 @@ namespace Microsoft.Dafny {
     }
   }
  
-  public class TacnyCasesBlockStmt : TacnyBlockStmt {
+  public class TacticCasesBlockStmt : TacticBlockStmt {
 	public virtual string WhatKind { get { return "cases"; } }
-	public TacnyCasesBlockStmt(IToken tok, IToken endTok, Expression guard, Attributes attrs, BlockStmt body)
+	public TacticCasesBlockStmt(IToken tok, IToken endTok, Expression guard, Attributes attrs, BlockStmt body)
 		: base(tok, endTok, guard, attrs, body) {
 		Contract.Requires(tok != null);
 		Contract.Requires(endTok != null);
@@ -8483,57 +8483,7 @@ namespace Microsoft.Dafny {
       ToType = toType;
     }
   }
-
-  public class TacnyBinaryExpr : BinaryExpr {
-    public enum TacnyOpcode {
-      TacnyOr,
-    }
-
-    public enum TacnyResolvedOpcode {
-      TacnyOr,
-    }
-
-    public readonly TacnyOpcode Op;
-
-    public static TacnyOpcode ResolvedOp2SyntacticOp(TacnyResolvedOpcode rop) {
-      switch (rop) {
-        case TacnyResolvedOpcode.TacnyOr: return TacnyOpcode.TacnyOr;
-        default:
-          Contract.Assert(false);  // unexpected ResolvedOpcode
-          return TacnyOpcode.TacnyOr;  // please compiler
-      }
-    }
-
-    public static Opcode TacnyOp2DafnyOp(TacnyOpcode op) {
-      switch (op) {
-        case TacnyOpcode.TacnyOr: return Opcode.Or;
-        default:
-          Contract.Assert(false);  // unexpected ResolvedOpcode
-          return Opcode.Or;  // please compiler
-      }
-    }
-    public static string OpcodeString(TacnyOpcode op) {
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      switch (op) {
-        case TacnyOpcode.TacnyOr: return "|||";
-        default:
-          Contract.Assert(false);  // unexpected ResolvedOpcode
-          return "";
-
-      }
-    }
-
-    public TacnyBinaryExpr(IToken tok, TacnyOpcode op, Expression e0, Expression e1)
-            : base(tok, TacnyOp2DafnyOp(op), e0, e1) {
-      Contract.Requires(tok != null);
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
-      this.Op = op;
-
-    }
-  }
-
+  
   public class BinaryExpr : Expression
   {
     public enum Opcode {

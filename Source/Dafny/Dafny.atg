@@ -328,9 +328,6 @@ bool IsMulOp() {
 bool IsQSep() {
   return la.kind == _doublecolon || la.kind == _bullet;
 }
-bool IsTacnyOrOp() {
-  return la.val == "|||";
-}
 bool IsNonFinalColon() {
   return la.kind == _colon && scanner.Peek().kind != _rbracket;
 }
@@ -1916,14 +1913,14 @@ TacticStmt<out Statement/*!*/ s>
   SYNC
   ("tactic" (.x = t;.) (
      "var"          (.x = t;.)    TacticVarDeclStmt<out s, x>         
-    | "match"       (.x = t;.)    TacnyCasesBlockStmt<out s, x> 
+    | "match"       (.x = t;.)    TacticCasesBlockStmt<out s, x> 
     | "invariant"   (.x = t;.)    TacticInvariantStmt<out s, x>  
     | "assert"      (.x = t;.)    TacticAssertStmt<out s, x> 
 	| TacticBlockStmt<out s,x>
 	| "forall" (.x = t;.) TacticForallStmt<out s,x>
     )
     | "tvar"        (.x = t;.)    TacticVarDeclStmt<out s, x>        
-    | "tmatch"      (.x = t;.)    TacnyCasesBlockStmt<out s, x>
+    | "tmatch"      (.x = t;.)    TacticCasesBlockStmt<out s, x>
     | "tinvariant"  (.x = t;.)    TacticInvariantStmt<out s, x>
     | "invariant"   (.x = t;.)    TacticInvariantStmt<out s, x, true>
     | "tassert"     (.x = t;.)    TacticAssertStmt<out s, x>
@@ -1939,7 +1936,7 @@ TacticBlockStmt<out Statement/*!*/ s, IToken x, bool isObject = false>
   (. st = t; .)
   { IF(IsAttribute()) Attribute<ref attrs> } 
   BlockStmt<out bs, out bodyStart, out bodyEnd>
-  (. s = new TacnyBasicBlockStmt(st,bodyEnd,attrs,bs); .)
+  (. s = new TacticBasicBlockStmt(st,bodyEnd,attrs,bs); .)
   .
 
 
@@ -1954,7 +1951,7 @@ TacticForallStmt<out Statement/*!*/ s, IToken x, bool isObject = false>
   Expression<out e, false, false>
   BlockStmt<out bs, out bodyStart, out bodyEnd>
   
-  (. s = new TacnyForallStmt(st,bodyEnd,e,bs,attrs); .)
+  (. s = new TacticForallStmt(st,bodyEnd,e,bs,attrs); .)
   .
 
 TacticInvariantStmt<out Statement/*!*/ s, IToken x, bool isObject = false>
@@ -2037,20 +2034,20 @@ TacticVarDeclStmt<.out Statement/*!*/ s, IToken x.>
   .)
   .
 
-TacnyCasesBlockStmt<out Statement/*!*/ tacnyCasesStmt, IToken x>
-= (. Contract.Ensures(Contract.ValueAtReturn(out tacnyCasesStmt) != null);
+TacticCasesBlockStmt<out Statement/*!*/ tacticCasesStmt, IToken x>
+= (. Contract.Ensures(Contract.ValueAtReturn(out tacticCasesStmt) != null);
      Expression guard = null;  IToken guardEllipsis = null;
      BlockStmt/*!*/ thn;      Attributes attrs = null;
      IToken bodyStart, bodyEnd, endTok;
      List<GuardedAlternative> alternatives;
 	 bool usesOptionalBraces;
-     tacnyCasesStmt = dummyStmt;  // to please the compiler
+     tacticCasesStmt = dummyStmt;  // to please the compiler
   .)
   
   (
     IF(IsAlternative())
     AlternativeBlock<true, out alternatives, out usesOptionalBraces, out endTok>
-    (. tacnyCasesStmt = new AlternativeStmt(x, endTok, alternatives, usesOptionalBraces); .)
+    (. tacticCasesStmt = new AlternativeStmt(x, endTok, alternatives, usesOptionalBraces); .)
   |
     ( Guard<out guard>
     | "..."                  (. guardEllipsis = t; .)
@@ -2058,9 +2055,9 @@ TacnyCasesBlockStmt<out Statement/*!*/ tacnyCasesStmt, IToken x>
    { IF(IsAttribute()) Attribute<ref attrs> } 
     BlockStmt<out thn, out bodyStart, out bodyEnd>    (. endTok = thn.EndTok; .) 
     (. if (guardEllipsis != null) {
-         tacnyCasesStmt = new SkeletonStatement(new TacnyCasesBlockStmt(x, endTok, guard, attrs, thn), guardEllipsis, null);
+         tacticCasesStmt = new SkeletonStatement(new TacticCasesBlockStmt(x, endTok, guard, attrs, thn), guardEllipsis, null);
        } else {
-         tacnyCasesStmt = new TacnyCasesBlockStmt(x, endTok, guard, attrs, thn);
+         tacticCasesStmt = new TacticCasesBlockStmt(x, endTok, guard, attrs, thn);
        }
     .)
   )
@@ -2763,7 +2760,6 @@ ImpliesOp = "==>" | '\u21d2'.
 ExpliesOp = "<==" | '\u21d0'.
 AndOp = "&&" | '\u2227'.
 OrOp = "||" | '\u2228'.
-TacnyOrOp = "|||".
 
 NegOp = "!" | '\u00ac'.
 Forall = "forall" | '\u2200'.
@@ -2849,12 +2845,6 @@ LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allo
       { IF(IsAndOp())  /* read a conjunction as far as possible */
         AndOp                                                 (. x = t; .)
         RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
-      }
-	| TacnyOrOp /*  ########### TACNY OR ########## */        (. x = t; .)
-      RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>    (. e0 = new TacnyBinaryExpr(x, TacnyBinaryExpr.TacnyOpcode.TacnyOr, e0, e1); .)
-       { IF(IsTacnyOrOp())  /* read a disjunction as far as possible */
-        TacnyOrOp                                                  (. x = t; .)
-        RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new TacnyBinaryExpr(x, TacnyBinaryExpr.TacnyOpcode.TacnyOr, e0, e1); .)
       }
     | OrOp                                                    (. x = t; .)
       RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)

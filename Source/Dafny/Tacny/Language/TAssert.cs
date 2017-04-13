@@ -11,7 +11,8 @@ namespace Microsoft.Dafny.Tacny.Language
   class TAssert : TacticFrameCtrl
   {
     private bool _pass = false;
-    public override bool MatchStmt(Statement stmt, ProofState state) {
+    public override bool MatchStmt(Statement stmt, ProofState state)
+    {
       return stmt is TacticAssertStmt;
     }
 
