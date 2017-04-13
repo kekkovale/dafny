@@ -10,7 +10,7 @@ namespace Microsoft.Dafny.Tacny.Language {
 
   class ForallStmt : TacticFrameCtrl {
 
-    private TacnyForallStmt _stmt;
+    private TacticForallStmt _stmt;
     private List<BoundVar> _vars;
     private Expression _range;
     private List<MaybeFreeExpression> _ens;
@@ -18,9 +18,9 @@ namespace Microsoft.Dafny.Tacny.Language {
 
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0) {
       Contract.Requires(statement != null);
-      Contract.Requires(statement is TacnyForallStmt);
+      Contract.Requires(statement is TacticForallStmt);
 
-      _stmt = statement as TacnyForallStmt;
+      _stmt = statement as TacticForallStmt;
  
       Contract.Assert(_stmt != null);
 
@@ -231,7 +231,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     public override bool MatchStmt(Statement stmt, ProofState state) {
       Contract.Requires(stmt != null);
 
-      return stmt is TacnyForallStmt;
+      return stmt is TacticForallStmt;
     }
 
   }

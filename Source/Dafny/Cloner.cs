@@ -615,12 +615,12 @@ namespace Microsoft.Dafny
         var body = s.Body == null ? null : CloneBlockStmt(s.Body);
         r = new ModifyStmt(Tok(s.Tok), Tok(s.EndTok), mod.Expressions, mod.Attributes, body);
 
-      } else if (stmt is TacnyCasesBlockStmt) {
-        var s = (TacnyCasesBlockStmt)stmt;
+      } else if (stmt is TacticCasesBlockStmt) {
+        var s = (TacticCasesBlockStmt)stmt;
         var guard = CloneExpr(s.Guard);
         var body = s.Body == null ? null : CloneBlockStmt(s.Body);
         var attrs = s.Attributes == null ? null : CloneAttributes(s.Attributes);
-        r = new TacnyCasesBlockStmt(Tok(s.Tok), Tok(s.EndTok), guard, attrs, body);
+        r = new TacticCasesBlockStmt(Tok(s.Tok), Tok(s.EndTok), guard, attrs, body);
       
 /*      } else if (stmt is TacnyChangedBlockStmt) {
         var s = (TacnyChangedBlockStmt)stmt;
@@ -643,12 +643,12 @@ namespace Microsoft.Dafny
         var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
         r = new TacticVarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
       
-      } else if (stmt is TacnyBasicBlockStmt) {
-         var s = (TacnyBasicBlockStmt) stmt;
-         r = new TacnyBasicBlockStmt(Tok(s.Tok), Tok(s.EndTok), CloneAttributes(s.Attributes),CloneBlockStmt((BlockStmt)s.Body));
-      } else if (stmt is TacnyForallStmt) {
-                var s = (TacnyForallStmt)stmt;
-                r = new TacnyForallStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Spec), CloneBlockStmt((BlockStmt)s.Body), CloneAttributes(s.Attributes));
+      } else if (stmt is TacticBasicBlockStmt) {
+         var s = (TacticBasicBlockStmt) stmt;
+         r = new TacticBasicBlockStmt(Tok(s.Tok), Tok(s.EndTok), CloneAttributes(s.Attributes),CloneBlockStmt((BlockStmt)s.Body));
+      } else if (stmt is TacticForallStmt) {
+                var s = (TacticForallStmt)stmt;
+                r = new TacticForallStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Spec), CloneBlockStmt((BlockStmt)s.Body), CloneAttributes(s.Attributes));
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }

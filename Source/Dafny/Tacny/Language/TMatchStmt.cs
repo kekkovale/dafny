@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     */
     public new bool IsEvaluated => false;
     public override bool MatchStmt(Statement stmt, ProofState state){
-      return stmt is TacnyCasesBlockStmt;
+      return stmt is TacticCasesBlockStmt;
     }
 
     public override bool EvalTerminated(bool childFrameRes, ProofState ps)
@@ -87,7 +87,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     public override IEnumerable<ProofState> EvalStep(ProofState state0){
       var state = state0.Copy();
 
-      var stmt = GetStmt() as TacnyCasesBlockStmt;
+      var stmt = GetStmt() as TacticCasesBlockStmt;
       var framectrl = new DefaultTacticFrameCtrl();
       if (stmt != null) framectrl.InitBasicFrameCtrl(stmt.Body.Body, state0.IsCurFramePartial(), null);
       state.AddNewFrame(framectrl);
@@ -107,12 +107,12 @@ namespace Microsoft.Dafny.Tacny.Language {
 
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
       Contract.Requires(statement != null);
-      Contract.Requires(statement is TacnyCasesBlockStmt);
+      Contract.Requires(statement is TacticCasesBlockStmt);
       var partial = false || state0.IsCurFramePartial();
 
       var state = state0.Copy();
 
-      var stmt = statement as TacnyCasesBlockStmt;
+      var stmt = statement as TacticCasesBlockStmt;
       NameSegment caseVar;
 
       //get guards

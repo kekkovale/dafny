@@ -294,7 +294,7 @@ namespace Microsoft.Dafny.Tacny {
 
       } else {
         // no result is successful
-        discarded[discarded.Count - 1].Item1.GetErrHandler().ExceptionReport(0);
+        discarded[discarded.Count - 1].Item1.GetErrHandler().ExceptionReport();
       }
     }
   }

@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       Contract.Ensures(Contract.ValueAtReturn(out callArguments) != null);
       lv = null;
       callArguments = null;
-      TacnyBlockStmt tbs;
+      TacticBlockStmt tbs;
 
       // tacny variables should be declared as tvar or tactic var
       //if(st is VarDeclStmt)
@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
               callArguments = GetCallArguments(us);
             }
           }
-        } else if((tbs = st as TacnyBlockStmt) != null) {
+        } else if((tbs = st as TacticBlockStmt) != null) {
           var pe = tbs.Guard as ParensExpression;
           callArguments = pe != null ? new List<Expression> { pe.E } : new List<Expression> { tbs.Guard };
         }
