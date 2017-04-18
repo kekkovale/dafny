@@ -196,7 +196,7 @@ namespace DafnyLanguage
                 if (f.Body != null) {
                   ExprRegions(f.Body, newRegions, program, module);
                 }
-              } else if (member is Method) {
+              } else if (member is Method && !(member is Tactic)) {
                 var m = (Method)member;
                 foreach (var p in m.Ins) {
                   IdRegion.Add(newRegions, program, p.tok, p, true, m, module);
