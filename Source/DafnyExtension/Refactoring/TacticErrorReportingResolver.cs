@@ -38,8 +38,8 @@ namespace DafnyLanguage.Refactoring
       Contract.Ensures(_tmpFailingMember != null);
       Contract.Ensures(!string.IsNullOrEmpty(_implTargetName));
       var proofState = errorInfo.S;
-      var tmpProgram = ((CompoundErrorInformation)errorInfo.E).P;
-      var innerError = ((CompoundErrorInformation)errorInfo.E).E;
+      var tmpProgram = proofState.GetDafnyProgram();
+      var innerError = (errorInfo as Bpl.ErrorInformation);
       var tmpModule = (DefaultClassDecl)tmpProgram.DefaultModuleDef.TopLevelDecls.FirstOrDefault(x => x.CompileName== "__default");
 
       var tok = innerError.Tok as NestedToken;

@@ -55,7 +55,7 @@ namespace Microsoft.Dafny.Tacny {
       switch (ActiveStrategy) {
         case Strategy.Bfs:
           throw new NotSupportedException("Breath first search has not been supported ");
-          //enumerable = BreadthFirstSeach.Search(state, er);
+          //enumerable = BreadthFirstSeach.Search(state, errDelegate);
           break;
         case Strategy.Dfs:
           enumerable = DepthFirstSeach.Search(state, er);
@@ -72,22 +72,25 @@ namespace Microsoft.Dafny.Tacny {
 
 
 
-    public static VerifyResult VerifyState(ProofState state, ErrorReporterDelegate er) {
-      // at the momemnt,we don't propagate errors from buanches to user, no need to use er, in the future this will
+    public static VerifyResult VerifyState(ProofState state) {
+      // at the momemnt,we don't propagate errors from buanches to user, no need to use errDelegate, in the future this will
       // come to play when repair kicks in
       if (state.IsTimeOut()){
+        state.GetErrHandler().ErrType = TacticBasicErr.ErrorType.Timeout;
         return VerifyResult.Failed;
       }
       var prog =  Util.GenerateResolvedProg(state);
       if (prog == null)
+      {
         return VerifyResult.Unresolved;
+      }
 
-   //   ErrorReporterDelegate tmp_er =
-     //   errorInfo => { er?.Invoke(new CompoundErrorInformation(errorInfo.Tok, errorInfo.Msg, errorInfo, state)); };
+      //   ErrorReporterDelegate tmp_er =
+     //   errorInfo => { errDelegate?.Invoke(new CompoundErrorInformation(errorInfo.Tok, errorInfo.Msg, errorInfo, state)); };
       var result = Util.VerifyResolvedProg(state, prog, null);
 /*
       ErrorReporterDelegate tmp_er =
-        errorInfo => { er?.Invoke(new CompoundErrorInformation(errorInfo.Tok, errorInfo.Msg, errorInfo, state)); };
+        errorInfo => { errDelegate?.Invoke(new CompoundErrorInformation(errorInfo.Tok, errorInfo.Msg, errorInfo, state)); };
       var boogieProg = Util.Translate(prog, prog.Name, tmp_er);
       PipelineStatistics stats;
       List<ErrorInformation> errorList;
@@ -105,7 +108,7 @@ namespace Microsoft.Dafny.Tacny {
       }
     }
   /*
-  public static VerifyResult VerifyState0(ProofState state, ErrorReporterDelegate er) {
+  public static VerifyResult VerifyState0(ProofState state, ErrorReporterDelegate errDelegate) {
       //TODO: remove body list, only nedd one
       var bodyList = new Dictionary<ProofState, BlockStmt>();
       bodyList.Add(state, Util.InsertCode(state,
@@ -122,7 +125,7 @@ namespace Microsoft.Dafny.Tacny {
         foreach (var stmt in state.GetGeneratedCode()){
           printer.PrintStatement(stmt,0);
         }
-      var result = Util.ResolveAndVerify(prog, errorInfo => { er?.Invoke(new CompoundErrorInformation(errorInfo.Tok, errorInfo.Msg, errorInfo, state)); });
+      var result = Util.ResolveAndVerify(prog, errorInfo => { errDelegate?.Invoke(new CompoundErrorInformation(errorInfo.Tok, errorInfo.Msg, errorInfo, state)); });
 
       Console.WriteLine("\n*********************END*****************");
 
@@ -132,7 +135,7 @@ namespace Microsoft.Dafny.Tacny {
           //TODO: find which proof state verified (if any)
           //TODO: update verification results
           
-          //  er();
+          //  errDelegate();
           return VerifyResult.Failed;
         }
       }
@@ -142,7 +145,7 @@ namespace Microsoft.Dafny.Tacny {
  /*
   internal class BreadthFirstSeach : BaseSearchStrategy {
 
-    internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate er){
+    internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate errDelegate){
 
       var queue = new Queue<IEnumerator<ProofState>>();
       queue.Enqueue(rootState.EvalStep().GetEnumerator());
@@ -160,9 +163,9 @@ namespace Microsoft.Dafny.Tacny {
         }
         var proofState = enumerator.Current;
         //check if any new added code reuqires to call the dafny to verity, or reach the last line of code
-        if (proofState.NeedVerify || proofState.IsEvaluated()) {
+        if (proofState.NeedVerify || proofState.IsCurFrameEvaluated()) {
           proofState.NeedVerify = false;
-          switch (VerifyState(proofState, er)){
+          switch (VerifyState(proofState, errDelegate)){
             case VerifyResult.Verified:
               proofState.MarkCurFrameAsTerminated(true);
               if (proofState.IsTerminated()){
@@ -172,7 +175,7 @@ namespace Microsoft.Dafny.Tacny {
               //queue.Enqueue(Interpreter.EvalStep(proofState).GetEnumerator());
               break;
             case VerifyResult.Failed:
-              if (proofState.IsEvaluated()){
+              if (proofState.IsCurFrameEvaluated()){
                 proofState.MarkCurFrameAsTerminated(false);
                 if(proofState.IsTerminated()) {
                   yield return proofState;
@@ -187,7 +190,7 @@ namespace Microsoft.Dafny.Tacny {
               throw new ArgumentOutOfRangeException();
           }
         }
-        if(!proofState.IsEvaluated()) {
+        if(!proofState.IsCurFrameEvaluated()) {
           queue.Enqueue(proofState.EvalStep().GetEnumerator());
         }
       }
@@ -198,7 +201,7 @@ namespace Microsoft.Dafny.Tacny {
 
   internal class DepthFirstSeach : BaseSearchStrategy {
   
-    internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate er){
+    internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate errDelegate){
       var stack = new Stack<IEnumerator<ProofState>>(); // proof state and  backtrack count
       ProofState lastSucc = null;
 
@@ -208,7 +211,6 @@ namespace Microsoft.Dafny.Tacny {
       var discarded = new List<Tuple<ProofState, VerifyResult>>();
 
       IEnumerator<ProofState> enumerator = Enumerable.Empty<ProofState>().GetEnumerator();
-
       List<int> backtackList = null;
 
       while(stack.Count > 0) {
@@ -224,14 +226,14 @@ namespace Microsoft.Dafny.Tacny {
         backtackList = proofState.GetBackTrackCount();
 
         //check if any new added coded reuqires to call verifier, or reach the last line of code
-        if(proofState.NeedVerify || proofState.IsEvaluated()) {
+        if(proofState.NeedVerify || proofState.IsCurFrameEvaluated()) {
           proofState.NeedVerify = false;
           bool backtracked = false;
 
-          switch (VerifyState(proofState, er)){
+          switch (VerifyState(proofState)){
             case VerifyResult.Verified:
               //check if the frame are evaluated, as well as requiests for backtraking 
-              proofState.MarkCurFrameAsTerminated(true, backtracked);
+              proofState.MarkCurFrameAsTerminated(true, backtracked, out backtracked);
               if (backtracked) {
                 lastSucc = proofState;
                 discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Backtracked));
@@ -246,8 +248,8 @@ namespace Microsoft.Dafny.Tacny {
               //enumerator = (Interpreter.EvalStep(proofState).GetEnumerator());
               break;
             case VerifyResult.Failed:
-              if(proofState.IsEvaluated()) {
-                proofState.MarkCurFrameAsTerminated(false, backtracked);
+              if(proofState.IsCurFrameEvaluated()) {
+                proofState.MarkCurFrameAsTerminated(false, backtracked, out backtracked);
                 if (backtracked) {
                   lastSucc = proofState;
                   discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Backtracked));
@@ -271,7 +273,7 @@ namespace Microsoft.Dafny.Tacny {
        * if so, do nothing will dischard this branch and continue with the next one
        * otherwise, continue to evaluate the next stmt
        */
-        if (!proofState.IsEvaluated()){
+        if (!proofState.IsCurFrameEvaluated()){
           //push the current one to the stack
           stack.Push(enumerator);
           //move to the next stmt
@@ -279,6 +281,11 @@ namespace Microsoft.Dafny.Tacny {
         }
         else{
           backtackList = proofState.GetBackTrackCount(); // update the current bc count to the list
+          if (proofState.InAsserstion)
+            proofState.GetErrHandler().ErrType = TacticBasicErr.ErrorType.Assertion;
+          else
+            proofState.GetErrHandler().ErrType = TacticBasicErr.ErrorType.NotProved;
+
           discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Failed));
         }
 
@@ -294,7 +301,21 @@ namespace Microsoft.Dafny.Tacny {
 
       } else {
         // no result is successful
-        discarded[discarded.Count - 1].Item1.GetErrHandler().ExceptionReport();
+        var s0 = discarded[discarded.Count - 1];
+        s0.Item1.GetErrHandler().ExceptionReport();
+        if (errDelegate != null) {
+          foreach (var err in s0.Item1.GetErrHandler().ErrorList)
+          {
+            lock (errDelegate)
+            {
+              errDelegate(new CompoundErrorInformation(
+                s0.Item1.GetErrHandler().GenerateErrorMsg(),
+                err,
+                s0.Item1
+                ));
+            }
+          }
+        }
       }
     }
   }

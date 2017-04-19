@@ -280,12 +280,6 @@ namespace Microsoft.Dafny.Tacny {
 
 #if _TACTIC_DEBUG
         Console.Write("Fail to resolve prog, skip verifier ! \n");
-        String errMsg = "";
-        foreach (var msg in prog.reporter.AllMessages[ErrorLevel.Error]) {
-          errMsg = errMsg + "\n " + msg.message;
-        }
-        state.GetErrHandler().ErrInfo = errMsg;
-
 #endif
         return null;
       }
@@ -311,12 +305,9 @@ namespace Microsoft.Dafny.Tacny {
         PipelineOutcome tmp = BoogiePipeline(prog.Item2,
           new List<string> { program.Name }, program.Name, er,
           out stats, out errorList, program);
-        if (errorList.Count != 0) {
-          String errMsg = "";
-          foreach (var msg in errorList) {
-            errMsg = errMsg + "\n " + msg.FullMsg;
-          }
-          state.GetErrHandler().ErrInfo = errMsg;
+        if (errorList.Count != 0)
+        {
+          state.GetErrHandler().ErrorList = errorList;
           return false;
         }
       }
@@ -392,7 +383,6 @@ namespace Microsoft.Dafny.Tacny {
           oc = ExecutionEngine.InferAndVerify(program, stats, programId, errorInfo =>
           {
             tmp.Add(errorInfo);
-            er?.Invoke(new CompoundErrorInformation(errorInfo.Tok, errorInfo.Msg, errorInfo, tmpDafnyProgram));
           });
           errorList.AddRange(tmp);
           
@@ -406,106 +396,14 @@ namespace Microsoft.Dafny.Tacny {
 
   public class CompoundErrorInformation : ErrorInformation
   {
-    public readonly Program P;
-    public readonly ErrorInformation E;
     public readonly ProofState S;
-    public CompoundErrorInformation(IToken tok, string msg, ErrorInformation e, Program p) : base(tok, msg)
+    public CompoundErrorInformation(string preMsg, ErrorInformation e, ProofState s) 
+      :base(s.TopTokenTracer().Origin, preMsg + " " + e.FullMsg)
     {
-      E = e;
-      P = p;
-    }
-    public CompoundErrorInformation(IToken tok, string msg, ErrorInformation e, ProofState s) : base(tok, msg)
-    {
-      E = e;
+      this.ImplementationName = e.ImplementationName;
       S = s;
     }
   }
-/*
-#region Parser
-  public static class Parser {
-    /// <summary>
-    /// Returns null on success, or an error string otherwise.
-    /// </summary>
-    public static string ParseOnly(IList<string> fileNames, string programName, out Program program) {
-      Contract.Requires(programName != null);
-      Contract.Requires(fileNames != null);
-      program = null;
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
-      BuiltIns builtIns = new BuiltIns();
-  
-      foreach (string dafnyFileName in fileNames) {
-        Contract.Assert(dafnyFileName != null);
-
-        string err = ParseFile(dafnyFileName, Token.NoToken, module, builtIns, new Errors(new ConsoleErrorReporter()));
-        if (err != null) {
-          return err;
-        }
-      }
-
-      if (!DafnyOptions.O.DisallowIncludes) {
-        string errString = ParseIncludes(module, builtIns, fileNames, new Errors(new ConsoleErrorReporter()));
-        if (errString != null) {
-          return errString;
-        }
-      }
-
-      program = new Program(programName, module, builtIns, new ConsoleErrorReporter());
-      return null;
-    }
-
-    // Lower-case file names before comparing them, since Windows uses case-insensitive file names
-    private class IncludeComparer : IComparer<Include> {
-      public int Compare(Include x, Include y) {
-        return string.Compare(x.fullPath.ToLower(), y.fullPath.ToLower(), StringComparison.Ordinal);
-      }
-    }
-
-    public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, IList<string> excludeFiles, Errors errs) {
-      SortedSet<Include> includes = new SortedSet<Include>(new IncludeComparer());
-      foreach (string fileName in excludeFiles) {
-        includes.Add(new Include(null, fileName, Path.GetFullPath(fileName)));
-      }
-      bool newlyIncluded;
-      do {
-        newlyIncluded = false;
-
-        var newFilesToInclude = new List<Include>();
-        foreach (var include in ((LiteralModuleDecl)module).ModuleDef.Includes) {
-          bool isNew = includes.Add(include);
-          if (!isNew) continue;
-          newlyIncluded = true;
-          newFilesToInclude.Add(include);
-        }
-
-        foreach (var include in newFilesToInclude) {
-          string ret = ParseFile(include.filename, include.tok, module, builtIns, errs, false);
-          if (ret != null) {
-            return ret;
-          }
-        }
-      } while (newlyIncluded);
-
-      return null; // Success
-    }
-
-    private static string ParseFile(string dafnyFileName, IToken tok, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true) {
-      string fn = CommandLineOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(dafnyFileName) : dafnyFileName;
-      try {
-
-        int errorCount = Microsoft.Dafny.Parser.Parse(dafnyFileName, module, builtIns, errs, verifyThisFile);
-        if (errorCount != 0) {
-          return $"{errorCount} parse errors detected in {fn}";
-        }
-      } catch (IOException e) {
-        errs.SemErr(tok, "Unable to open included file");
-        return $"Error opening file \"{fn}\": {e.Message}";
-      }
-      return null; // Success
-    }
- 
-#endregion
-  }
-*/
 
   public static class ObjectExtensions {
     private static readonly MethodInfo CloneMethod = typeof(Object).GetMethod("MemberwiseClone", BindingFlags.NonPublic | BindingFlags.Instance);

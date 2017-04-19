@@ -22,8 +22,8 @@ namespace Microsoft.Dafny.Tacny{
 
     //not all the eval step requires to be verified, e.g. var decl
     public bool NeedVerify { set; get; } = false;
-    
 
+    public bool InAsserstion { set; get; } = false;
     public UpdateStmt TopLevelTacApp;
 /*
     public ITactic ActiveTactic {
@@ -162,13 +162,13 @@ namespace Microsoft.Dafny.Tacny{
       _scope.Push(new Frame(parent, ctrl));
     }
     // note that this function would only be called when either a frame is proved or isEvaluated.
-    public void MarkCurFrameAsTerminated(bool curFrameProved, bool backtracked){
+    public void MarkCurFrameAsTerminated(bool curFrameProved, bool backtracked, out bool ifbacktracked){
 
       //assemble code in the top frame. the stata that code is null after this call, indicates
       // the current branches has been backtrackee.
       // 
-      bool ifbacktracked, ifbacktrackedInRecurCall = false;
-      _scope.Peek().FrameCtrl.MarkAsEvaluated(curFrameProved, out ifbacktracked);
+      bool ifbacktracked0, ifbacktrackedInRecurCall = false;
+      _scope.Peek().FrameCtrl.MarkAsEvaluated(curFrameProved, out ifbacktracked0);
 
       var code = _scope.Peek().FrameCtrl.GetFinalCode();
       var trace = _scope.Peek().TokenTracer;
@@ -178,10 +178,10 @@ namespace Microsoft.Dafny.Tacny{
         _scope.Peek().Parent.FrameCtrl.AddGeneratedCode(code);
         _scope.Peek().Parent.TokenTracer.AddSubTrace(trace);
         _scope.Pop();
-        if (_scope.Peek().FrameCtrl.EvalTerminated(curFrameProved, this) || IsEvaluated())
-          MarkCurFrameAsTerminated(curFrameProved, ifbacktrackedInRecurCall);
+        if (_scope.Peek().FrameCtrl.EvalTerminated(curFrameProved, this) || IsCurFrameEvaluated())
+          MarkCurFrameAsTerminated(curFrameProved, ifbacktrackedInRecurCall, out ifbacktrackedInRecurCall);
       }
-      backtracked = ifbacktracked || ifbacktrackedInRecurCall;
+      ifbacktracked = ifbacktracked0 || ifbacktrackedInRecurCall;
     }
 
     public IEnumerable<ProofState> EvalStep(){
@@ -279,8 +279,13 @@ namespace Microsoft.Dafny.Tacny{
     /// Check if the current frame is fully interpreted by tracking counts of stmts
     /// </summary>
     /// <returns></returns>
-    public bool IsEvaluated(){
+    public bool IsCurFrameEvaluated(){
       return _scope.Peek().FrameCtrl.IsEvaluated;
+    }
+
+    public bool IsEvaluated()
+    {
+      return _scope.Count == 1 && IsCurFrameEvaluated();
     }
 
 
