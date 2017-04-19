@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.Tacny
           break;
    
         case ErrorType.NotProved:
-          msg = "Tactic can't prove the current VCs: ";
+          msg = "Tactic can't prove it: ";
           break;
 
         default:

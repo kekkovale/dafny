@@ -55,7 +55,8 @@ namespace DafnyLanguage.Refactoring
 
       FailingLine = FailingCol = TacticLine = TacticCol = CallingLine = CallingCol = -1;
 
-      if(!ActiveTacticWasNotUsed()) ResolveCorrectLocations();
+      //if(!ActiveTacticWasNotUsed())
+        ResolveCorrectLocations();
     }
 
     private bool ActiveTacticWasNotUsed()
