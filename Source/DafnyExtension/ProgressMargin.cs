@@ -453,7 +453,7 @@ namespace DafnyLanguage
           } catch (TacticErrorResolutionException e) {
             errorListHolder.AddError(
               new DafnyError("$$program_tactics$$", 0, 0, ErrorCategory.InternalError,
-              "Error resolving tactics error " + e.Message + "\n" + e.StackTrace, snapshot, false),
+              "Tactic errors: " + e.Message + "\n" + e.StackTrace, snapshot, false),
             "$$program_tactics$$", requestId);
           }
         }

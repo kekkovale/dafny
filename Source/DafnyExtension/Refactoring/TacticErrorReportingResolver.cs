@@ -51,7 +51,7 @@ namespace DafnyLanguage.Refactoring
       _activeTactic = proofState.GetTactic(_tacticCall) as Tactic;
 
       _callingMember = proofState.TargetMethod;
-      _tmpFailingMember = tmpModule?.Members.FirstOrDefault(x => x.CompileName == _implTargetName);
+      _tmpFailingMember = tmpModule?.Members.FirstOrDefault(x => x.Name == _implTargetName);
 
       FailingLine = FailingCol = TacticLine = TacticCol = CallingLine = CallingCol = -1;
 
