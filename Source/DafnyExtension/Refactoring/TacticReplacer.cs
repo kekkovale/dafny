@@ -328,7 +328,7 @@ namespace DafnyLanguage.Refactoring
 
     private TacticReplaceStatus ExpandSingleTacticCall(UpdateStmt us, out string expanded) {
       expanded = "";
-      var l = Interpreter.GetTacnyResultList();
+      var l = Interpreter.GetTacticResultList();
       var result = l.FirstOrDefault(pair => RefactoringUtil.TokenEquals(pair.Key,us.Tok));
       if (result.Value == null) return TacticReplaceStatus.NoTactic;
       var sr = new StringWriter();
@@ -340,7 +340,7 @@ namespace DafnyLanguage.Refactoring
     
     public TacticReplaceStatus ExpandTacticByMember(out string expandedTactic) {
       expandedTactic = "";
-      var l = Interpreter.GetTacnyResultList();
+      var l = Interpreter.GetTacticResultList();
       var x = _member as Method;
       if (x == null) return TacticReplaceStatus.NoTactic;
       var sr = new StringWriter();

@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.Tacny {
 
     public static Stopwatch Timer;
 
-    public static void ResetTacnyResultList(){
+    public static void ResetTacticResultList(){
       if (Timer == null)
         Timer = new Stopwatch();
 
@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.Tacny {
       EAtomic.EAtomic.InitEAtomicSigList();
     }
 
-    public static Dictionary<IToken, List<Statement>> GetTacnyResultList() {
+    public static Dictionary<IToken, List<Statement>> GetTacticResultList() {
       Dictionary<IToken, List<Statement>> bufferList = new Dictionary<IToken, List<Statement>>();
 
       foreach(var e in _resultList) {

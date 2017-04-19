@@ -299,7 +299,7 @@ namespace DafnyLanguage
     }
 
     public bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er){
-      Dafny.Tacny.Interpreter.ResetTacnyResultList();
+      Dafny.Tacny.Interpreter.ResetTacticResultList();
       Dafny.Translator translator = new Dafny.Translator(dafnyProgram.reporter, null, er);
       var translatorFlags = new Dafny.Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = uniqueIdPrefix };
 
