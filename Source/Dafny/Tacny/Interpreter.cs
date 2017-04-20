@@ -121,7 +121,6 @@ namespace Microsoft.Dafny.Tacny {
 
         
         // use the original resolver of the resoved program, as it contains all the necessary type info
-        //TODO: how about pre and post ??
         method.CallsTactic = false; // set the tactic call lable to be false, no actual consequence
         // set the current class in the resolver, so that it can refer to the memberdecl correctly
         r.SetCurClass(method.EnclosingClass as ClassDecl);
@@ -231,7 +230,26 @@ namespace Microsoft.Dafny.Tacny {
       state.InitState(tacticApplication, variables);
 
       var search = new BaseSearchStrategy(state.GetSearchStrategy());
-      var ret = search.Search(state, _errorReporterDelegate).FirstOrDefault();
+      ProofState ret;
+      try
+      {
+       ret = search.Search(state, _errorReporterDelegate).FirstOrDefault();
+
+      } catch (Exception e)
+      {
+        var msg = "Tactic failure: exception !";
+        Console.WriteLine(msg);
+        if (_errorReporterDelegate != null)
+        {
+          lock (_errorReporterDelegate)
+          {
+            _errorReporterDelegate(new CompoundErrorInformation(
+              state
+            ));
+          }
+        }
+        ret = null;
+      }
       return ret;
     }
 

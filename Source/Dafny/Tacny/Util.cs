@@ -397,6 +397,14 @@ namespace Microsoft.Dafny.Tacny {
   public class CompoundErrorInformation : ErrorInformation
   {
     public readonly ProofState S;
+
+    public CompoundErrorInformation(ProofState state)
+      : base(new Token(Interpreter.TacticCodeTokLine, Interpreter.TacticCodeTokLine), "Tactic Failures: exception.")
+    {
+      ImplementationName = "Impl$$" + state.TargetMethod.FullName;
+      S = state;
+    }
+
     public CompoundErrorInformation(string preMsg, ErrorInformation e, ProofState s) 
       :base(s.TopTokenTracer().Origin, preMsg + " " + e.FullMsg)
     {
