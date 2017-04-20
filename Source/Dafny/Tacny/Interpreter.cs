@@ -1,4 +1,6 @@
-﻿using System;
+﻿#define TACNY_DEBUG
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
@@ -231,10 +233,12 @@ namespace Microsoft.Dafny.Tacny {
 
       var search = new BaseSearchStrategy(state.GetSearchStrategy());
       ProofState ret;
+#if !TACNY_DEBUG
       try
       {
-       ret = search.Search(state, _errorReporterDelegate).FirstOrDefault();
-
+#endif
+        ret = search.Search(state, _errorReporterDelegate).FirstOrDefault();
+#if !TACNY_DEBUG
       } catch (Exception e)
       {
         var msg = "Tactic failure: exception !";
@@ -250,6 +254,7 @@ namespace Microsoft.Dafny.Tacny {
         }
         ret = null;
       }
+#endif
       return ret;
     }
 
@@ -305,7 +310,8 @@ namespace Microsoft.Dafny.Tacny {
                 }
               }
             }
-          } else {// default action as macro
+          }
+          if (enumerable == null) {// default action as macro
             enumerable = DefaultAction(stmt, state);
           }
         }

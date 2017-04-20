@@ -97,7 +97,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
         else if (obj is List<Expression>)
           return new SetDisplayExpr(new Token(Interpreter.TacticCodeTokLine,0), true, obj as List<Expression>);
         else
-          throw new NotSupportedException ("Unkonwn type to handle when simplifying an expression");
+          throw new NotSupportedException ("Unknown type to handle when simplifying an expression");
 
       }
       else if (IsETacticCall(e)){
