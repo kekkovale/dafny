@@ -6878,9 +6878,19 @@ namespace Microsoft.Dafny
       sig.IsAbstract = moduleDef.IsAbstract;
       sig.VisibilityScope = new VisibilityScope();
       sig.VisibilityScope.Augment(moduleDef.VisibilityScope);
+      foreach (var tmp in moduleInfo.TopLevels.ToList())
+      {
+        sig.TopLevels.Add(tmp.Key, tmp.Value);
+      }
+      foreach (var tmp in  moduleDef.TopLevelDecls) {
+        if (!sig.TopLevels.ContainsKey(tmp.Name))
+        {
+          sig.TopLevels.Add(tmp.Name, tmp);
+        }
+      }
 
       //mainly for datatype ctors
-      foreach(var ctors in datatypeCtors.Values) {
+      foreach (var ctors in datatypeCtors.Values) {
         foreach(DatatypeCtor ctor in ctors.Values) { 
 
             // also register the constructor name globally
@@ -11255,7 +11265,10 @@ namespace Microsoft.Dafny
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(opts != null);
       Contract.Requires((option.Opt == ResolveTypeOptionEnum.DontInfer || option.Opt == ResolveTypeOptionEnum.InferTypeProxies) == (defaultTypeArguments == null));
-
+      if (expr.Name == "Tree")
+      {
+        var t = 1;
+      }
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, option, defaultTypeArguments);
