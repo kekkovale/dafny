@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Tacny.Expr;
@@ -43,20 +44,55 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       }
 
       foreach (var local in locals){
+        //hardcode the operator as "in"
         var destExpr = (suchThat.Expr as BinaryExpr);
         if (destExpr != null)
         {
-          var l = (Expression)SimpTacticExpr.SimpTacExpr(state, destExpr.E1);
-          //TODO: currently assume the op is always "in"
-          var setDisplayExpr = l as SetDisplayExpr;
-          if (setDisplayExpr != null)
-            foreach (var item in setDisplayExpr.Elements) {
+          object l;
+          try
+          {
+            l = SimpTacticExpr.SimpTacExpr(state, destExpr.E1);
+          }
+          catch (Exception e)
+          {
+            l = SimpTacticExpr.EvalTacticExpr(state, destExpr.E1);
+          }
+
+
+          if (l is SetDisplayExpr)
+          {
+            var setDisplayExpr = l as SetDisplayExpr;
+            if (setDisplayExpr != null)
+              foreach (var item in setDisplayExpr.Elements)
+              {
+                var copy = state.Copy();
+                copy.UpdateTacnyVar(local, item);
+                copy.TopTokenTracer().AddBranchTrace(count);
+                yield return copy;
+                count++;
+              }
+          } else if (l is List<MemberDecl>)
+          {
+            var objList = l as List<MemberDecl>;
+            foreach (var item in objList) {
               var copy = state.Copy();
               copy.UpdateTacnyVar(local, item);
               copy.TopTokenTracer().AddBranchTrace(count);
               yield return copy;
               count++;
             }
+          } else if (l is List<IVariable>)
+          {
+            var objList = l as List<IVariable>;
+            foreach (var item in objList)
+            {
+              var copy = state.Copy();
+              copy.UpdateTacnyVar(local, item);
+              copy.TopTokenTracer().AddBranchTrace(count);
+              yield return copy;
+              count++;
+            }
+          }
         }
       }
     }
