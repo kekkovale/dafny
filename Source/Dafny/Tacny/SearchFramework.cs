@@ -75,6 +75,7 @@ namespace Microsoft.Dafny.Tacny{
         state.GetErrHandler().ErrType = TacticBasicErr.ErrorType.Timeout;
         return VerifyResult.Failed;
       }
+
       var prog = Util.GenerateResolvedProg(state);
       if (prog == null){
         return VerifyResult.Unresolved;
@@ -94,19 +95,27 @@ namespace Microsoft.Dafny.Tacny{
         var stack = new Stack<IEnumerator<ProofState>>();
         ProofState lastSucc = null; // the last verified state, for recovering over-backtracking
         var discarded = new List<Tuple<ProofState, VerifyResult>>(); // failed ps and its verified status
-
+        ProofState proofState = rootState;
         stack.Push(rootState.EvalStep().GetEnumerator());
         
         IEnumerator<ProofState> enumerator = Enumerable.Empty<ProofState>().GetEnumerator();
+
         List<int> backtackList = null;
 
         while (stack.Count > 0){
           if (!enumerator.MoveNext()){
+            //reset the branches before dischard them.
+            // if no next branch after reset. it is null.
+            enumerator.Reset();
+            if(!enumerator.MoveNext()) {
+              discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Unresolved));
+            }
             enumerator = stack.Pop();
-            if (!enumerator.MoveNext())
+            if (!enumerator.MoveNext()){
               continue;
+            }
           }
-          var proofState = enumerator.Current;
+          proofState = enumerator.Current;
           //set the backtrack list back to the frame, this will udpate the backtrack count for the parent one.
           if (backtackList != null)
             proofState.SetBackTrackCount(backtackList);
@@ -196,8 +205,7 @@ namespace Microsoft.Dafny.Tacny{
           if (discarded.Count > 0){
             s0 = discarded[discarded.Count - 1].Item1;
             s0.GetErrHandler().ExceptionReport();
-          }
-          else{
+          } else {
             s0 = rootState;
           }
           if (errDelegate != null){

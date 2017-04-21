@@ -59,18 +59,16 @@ namespace Microsoft.Dafny.Tacny.Atomic {
           }
 
 
-          if (l is SetDisplayExpr)
-          {
+          if (l is SetDisplayExpr){
             var setDisplayExpr = l as SetDisplayExpr;
-            if (setDisplayExpr != null)
-              foreach (var item in setDisplayExpr.Elements)
-              {
-                var copy = state.Copy();
-                copy.UpdateTacnyVar(local, item);
-                copy.TopTokenTracer().AddBranchTrace(count);
-                yield return copy;
-                count++;
-              }
+            foreach (var item in setDisplayExpr.Elements)
+            {
+              var copy = state.Copy();
+              copy.UpdateTacnyVar(local, item);
+              copy.TopTokenTracer().AddBranchTrace(count);
+              yield return copy;
+              count++;
+            }
           } else if (l is List<MemberDecl>)
           {
             var objList = l as List<MemberDecl>;

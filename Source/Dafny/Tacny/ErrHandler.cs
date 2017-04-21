@@ -16,6 +16,7 @@ namespace Microsoft.Dafny.Tacny
       SemanticErr, /* Fail to eval a stmt, e.g. p:| post_conds() when no postconditions*/
       Assertion,
       NotProved,
+      Deafult
     }
     private readonly TokenTracer _token;
     public ErrorType ErrType { get; set; }
@@ -23,11 +24,15 @@ namespace Microsoft.Dafny.Tacny
     public static int ReportMode = 0; // 0 for brief mode, 1 for full mode
     public TacticBasicErr(TokenTracer t) {
       _token = t;
+      ErrType = ErrorType.Deafult;
     }
 
     public string GetErrMsg()
     {
       string errMsg = "";
+      if (ErrorList == null){
+        return "Fail to apply tactic!";
+      }
       foreach (var msg in ErrorList) {
         errMsg = errMsg + "\n " + msg.FullMsg;
       }
