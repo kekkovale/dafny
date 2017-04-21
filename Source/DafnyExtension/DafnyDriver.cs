@@ -299,12 +299,11 @@ namespace DafnyLanguage
     }
 
     public bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er){
-      Dafny.Tacny.Interpreter.ResetTacnyResultList();
-      Dafny.Translator translator = new Dafny.Translator(dafnyProgram.reporter, null, er);
+      Dafny.Tacny.Interpreter.ResetTacticResultList();
       var translatorFlags = new Dafny.Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = uniqueIdPrefix };
 
 
-      var boogiePrograms = Dafny.Translator.Translate(dafnyProgram, dafnyProgram.reporter, resolver.MostRecentResolver, translatorFlags);
+      var boogiePrograms = Dafny.Translator.Translate(dafnyProgram, dafnyProgram.reporter, resolver.MostRecentResolver, translatorFlags, er);
 
       var impls = boogiePrograms.SelectMany(p => p.Item2.Implementations);
       resolver.ReInitializeVerificationErrors(requestId, impls);

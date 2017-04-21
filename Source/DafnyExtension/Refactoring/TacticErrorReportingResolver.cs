@@ -38,8 +38,8 @@ namespace DafnyLanguage.Refactoring
       Contract.Ensures(_tmpFailingMember != null);
       Contract.Ensures(!string.IsNullOrEmpty(_implTargetName));
       var proofState = errorInfo.S;
-      var tmpProgram = ((CompoundErrorInformation)errorInfo.E).P;
-      var innerError = ((CompoundErrorInformation)errorInfo.E).E;
+      var tmpProgram = proofState.GetDafnyProgram();
+      var innerError = (errorInfo as Bpl.ErrorInformation);
       var tmpModule = (DefaultClassDecl)tmpProgram.DefaultModuleDef.TopLevelDecls.FirstOrDefault(x => x.CompileName== "__default");
 
       var tok = innerError.Tok as NestedToken;
@@ -51,11 +51,12 @@ namespace DafnyLanguage.Refactoring
       _activeTactic = proofState.GetTactic(_tacticCall) as Tactic;
 
       _callingMember = proofState.TargetMethod;
-      _tmpFailingMember = tmpModule?.Members.FirstOrDefault(x => x.CompileName == _implTargetName);
+      _tmpFailingMember = tmpModule?.Members.FirstOrDefault(x => x.Name == _implTargetName);
 
       FailingLine = FailingCol = TacticLine = TacticCol = CallingLine = CallingCol = -1;
 
-      if(!ActiveTacticWasNotUsed()) ResolveCorrectLocations();
+      //if(!ActiveTacticWasNotUsed())
+        ResolveCorrectLocations();
     }
 
     private bool ActiveTacticWasNotUsed()

@@ -97,7 +97,7 @@ namespace Microsoft.Dafny {
     ErrorReporter reporter;
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
     public bool UseOptimizationInZ3 { get; set; }
-    private ErrorReporterDelegate _tacnyDelegate; 
+    private ErrorReporterDelegate _tacticErrDelegate; 
 
     public class TranslatorFlags {
       public bool InsertChecksums = 0 < CommandLineOptions.Clo.VerifySnapshots;
@@ -105,7 +105,7 @@ namespace Microsoft.Dafny {
     }
 
     [NotDelayed]
-    public Translator(ErrorReporter reporter, TranslatorFlags flags = null, ErrorReporterDelegate tacnyDelegate = null) {
+    public Translator(ErrorReporter reporter, TranslatorFlags flags = null, ErrorReporterDelegate tacticErrDelegate = null) {
       this.reporter = reporter;
       if (flags == null) {
         flags = new TranslatorFlags();
@@ -116,7 +116,7 @@ namespace Microsoft.Dafny {
         sink = boogieProgram;
         predef = FindPredefinedDecls(boogieProgram);
       }
-      _tacnyDelegate = tacnyDelegate;
+      _tacticErrDelegate = tacticErrDelegate;
     }
 
     public void SetReporter(ErrorReporter reporter) {
@@ -789,14 +789,14 @@ namespace Microsoft.Dafny {
         return p.RawModules().Where(ShouldVerifyModule);
     }
 
-    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program p, ErrorReporter reporter, Resolver r, TranslatorFlags flags = null) {
+    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program p, ErrorReporter reporter, Resolver r, TranslatorFlags flags = null, ErrorReporterDelegate er = null) {
       Contract.Requires(p != null);
       Contract.Requires(p.ModuleSigs.Count > 0);
       Type.ResetScopes();
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
 
-        var translator = new Translator(reporter, flags);
+        var translator = new Translator(reporter, flags, er);
         translator.r = r;
 
         if (translator.sink == null || translator.sink == null) {
@@ -1940,7 +1940,7 @@ namespace Microsoft.Dafny {
 
       if (mem is Method) {
         if (mem.CallsTactic){
-          mem = Interpreter.ResolveMethod(program, (Method) mem, _tacnyDelegate, r) as Method;
+          mem = Interpreter.ResolveMethod(program, (Method) mem, _tacticErrDelegate, r) as Method;
         }
      /*   else{
           var printer = new Printer(Console.Out);

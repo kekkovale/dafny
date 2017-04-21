@@ -1,4 +1,6 @@
-﻿using System;
+﻿#define TACNY_DEBUG
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
@@ -23,7 +25,7 @@ namespace Microsoft.Dafny.Tacny {
 
     public static Stopwatch Timer;
 
-    public static void ResetTacnyResultList(){
+    public static void ResetTacticResultList(){
       if (Timer == null)
         Timer = new Stopwatch();
 
@@ -35,7 +37,7 @@ namespace Microsoft.Dafny.Tacny {
       EAtomic.EAtomic.InitEAtomicSigList();
     }
 
-    public static Dictionary<IToken, List<Statement>> GetTacnyResultList() {
+    public static Dictionary<IToken, List<Statement>> GetTacticResultList() {
       Dictionary<IToken, List<Statement>> bufferList = new Dictionary<IToken, List<Statement>>();
 
       foreach(var e in _resultList) {
@@ -121,7 +123,6 @@ namespace Microsoft.Dafny.Tacny {
 
         
         // use the original resolver of the resoved program, as it contains all the necessary type info
-        //TODO: how about pre and post ??
         method.CallsTactic = false; // set the tactic call lable to be false, no actual consequence
         // set the current class in the resolver, so that it can refer to the memberdecl correctly
         r.SetCurClass(method.EnclosingClass as ClassDecl);
@@ -231,7 +232,29 @@ namespace Microsoft.Dafny.Tacny {
       state.InitState(tacticApplication, variables);
 
       var search = new BaseSearchStrategy(state.GetSearchStrategy());
-      var ret = search.Search(state, _errorReporterDelegate).FirstOrDefault();
+      ProofState ret;
+#if !TACNY_DEBUG
+      try
+      {
+#endif
+        ret = search.Search(state, _errorReporterDelegate).FirstOrDefault();
+#if !TACNY_DEBUG
+      } catch (Exception e)
+      {
+        var msg = "Tactic failure: exception !";
+        Console.WriteLine(msg);
+        if (_errorReporterDelegate != null)
+        {
+          lock (_errorReporterDelegate)
+          {
+            _errorReporterDelegate(new CompoundErrorInformation(
+              state
+            ));
+          }
+        }
+        ret = null;
+      }
+#endif
       return ret;
     }
 
@@ -287,7 +310,8 @@ namespace Microsoft.Dafny.Tacny {
                 }
               }
             }
-          } else {// default action as macro
+          }
+          if (enumerable == null) {// default action as macro
             enumerable = DefaultAction(stmt, state);
           }
         }

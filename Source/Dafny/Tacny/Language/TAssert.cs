@@ -16,11 +16,14 @@ namespace Microsoft.Dafny.Tacny.Language
       return stmt is TacticAssertStmt;
     }
 
-    public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0) {
+    public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0)
+    {
 
+      state0.InAsserstion = true;
       var dummyBody = new List<Statement> { statement };
       InitBasicFrameCtrl(dummyBody, false, null);
       state0.AddNewFrame(this);
+
 
       var assertFrame = new DefaultTacticFrameCtrl();
       assertFrame.InitBasicFrameCtrl(dummyBody, false, null);
@@ -56,6 +59,7 @@ namespace Microsoft.Dafny.Tacny.Language
       //inc counter to finish the evaluation of the current fram, note that there is only one statement.
       // so one is enough
       IncCounter();
+      state0.InAsserstion = false;
       yield return state0;
     }
 

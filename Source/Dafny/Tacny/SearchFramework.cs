@@ -5,32 +5,31 @@ using System.Linq;
 using Microsoft.Boogie;
 
 
-namespace Microsoft.Dafny.Tacny {
-  
+namespace Microsoft.Dafny.Tacny{
+
   [ContractClass(typeof(BaseSearchContract))]
-  public interface ISearch {
+  public interface ISearch{
     IEnumerable<ProofState> Search(ProofState state, ErrorReporterDelegate er);
   }
 
-  public enum Strategy {
+  public enum Strategy{
     Undefined = 0,
     Bfs,
     Dfs
   }
 
-  public enum VerifyResult {
+  public enum VerifyResult{
     Unresolved, // failed to resolve
     Verified,
     Failed, // resoved but cannot be proved
     Backtracked,
-    Partial, //TODO: partial when tactic and dafny succeed, but boogie fails
   }
 
 
   [ContractClassFor(typeof(ISearch))]
   // Validate the input before execution
-  public abstract class BaseSearchContract : ISearch {
-    public IEnumerable<ProofState> Search(ProofState state, ErrorReporterDelegate er) {
+  public abstract class BaseSearchContract : ISearch{
+    public IEnumerable<ProofState> Search(ProofState state, ErrorReporterDelegate er){
       Contract.Requires(state != null);
       return default(IEnumerable<ProofState>);
     }
@@ -38,21 +37,22 @@ namespace Microsoft.Dafny.Tacny {
 
   public class BaseSearchStrategy : ISearch{
     protected Strategy ActiveStrategy;
-    public BaseSearchStrategy(Strategy strategy) {
+
+    public BaseSearchStrategy(Strategy strategy){
       ActiveStrategy = strategy;
     }
 
-    protected BaseSearchStrategy() {
+    protected BaseSearchStrategy(){
     }
-    
-    public IEnumerable<ProofState> Search(ProofState state, ErrorReporterDelegate er) {
+
+    public IEnumerable<ProofState> Search(ProofState state, ErrorReporterDelegate er){
       Contract.Requires<ArgumentNullException>(state != null, "rootState");
-	  
-	  IEnumerable<ProofState> enumerable;      
-      switch (ActiveStrategy) {
+
+      IEnumerable<ProofState> enumerable;
+      switch (ActiveStrategy){
         case Strategy.Bfs:
           throw new NotSupportedException("Breath first search has not been supported ");
-          //enumerable = BreadthFirstSeach.Search(state, er);
+        //enumerable = BreadthFirstSeach.Search(state, errDelegate);
           break;
         case Strategy.Dfs:
           enumerable = DepthFirstSeach.Search(state, er);
@@ -66,36 +66,38 @@ namespace Microsoft.Dafny.Tacny {
       return enumerable;
     }
 
-    public static VerifyResult VerifyState(ProofState state, ErrorReporterDelegate er) {
-      
+
+
+
+    public static VerifyResult VerifyState(ProofState state){
+
       if (state.IsTimeOut()){
+        state.GetErrHandler().ErrType = TacticBasicErr.ErrorType.Timeout;
         return VerifyResult.Failed;
       }
-      var prog =  Util.GenerateResolvedProg(state);
-      if (prog == null)
+      var prog = Util.GenerateResolvedProg(state);
+      if (prog == null){
         return VerifyResult.Unresolved;
+      }
 
-      var result = Util.VerifyResolvedProg(state, prog, null);
-
-      if(result)
+     var result = Util.VerifyResolvedProg(state, prog, null);
+      if (result)
         return VerifyResult.Verified;
-      else {
+      else{
         return VerifyResult.Failed;
       }
     }
 
-
     internal class DepthFirstSeach : BaseSearchStrategy{
 
-      internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate er){
-        var stack = new Stack<IEnumerator<ProofState>>(); 
-        ProofState lastSucc = null; // last verfied state, for recoveingr over-backtracked
-        var discarded = new List<Tuple<ProofState, VerifyResult>>(); //failed branchesa and its status
+      internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate errDelegate){
+        var stack = new Stack<IEnumerator<ProofState>>();
+        ProofState lastSucc = null; // the last verified state, for recovering over-backtracking
+        var discarded = new List<Tuple<ProofState, VerifyResult>>(); // failed ps and its verified status
 
         stack.Push(rootState.EvalStep().GetEnumerator());
-
+        
         IEnumerator<ProofState> enumerator = Enumerable.Empty<ProofState>().GetEnumerator();
-
         List<int> backtackList = null;
 
         while (stack.Count > 0){
@@ -111,11 +113,11 @@ namespace Microsoft.Dafny.Tacny {
           backtackList = proofState.GetBackTrackCount();
 
           //check if any new added coded reuqires to call verifier, or reach the last line of code
-          if (proofState.NeedVerify || proofState.IsEvaluated()){
+          if (proofState.NeedVerify || proofState.IsCurFrameEvaluated()){
             proofState.NeedVerify = false;
             bool backtracked = false;
 
-            switch (VerifyState(proofState, er)){
+            switch (VerifyState(proofState)){
               case VerifyResult.Verified:
                 //check if the frame are evaluated, as well as requiests for backtraking 
                 proofState.MarkCurFrameAsTerminated(true, out backtracked);
@@ -128,10 +130,10 @@ namespace Microsoft.Dafny.Tacny {
                   yield return proofState;
                   yield break;
                 }
-
+                
                 break;
               case VerifyResult.Failed:
-                if (proofState.IsEvaluated()){
+                if (proofState.IsCurFrameEvaluated()){
                   proofState.MarkCurFrameAsTerminated(false, out backtracked);
                   if (backtracked){
                     lastSucc = proofState;
@@ -156,7 +158,7 @@ namespace Microsoft.Dafny.Tacny {
        * if so, do nothing will dischard this branch and continue with the next one
        * otherwise, continue to evaluate the next stmt
        */
-          if (!proofState.IsEvaluated()){
+          if (!proofState.IsCurFrameEvaluated()){
             //push the current one to the stack
             stack.Push(enumerator);
             //move to the next stmt
@@ -164,6 +166,11 @@ namespace Microsoft.Dafny.Tacny {
           }
           else{
             backtackList = proofState.GetBackTrackCount(); // update the current bc count to the list
+            if (proofState.InAsserstion)
+              proofState.GetErrHandler().ErrType = TacticBasicErr.ErrorType.Assertion;
+            else
+              proofState.GetErrHandler().ErrType = TacticBasicErr.ErrorType.NotProved;
+
             discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Failed));
           }
 
@@ -185,8 +192,25 @@ namespace Microsoft.Dafny.Tacny {
         }
         else{
           // no result is successful
-          if (discarded.Count > 0)
-            discarded[discarded.Count - 1].Item1.GetErrHandler().ExceptionReport();
+          ProofState s0;
+          if (discarded.Count > 0){
+            s0 = discarded[discarded.Count - 1].Item1;
+            s0.GetErrHandler().ExceptionReport();
+          }
+          else{
+            s0 = rootState;
+          }
+          if (errDelegate != null){
+            foreach (var err in s0.GetErrHandler().ErrorList){
+              lock (errDelegate){
+                errDelegate(new CompoundErrorInformation(
+                  s0.GetErrHandler().GenerateErrorMsg(),
+                  err,
+                  s0
+                  ));
+              }
+            }
+          }
         }
       }
     }

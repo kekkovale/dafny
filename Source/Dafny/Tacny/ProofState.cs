@@ -22,8 +22,8 @@ namespace Microsoft.Dafny.Tacny{
 
     //not all the eval step requires to be verified, e.g. var decl
     public bool NeedVerify { set; get; } = false;
-    
 
+    public bool InAsserstion { set; get; } = false;
     public UpdateStmt TopLevelTacApp;
 /*
     public ITactic ActiveTactic {
@@ -279,8 +279,13 @@ namespace Microsoft.Dafny.Tacny{
     /// Check if the current frame is fully interpreted by tracking counts of stmts
     /// </summary>
     /// <returns></returns>
-    public bool IsEvaluated(){
+    public bool IsCurFrameEvaluated(){
       return _scope.Peek().FrameCtrl.IsEvaluated;
+    }
+
+    public bool IsEvaluated()
+    {
+      return _scope.Count == 1 && IsCurFrameEvaluated();
     }
 
 
