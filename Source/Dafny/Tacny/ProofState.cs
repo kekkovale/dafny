@@ -162,7 +162,7 @@ namespace Microsoft.Dafny.Tacny{
       _scope.Push(new Frame(parent, ctrl));
     }
     // note that this function would only be called when either a frame is proved or isEvaluated.
-    public void MarkCurFrameAsTerminated(bool curFrameProved, bool backtracked){
+    public void MarkCurFrameAsTerminated(bool curFrameProved, out bool backtracked){
 
       //assemble code in the top frame. the stata that code is null after this call, indicates
       // the current branches has been backtrackee.
@@ -179,7 +179,7 @@ namespace Microsoft.Dafny.Tacny{
         _scope.Peek().Parent.TokenTracer.AddSubTrace(trace);
         _scope.Pop();
         if (_scope.Peek().FrameCtrl.EvalTerminated(curFrameProved, this) || IsEvaluated())
-          MarkCurFrameAsTerminated(curFrameProved, ifbacktrackedInRecurCall);
+           MarkCurFrameAsTerminated(curFrameProved, out ifbacktrackedInRecurCall);
       }
       backtracked = ifbacktracked || ifbacktrackedInRecurCall;
     }
