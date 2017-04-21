@@ -1,4 +1,4 @@
-﻿#define TACNY_DEBUG
+﻿//#define TACNY_DEBUG
 
 using System;
 using System.Collections.Generic;
@@ -241,15 +241,14 @@ namespace Microsoft.Dafny.Tacny {
 #if !TACNY_DEBUG
       } catch (Exception e)
       {
-        var msg = "Tactic failure: exception !";
-        Console.WriteLine(msg);
+        var msg = "Exception: ";
         if (_errorReporterDelegate != null)
         {
           lock (_errorReporterDelegate)
           {
-            _errorReporterDelegate(new CompoundErrorInformation(
-              state
-            ));
+            foreach(var err in CompoundErrorInformation.GenerateErrorInfoList(state, msg)) {
+              _errorReporterDelegate(err);
+            }
           }
         }
         ret = null;

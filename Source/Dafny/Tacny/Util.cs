@@ -5,9 +5,9 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Reflection;
-using Microsoft.Dafny.Tacny.ArrayExtensions;
 using Bpl = Microsoft.Boogie;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Tacny.ArrayExtensions;
 
 namespace Microsoft.Dafny.Tacny {
 
@@ -314,43 +314,7 @@ namespace Microsoft.Dafny.Tacny {
 
       return true;
     }
-    /*
-    public static bool ResolveAndVerify(Program program, ErrorReporterDelegate er) {
-      Contract.Requires<ArgumentNullException>(program != null);
-      var r = new Resolver(program);
-      //var start = (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalMilliseconds;
-      r.ResolveProgram(program);
-      //TODO: get program.reporter to check resolving result before verifying
-      //var end = (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalMilliseconds
-
-      // check if resolution fails
-      if (program.reporter.Count(ErrorLevel.Error) != 0){
-        Console.Write("Fail to resolve prog, skip verifier ! \n");
-        return false;
-
-      }
-      var boogieProg = Translate(program, program.Name, er);
-      PipelineStatistics stats;
-      List<ErrorInformation> errorList;
-      
-      //Console.WriteLine("call verifier in Tacny !!!");
-      PipelineOutcome tmp = BoogiePipeline(boogieProg,
-        new List<string> {program.Name}, program.Name, er,
-        out stats, out errorList, program);
-
-      return errorList.Count == 0;
-    }
-    */
- /*   public static Bpl.Program Translate(Program dafnyProgram, string uniqueIdPrefix, ErrorReporterDelegate er) {
-      Contract.Requires<ArgumentNullException>(dafnyProgram != null, "dafnyProgram");
-      Contract.Requires<ArgumentNullException>(uniqueIdPrefix != null, "uniqueIdPrefix");
-      Contract.Ensures(Contract.Result<Bpl.Program>() != null);
-      var translator = new Translator(dafnyProgram.reporter, new Translator.TranslatorFlags() { InsertChecksums = true }, er);
-
-      return translator.Translate(dafnyProgram);
-    }
-  */
-
+   
     /// <summary>
     /// Pipeline the boogie program to Dafny where it is valid
     /// </summary>
@@ -398,18 +362,46 @@ namespace Microsoft.Dafny.Tacny {
   {
     public readonly ProofState S;
 
-    public CompoundErrorInformation(ProofState state)
-      : base(new Token(Interpreter.TacticCodeTokLine, Interpreter.TacticCodeTokLine), "Tactic Failures: exception.")
-    {
+    private static string StringOfStmt(ProofState state){
+      var writer = new System.IO.StringWriter();
+      var r = new Printer(writer);
+      r.PrintStatement(state.GetLastStmt(),0);
+    
+      var str = writer.ToString();
+      Console.WriteLine(str);
+      return str;
+    }
+
+    private CompoundErrorInformation(string preMsg, ProofState state)
+      : base(new Token(Interpreter.TacticCodeTokLine, Interpreter.TacticCodeTokLine), preMsg + " error in: " + StringOfStmt(state)) {
+     
       ImplementationName = "Impl$$" + state.TargetMethod.FullName;
       S = state;
     }
 
-    public CompoundErrorInformation(string preMsg, ErrorInformation e, ProofState s) 
+    private CompoundErrorInformation(string preMsg, ErrorInformation e, ProofState s) 
       :base(s.TopTokenTracer().Origin, preMsg + " " + e.FullMsg)
     {
       this.ImplementationName = e.ImplementationName;
       S = s;
+    }
+
+    public static List<CompoundErrorInformation> GenerateErrorInfoList(ProofState state, string preMsg = ""){
+      List<CompoundErrorInformation> errs = new List<CompoundErrorInformation>();
+      var l = state.GetErrHandler().ErrorList;
+      if (l != null && l.Count > 0){
+        foreach (var err in l){
+          errs.Add(new CompoundErrorInformation(preMsg, err, state));
+        }
+      }
+      else{
+        var errInfo = new CompoundErrorInformation(preMsg, state);
+        Console.WriteLine("\n================ Tactic Error: ================");
+        Console.WriteLine(errInfo.FullMsg);
+        Console.WriteLine("================ End of Tactic Error ================");
+        errs.Add(errInfo);
+      }
+      return errs;
     }
   }
 

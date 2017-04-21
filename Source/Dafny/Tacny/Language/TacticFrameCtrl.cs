@@ -9,6 +9,7 @@ namespace Microsoft.Dafny.Tacny.Language{
     public List<Statement> Body;
     private int _bodyCounter;
     public Statement CurStmt => _bodyCounter >= Body.Count ? null : Body[_bodyCounter];
+    public Statement LastStmt => _bodyCounter == 0 ? Body[0] : Body[_bodyCounter - 1];
     public bool IsEvaluated => _bodyCounter >= Body.Count;
 
     public Strategy SearchStrategy { get; set; } = Strategy.Dfs;
@@ -144,6 +145,10 @@ namespace Microsoft.Dafny.Tacny.Language{
       var stmt = CurStmt;
       IncCounter();
       return stmt;
+    }
+
+    public Statement GetLastStmt(){
+      return LastStmt;
     }
 
     public void Assemble(){

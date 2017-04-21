@@ -58,7 +58,6 @@ namespace Microsoft.Dafny.Tacny.Atomic {
             l = SimpTacticExpr.EvalTacticExpr(state, destExpr.E1);
           }
 
-
           if (l is SetDisplayExpr){
             var setDisplayExpr = l as SetDisplayExpr;
             foreach (var item in setDisplayExpr.Elements)

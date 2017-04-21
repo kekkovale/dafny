@@ -218,6 +218,11 @@ namespace Microsoft.Dafny.Tacny{
       return _scope.Peek().FrameCtrl.GetStmt();
     }
 
+    public Statement GetLastStmt() {
+      return _scope.Peek().FrameCtrl.GetLastStmt();
+    }
+
+
     public Strategy GetSearchStrategy(){
       return _scope.Peek().FrameCtrl.SearchStrategy;
     }
