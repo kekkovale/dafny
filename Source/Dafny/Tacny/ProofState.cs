@@ -547,7 +547,8 @@ namespace Microsoft.Dafny.Tacny{
     /// <param name="value"></param>
     public void AddTacnyVar(IVariable key, object value){
       Contract.Requires<ArgumentNullException>(key != null, "key");
-      Contract.Requires<ArgumentException>(!ContainTVal(key.Name));
+      if (ContainTVal(key.Name))
+        throw new Exception("tactic variable " + key.Name + " has already been defined !");
       AddTacnyVar(key.Name, value);
     }
 
@@ -558,7 +559,8 @@ namespace Microsoft.Dafny.Tacny{
     /// <param name="value"></param>
     public void AddTacnyVar(string key, object value){
       Contract.Requires<ArgumentNullException>(key != null, "key");
-      Contract.Requires<ArgumentException>(!ContainTVal(key));
+      if(ContainTVal(key))
+        throw new Exception("tactic variable " + key + " has already been defined !");
       _scope.Peek().AddTVar(key, value);
     }
 

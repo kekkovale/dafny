@@ -436,21 +436,6 @@ string UnwildIdent(string x, bool allowWildcardId) {
   return x;
 }
 
-bool IsTacticProjection()
-{
-  Token x;
-  if (la.kind == _tactic)
-  {
-     x = scanner.Peek();
-	 if (x.kind == _dot) {
-	   x = scanner.Peek();
-	   if (x.val == "lemmas" || x.val == "ensures" || x.val == "requires" || x.val == "vars" || x.val == "input")
-	     return true;
-	 }
-  }
-  return false;
-}
-
 bool IsLambda(bool allowLambda)
 {
   if (!allowLambda) {
@@ -5030,24 +5015,41 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null); 
 		e = dummyExpr;
 		var pre = "tactic.";
-		var post = "()";
+		var args = new List<Expression>();
 		
-		if (la.kind == 101) {
+		switch (la.kind) {
+		case 101: {
 			Get();
-			e = new IdentifierExpr(t, pre + t.val + post); 
-		} else if (la.kind == 49) {
+			e = new ApplySuffix(t, new IdentifierExpr(t, pre + t.val), args); 
+			break;
+		}
+		case 49: {
 			Get();
-			e = new IdentifierExpr(t, pre + t.val + post); 
-		} else if (la.kind == 147) {
+			e = new ApplySuffix(t, new IdentifierExpr(t, pre + t.val), args); 
+			break;
+		}
+		case 147: {
 			Get();
-			e = new IdentifierExpr(t, pre + t.val + post); 
-		} else if (la.kind == 148) {
+			e = new ApplySuffix(t, new IdentifierExpr(t, pre + t.val), args); 
+			break;
+		}
+		case 148: {
 			Get();
-			e = new IdentifierExpr(t, pre + t.val + post); 
-		} else if (la.kind == 149) {
+			e = new ApplySuffix(t, new IdentifierExpr(t, pre + t.val), args); 
+			break;
+		}
+		case 149: {
 			Get();
-			e = new IdentifierExpr(t, pre + t.val + post); 
-		} else SynErr(283);
+			e = new ApplySuffix(t, new IdentifierExpr(t, pre + t.val), args); 
+			break;
+		}
+		case 40: {
+			Get();
+			e = new ApplySuffix(t, new IdentifierExpr(t, pre + t.val), args); 
+			break;
+		}
+		default: SynErr(283); break;
+		}
 	}
 
 	void Nat(out BigInteger n) {

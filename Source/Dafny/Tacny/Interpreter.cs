@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Boogie;
@@ -239,14 +240,24 @@ namespace Microsoft.Dafny.Tacny {
 #endif
         ret = search.Search(state, _errorReporterDelegate).FirstOrDefault();
 #if !TACNY_DEBUG
-      } catch (Exception e)
-      {
-        var msg = "Exception: ";
-        if (_errorReporterDelegate != null)
+      } catch (Exception e){
+        String msg;
+        List<CompoundErrorInformation> errs;
+        try
+        {
+          msg = "Tactic exception: " + e.Message;
+          errs = CompoundErrorInformation.GenerateErrorInfoList(state, msg);
+        }
+        catch (Exception){
+          msg = "Tactic exception";
+          errs = new List<CompoundErrorInformation>();
+        }
+
+        if(_errorReporterDelegate != null)
         {
           lock (_errorReporterDelegate)
           {
-            foreach(var err in CompoundErrorInformation.GenerateErrorInfoList(state, msg)) {
+            foreach(var err in errs) {
               _errorReporterDelegate(err);
             }
           }

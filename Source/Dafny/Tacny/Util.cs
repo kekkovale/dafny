@@ -372,30 +372,31 @@ namespace Microsoft.Dafny.Tacny {
       return str;
     }
 
-    private CompoundErrorInformation(string preMsg, ProofState state)
-      : base(new Token(Interpreter.TacticCodeTokLine, Interpreter.TacticCodeTokLine), preMsg + " error in: " + StringOfStmt(state)) {
+    private CompoundErrorInformation(string msg, ProofState state)
+      : base(new Token(Interpreter.TacticCodeTokLine, Interpreter.TacticCodeTokLine),
+          msg == "" ? " Error in: " + StringOfStmt(state) : msg) {
      
       ImplementationName = "Impl$$" + state.TargetMethod.FullName;
       S = state;
     }
 
-    private CompoundErrorInformation(string preMsg, ErrorInformation e, ProofState s) 
-      :base(s.TopTokenTracer().Origin, preMsg + " " + e.FullMsg)
+    private CompoundErrorInformation(string msg, ErrorInformation e, ProofState s) 
+      :base(s.TopTokenTracer().Origin, msg + " " + e.FullMsg)
     {
       this.ImplementationName = e.ImplementationName;
       S = s;
     }
 
-    public static List<CompoundErrorInformation> GenerateErrorInfoList(ProofState state, string preMsg = ""){
+    public static List<CompoundErrorInformation> GenerateErrorInfoList(ProofState state, string msg = ""){
       List<CompoundErrorInformation> errs = new List<CompoundErrorInformation>();
       var l = state.GetErrHandler().ErrorList;
       if (l != null && l.Count > 0){
         foreach (var err in l){
-          errs.Add(new CompoundErrorInformation(preMsg, err, state));
+          errs.Add(new CompoundErrorInformation(msg, err, state));
         }
       }
       else{
-        var errInfo = new CompoundErrorInformation(preMsg, state);
+        var errInfo = new CompoundErrorInformation(msg, state);
         Console.WriteLine("\n================ Tactic Error: ================");
         Console.WriteLine(errInfo.FullMsg);
         Console.WriteLine("================ End of Tactic Error ================");

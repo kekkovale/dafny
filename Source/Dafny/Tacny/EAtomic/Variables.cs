@@ -5,7 +5,7 @@
 namespace Microsoft.Dafny.Tacny.EAtomic { 
   class Variables : EAtomic {
 
-    public override string Signature => "variables";
+    public override string Signature => "vars";
     public override int ArgsCount => 0;
 
     public override object Generate(Expression expression, ProofState proofState) {

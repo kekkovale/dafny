@@ -2,7 +2,7 @@
 
 namespace Microsoft.Dafny.Tacny.EAtomic {
   class Params : EAtomic {
-    public override string Signature => "params";
+    public override string Signature => "input";
     public override int ArgsCount => 0;
 
     // parameters can be checked by combine the type Formal and the InParam attribute

@@ -2,8 +2,8 @@
 using System.Linq;
 
 namespace Microsoft.Dafny.Tacny.EAtomic {
-  class PostCond : EAtomic {
-    public override string Signature => "ensures";
+  class PreCond : EAtomic {
+    public override string Signature => "requires";
     public override int ArgsCount => 0;
 
     public override object Generate(Expression expression, ProofState proofState) {
@@ -12,13 +12,12 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
       var prog = proofState.GetDafnyProgram();
 
       var tld = prog.DefaultModuleDef.TopLevelDecls.FirstOrDefault(x => x.Name == proofState.ActiveClass.Name) as ClassDecl;
-      if (tld != null)
-      {
+      if(tld != null) {
         var member = tld.Members.FirstOrDefault(x => x.Name == proofState.TargetMethod.Name) as Method;
 
         var posts = new List<Expression>();
-        if (member != null)
-          foreach(var post in member.Ens) {
+        if(member != null)
+          foreach(var post in member.Req) {
             posts.Add(post.E);
           }
         return posts;
