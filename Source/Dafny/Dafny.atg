@@ -356,21 +356,6 @@ string UnwildIdent(string x, bool allowWildcardId) {
   return x;
 }
 
-bool IsTacticProjection()
-{
-  Token x;
-  if (la.kind == _tactic)
-  {
-     x = scanner.Peek();
-	 if (x.kind == _dot) {
-	   x = scanner.Peek();
-	   if (x.val == "lemmas" || x.val == "ensures" || x.val == "requires" || x.val == "vars" || x.val == "input")
-	     return true;
-	 }
-  }
-  return false;
-}
-
 bool IsLambda(bool allowLambda)
 {
   if (!allowLambda) {
@@ -3141,13 +3126,14 @@ TacticProjectionOp<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); 
 	 e = dummyExpr;
 	 var pre = "tactic.";
-	 var post = "()";
+	 var args = new List<Expression>();
   .)
-  ( "ensures"								(. e = new IdentifierExpr(t, pre + t.val + post); .)
-  | "requires"								(. e = new IdentifierExpr(t, pre + t.val + post); .)
-  | "vars"									(. e = new IdentifierExpr(t, pre + t.val + post); .)
-  | "input"									(. e = new IdentifierExpr(t, pre + t.val + post); .)
-  | "lemmas"								(. e = new IdentifierExpr(t, pre + t.val + post); .)
+  ( "ensures"								(. e = new ApplySuffix(t, new IdentifierExpr(t, pre + t.val), args); .)
+  | "requires"								(. e = new ApplySuffix(t, new IdentifierExpr(t, pre + t.val), args); .)
+  | "vars"									(. e = new ApplySuffix(t, new IdentifierExpr(t, pre + t.val), args); .)
+  | "input"									(. e = new ApplySuffix(t, new IdentifierExpr(t, pre + t.val), args); .)
+  | "lemmas"								(. e = new ApplySuffix(t, new IdentifierExpr(t, pre + t.val), args); .)
+  | "invariant"								(. e = new ApplySuffix(t, new IdentifierExpr(t, pre + t.val), args); .)
   )
   .
 
