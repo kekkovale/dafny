@@ -356,6 +356,21 @@ string UnwildIdent(string x, bool allowWildcardId) {
   return x;
 }
 
+bool IsTacticProjection()
+{
+  Token x;
+  if (la.kind == _tactic)
+  {
+     x = scanner.Peek();
+	 if (x.kind == _dot) {
+	   x = scanner.Peek();
+	   if (x.val == "lemmas" || x.val == "ensures" || x.val == "requires" || x.val == "vars" || x.val == "input")
+	     return true;
+	 }
+  }
+  return false;
+}
+
 bool IsLambda(bool allowLambda)
 {
   if (!allowLambda) {
@@ -699,9 +714,12 @@ TOKENS
   star = '*'.
   notIn = "!in" CONTEXT (nonidchar).
   ellipsis = "...".
-
   reveal = "reveal".
+  /* tokens for tactic */
   tactic = "tactic".
+  element = "element".
+  term = "term".
+
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
 IGNORE cr + lf + tab
@@ -3103,8 +3121,36 @@ UnaryExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBi
     { IF(IsSuffix()) Suffix<ref e> }
   | ConstAtomExpression<out e, allowSemi, allowLambda>
     { IF(IsSuffix()) Suffix<ref e> }
+  | TacticProjectionExpression<out e>
   )
   .
+
+
+/* Tactic projection for meta-level dafny elements */
+TacticProjectionExpression <out Expression e>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); 
+  .)
+   ("tactic"
+    "."
+	TacticProjectionOp <out e>
+	"("
+	")"
+   )
+   .
+TacticProjectionOp<out Expression e>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); 
+	 e = dummyExpr;
+	 var pre = "tactic.";
+	 var post = "()";
+  .)
+  ( "ensures"								(. e = new IdentifierExpr(t, pre + t.val + post); .)
+  | "requires"								(. e = new IdentifierExpr(t, pre + t.val + post); .)
+  | "vars"									(. e = new IdentifierExpr(t, pre + t.val + post); .)
+  | "input"									(. e = new IdentifierExpr(t, pre + t.val + post); .)
+  | "lemmas"								(. e = new IdentifierExpr(t, pre + t.val + post); .)
+  )
+  .
+
 Lhs<out Expression e>
 = (. e = dummyExpr;  // the assignment is to please the compiler, the dummy value to satisfy contracts in the event of a parse error
   .)

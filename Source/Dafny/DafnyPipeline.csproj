@@ -189,7 +189,7 @@
     <Compile Include="Tacny\Expr\Zipper.cs" />
     <Compile Include="Tacny\Language\TAssert.cs" />
     <Compile Include="Tacny\Language\WhileCtrlStmt.cs" />
-    <Compile Include="Tacny\Language\TacAppStmt.cs" />
+    <Compile Include="Tacny\Language\TacticAppStmt.cs" />
     <Compile Include="Tacny\Language\TacticFrameCtrl.cs" />
     <Compile Include="Tacny\Interpreter.cs" />
     <Compile Include="Tacny\Language\ForallStmt.cs" />

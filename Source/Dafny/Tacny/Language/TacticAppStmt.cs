@@ -3,7 +3,7 @@ using System.Linq;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Tacny.Language{
-  public class TacAppStmt : TacticFrameCtrl{
+  public class TacticAppStmt : TacticFrameCtrl{
     public override bool MatchStmt(Statement stmt, ProofState state)
     {
       var us = stmt as UpdateStmt;
