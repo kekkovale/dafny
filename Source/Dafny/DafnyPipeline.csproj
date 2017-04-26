@@ -190,6 +190,7 @@
     <Compile Include="Tacny\Expr\Zipper.cs" />
     <Compile Include="Tacny\Language\TBlockStmt.cs" />
     <Compile Include="Tacny\Language\TAssert.cs" />
+    <Compile Include="Tacny\Language\TryBlockStmt.cs" />
     <Compile Include="Tacny\Language\WhileCtrlStmt.cs" />
     <Compile Include="Tacny\Language\TacticAppStmt.cs" />
     <Compile Include="Tacny\Language\TacticFrameCtrl.cs" />

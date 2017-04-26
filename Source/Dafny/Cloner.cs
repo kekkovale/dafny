@@ -649,6 +649,9 @@ namespace Microsoft.Dafny
       } else if (stmt is TacticForallStmt) {
                 var s = (TacticForallStmt)stmt;
                 r = new TacticForallStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Spec), CloneBlockStmt((BlockStmt)s.Body), CloneAttributes(s.Attributes));
+      } else if (stmt is TacticTryBlockStmt){
+        var s = (TacticTryBlockStmt)stmt;
+        r = new TacticTryBlockStmt(Tok(s.Tok), Tok(s.EndTok), CloneBlockStmt((BlockStmt)s.Body));
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }

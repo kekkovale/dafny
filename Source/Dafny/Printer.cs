@@ -1218,7 +1218,11 @@ Everything) {
           PrintUpdateRHS(s.Update);
         }
         wr.Write(";");
-      
+
+      } else if(stmt is TacticTryBlockStmt) {
+        var tbs = stmt as TacticTryBlockStmt;
+        wr.Write("try ");
+        PrintStatement(tbs.Body, indent);
       } else if (stmt is LetStmt) {
         var s = (LetStmt)stmt;
         wr.Write("var");
@@ -1231,7 +1235,6 @@ Everything) {
         wr.Write(" := ");
         PrintExpressionList(s.RHSs, true);
         wr.WriteLine(";");
-
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
         if (s.S == null) {

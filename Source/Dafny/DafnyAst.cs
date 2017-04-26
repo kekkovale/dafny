@@ -6283,7 +6283,7 @@ namespace Microsoft.Dafny {
   }
  
   public class TacticCasesBlockStmt : TacticBlockStmt {
-	public virtual string WhatKind { get { return "cases"; } }
+	public override string WhatKind { get { return "cases"; } }
 	public TacticCasesBlockStmt(IToken tok, IToken endTok, Expression guard, Attributes attrs, BlockStmt body)
 		: base(tok, endTok, guard, attrs, body) {
 		Contract.Requires(tok != null);
@@ -6292,6 +6292,16 @@ namespace Microsoft.Dafny {
 		Contract.Requires(body != null);
 
 	}
+  }
+
+  public class TacticTryBlockStmt : TacticBlockStmt {
+    public override string WhatKind => "try";
+    public TacticTryBlockStmt(IToken tok, IToken endTok, BlockStmt body)
+        : base(tok, endTok, null, body) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(body != null);
+    }
   }
 
   public class IfStmt : Statement {

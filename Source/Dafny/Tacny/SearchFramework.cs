@@ -90,7 +90,6 @@ namespace Microsoft.Dafny.Tacny {
     }
 
     internal class DepthFirstSeach : BaseSearchStrategy {
-
       internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate errDelegate) {
         var stack = new Stack<IEnumerator<ProofState>>();
         ProofState lastSucc = null; // the last verified state, for recovering over-backtracking
@@ -104,12 +103,13 @@ namespace Microsoft.Dafny.Tacny {
 
         while(stack.Count > 0) {
           if(!enumerator.MoveNext()) {
-            //reset the branches before dischard them.
-            // if no next branch after reset. it is null.
-            enumerator.Reset();
-            if(!enumerator.MoveNext()) {
+            // check if current is valid. a enumerator is enpty when current is invalid and MoveNext is null
+            try {
+              var dummy = enumerator.Current == null;
+            } catch{
               discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Unresolved));
             }
+            
             enumerator = stack.Pop();
             if(!enumerator.MoveNext()) {
               continue;

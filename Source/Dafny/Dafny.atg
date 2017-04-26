@@ -1927,6 +1927,7 @@ TacticStmt<out Statement/*!*/ s>
     | "tinvariant"  (.x = t;.)    TacticInvariantStmt<out s, x>
     | "invariant"   (.x = t;.)    TacticInvariantStmt<out s, x, true>
     | "tassert"     (.x = t;.)    TacticAssertStmt<out s, x>
+	| TacticTryBlockStmt<out s>
   )  
 . 
 
@@ -2063,6 +2064,19 @@ TacticCasesBlockStmt<out Statement/*!*/ tacticCasesStmt, IToken x>
          tacticCasesStmt = new TacticCasesBlockStmt(x, endTok, guard, attrs, thn);
        }
     .)
+  )
+  .
+  
+TacticTryBlockStmt<out Statement/*!*/ tacticTryStatement>
+= (. Contract.Ensures(Contract.ValueAtReturn(out tacticTryStatement) != null); IToken/*!*/ x;
+     BlockStmt/*!*/ body;
+     IToken bodyStart, bodyEnd, endTok;
+     tacticTryStatement = dummyStmt; 
+  .)
+  "try"                       (. x = t; .)
+  (
+    BlockStmt<out body, out bodyStart, out bodyEnd>    (. endTok = body.EndTok; .)
+    (. tacticTryStatement = new TacticTryBlockStmt(x, endTok, body); .)
   )
   .
 
