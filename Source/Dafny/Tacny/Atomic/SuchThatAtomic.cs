@@ -28,13 +28,16 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       if (tvds == null){
         foreach (var item in suchThat.Lhss)
         {
-          var expr = item as IdentifierExpr;
-          if (expr != null){
-            var id = expr;
+          if (item is IdentifierExpr){
+            var id = item as IdentifierExpr;
             if (state.ContainTVal(id.Name))
               locals.Add(id.Name);
+          } else if (item is NameSegment){
+            var id = item as NameSegment;
+            if(!state.ContainTVal(id.Name))
+              yield break;
             else{
-              //TODO: error
+              locals.Add(id.Name);
             }
           }
         }
