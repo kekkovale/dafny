@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.Tacny.Atomic
       //TODO: implement this properly
       //var members = state.GetLocalValue(callArguments[0] as NameSegment) as IEnumerable<MemberDecl>;
       //evaluate the argument (methods/lemma)
-      var members0 = SimpTacticExpr.EvalTacticExpr(state, callArguments[0]);
+      var members0 = RewriteExpr.UnfoldTacticProjection(state, callArguments[0]);
       var members = members0 as List<MemberDecl>;
 
       if (members == null) {
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.Tacny.Atomic
           Contract.Assert(false, "In Explore Atomic call," + callArguments[0] + "is neither a Method or a Function");
 
         //evaluate the arguemnts for the lemma to be called
-        var ovars = SimpTacticExpr.EvalTacticExpr(state, callArguments[1]);
+        var ovars = RewriteExpr.UnfoldTacticProjection(state, callArguments[1]);
         Contract.Assert(ovars != null, "In Explore Atomic call," + callArguments[1] + "is not variable");
 
         List<IVariable> vars = ovars as List<IVariable> ?? new List<IVariable>();

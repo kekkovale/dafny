@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.Tacny.Language
       assertFrame.IncCounter();
       state0.AddNewFrame(assertFrame);
 
-      var st = SimpTacticExpr.SimpTacExpr(state0, (statement as TacticAssertStmt).Expr);
+      var st = RewriteExpr.SimpTacticExpr(state0, (statement as TacticAssertStmt).Expr);
       // insert the simplified assert, followed by assume false so that the prover don't need to worry about the 
       // following vcs.
 

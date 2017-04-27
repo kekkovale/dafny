@@ -10,10 +10,10 @@ namespace Microsoft.Dafny.Tacny.Expr {
     public bool Value;
   }
 
-  class SimpTacticExpr : Cloner{
+  class RewriteExpr : Cloner{
     private readonly ProofState _state;
 
-    private SimpTacticExpr(ProofState state) {
+    private RewriteExpr(ProofState state) {
       _state = state;
     }
 
@@ -60,8 +60,8 @@ namespace Microsoft.Dafny.Tacny.Expr {
       throw new NotImplementedException();
     }
 
-    public static object EvalTacticExpr(ProofState state, Expression expr){
-      var e = new SimpTacticExpr(state);
+    public static object UnfoldTacticProjection(ProofState state, Expression expr){
+      var e = new RewriteExpr(state);
       if (e.IsTVar(expr))
         return e.EvalTVar(expr as NameSegment, true);
       else
@@ -79,13 +79,13 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return null;
     }
 
-    public static Statement SimpTacExpr(ProofState state, Statement stmt){
-      var cloner = new SimpTacticExpr(state);
+    public static Statement SimpTacticExpr(ProofState state, Statement stmt){
+      var cloner = new RewriteExpr(state);
       return cloner.CloneStmt(stmt);
     }
 
-    public static Expression SimpTacExpr(ProofState state, Expression expr){
-      var cloner = new SimpTacticExpr(state);
+    public static Expression SimpTacticExpr(ProofState state, Expression expr){
+      var cloner = new RewriteExpr(state);
       return cloner.CloneExpr(expr);
     }
 
