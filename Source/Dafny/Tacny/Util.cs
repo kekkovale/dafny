@@ -368,7 +368,7 @@ namespace Microsoft.Dafny.Tacny {
       r.PrintStatement(state.GetLastStmt(),0);
     
       var str = writer.ToString();
-      Console.WriteLine(str);
+     // Console.WriteLine(str);
       return str;
     }
 
@@ -390,18 +390,19 @@ namespace Microsoft.Dafny.Tacny {
     public static List<CompoundErrorInformation> GenerateErrorInfoList(ProofState state, string msg = ""){
       List<CompoundErrorInformation> errs = new List<CompoundErrorInformation>();
       var l = state.GetErrHandler().ErrorList;
+      Console.WriteLine("\n================ Tactic Error: ================");
+
       if (l != null && l.Count > 0){
         foreach (var err in l){
           errs.Add(new CompoundErrorInformation(msg, err, state));
+          Console.WriteLine(err.FullMsg);
         }
       }
-      else{
         var errInfo = new CompoundErrorInformation(msg, state);
-        Console.WriteLine("\n================ Tactic Error: ================");
         Console.WriteLine(errInfo.FullMsg);
         Console.WriteLine("================ End of Tactic Error ================");
         errs.Add(errInfo);
-      }
+      
       return errs;
     }
   }

@@ -9,7 +9,8 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     public override int ArgsCount => 0;
 
     public override object Generate(Expression expression, ProofState proofState) {
-      var vars = proofState.GetAllDafnyVars().Values.ToList();
+      var vars = proofState.GetAllDafnyVars().Values.ToList()
+        .Where(x => !Params.IsParam(x)); //exclude inputs
       return vars.Select(x => x.Variable).ToList();
     }
   }

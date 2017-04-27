@@ -6,15 +6,29 @@ using System.Linq;
 using System.Reflection;
 
 namespace Microsoft.Dafny.Tacny.Expr {
-  public class BooleanRet {
-    public bool Value;
-  }
+
 
   class RewriteExpr : Cloner{
     private readonly ProofState _state;
 
     private RewriteExpr(ProofState state) {
       _state = state;
+    }
+
+    public abstract class EvalValRet { }
+
+    public class BooleanRet : EvalValRet
+    {
+      public bool Value;
+    }
+    public class IntRet : EvalValRet
+    {
+      public int Value;
+    }
+
+    public class ExprRet : EvalValRet
+    {
+      public Expression Value;
     }
 
     internal bool IsTVar(Expression expr)

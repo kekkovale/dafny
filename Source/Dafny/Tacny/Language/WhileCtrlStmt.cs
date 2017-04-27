@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.Tacny.Language {
 
       if (whileStmt != null)
       {
-        var tryEval = RewriteExpr.UnfoldTacticProjection(state0, whileStmt.Guard) as BooleanRet;
+        var tryEval = RewriteExpr.UnfoldTacticProjection(state0, whileStmt.Guard) as RewriteExpr.BooleanRet;
 
         if(tryEval == null) {
           var state = state0.Copy();
@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     public override IEnumerable<ProofState> EvalStep(ProofState state0){
       var state = state0.Copy();
 
-      var tryEval = RewriteExpr.UnfoldTacticProjection(state, _guard) as BooleanRet;
+      var tryEval = RewriteExpr.UnfoldTacticProjection(state, _guard) as RewriteExpr.BooleanRet;
       Contract.Assert(tryEval != null);
 
       if(tryEval.Value){
@@ -76,7 +76,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
     public override bool EvalTerminated(bool childFrameRes, ProofState state){
-      var tryEval = RewriteExpr.UnfoldTacticProjection(state, _guard) as BooleanRet;
+      var tryEval = RewriteExpr.UnfoldTacticProjection(state, _guard) as RewriteExpr.BooleanRet;
       Contract.Assert(tryEval != null);
       return !tryEval.Value;
     }

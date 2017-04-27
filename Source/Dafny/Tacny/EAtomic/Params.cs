@@ -6,7 +6,7 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     public override int ArgsCount => 0;
 
     // parameters can be checked by combine the type Formal and the InParam attribute
-    private static bool IsParam(ProofState.VariableData var)
+    public static bool IsParam(ProofState.VariableData var)
     {
       var formal = var.Variable as Formal;
       if(formal != null) {
