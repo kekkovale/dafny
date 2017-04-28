@@ -5,11 +5,42 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using Microsoft.Basetypes;
 
 namespace Microsoft.Dafny.Tacny.Expr {
   class EvalExpr : SimpExpr{
     protected EvalExpr(ProofState state) : base(state){}
 
+    internal bool EqLiteralExprs(LiteralExpr e0, LiteralExpr e1){
+      if (e0.Value is bool && e1.Value is bool){
+        return ((bool)e0.Value) == ((bool)e1.Value);
+      } else if (e0.Value is int && e1.Value is int){
+        return ((int) e0.Value) == ((int) e1.Value);
+      } else if (e0.Value is BigInteger && e1.Value is BigInteger){
+         return BigInteger.Compare((BigInteger)e0.Value, (BigInteger)e1.Value) == 0;
+      } else if (e0.Value is string && e1.Value is string){
+        return String.Compare((string) e0.Value, (string) e1.Value) == 0;
+      }
+      
+      return false;
+    }
+
+    internal bool EqExpr(Expression e0, Expression e1){
+      if (e0 is LiteralExpr && e1 is LiteralExpr){
+        return EqLiteralExprs((LiteralExpr) e0, (LiteralExpr) e1);
+      }
+      
+      return false;
+    }
+
+    internal List<Expression> NormaliseSet(List<Expression> l){
+      var newL = new List<Expression>();
+      foreach (var item in l){
+        if(newL.Find(y => EqExpr(item, y)) == null)
+          newL.Add(item);
+      }
+      return newL;
+    }
     public override Expression CloneExpr(Expression expr){
       if (expr is UnaryExpr){
       } else if (expr is BinaryExpr){
@@ -25,6 +56,17 @@ namespace Microsoft.Dafny.Tacny.Expr {
                 (BigInteger) (e1 as LiteralExpr).Value
                 );
               return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine,0), value);
+            } else if (e0 is SetDisplayExpr && e1 is SetDisplayExpr){
+
+              var newEles = new List<Expression>();
+              newEles.AddRange((e0 as SetDisplayExpr).Elements);
+              newEles.AddRange((e1 as SetDisplayExpr).Elements);
+               
+              return new SetDisplayExpr(new Token(Interpreter.TacticCodeTokLine,0), 
+                (e0 as SetDisplayExpr).Finite, NormaliseSet(newEles));
+            } else {
+              return new BinaryExpr(new Token(Interpreter.TacticCodeTokLine, 0),
+                binExpr.Op, e0, e1);
             }
 
             break;
