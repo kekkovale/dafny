@@ -42,15 +42,93 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return newL;
     }
     public override Expression CloneExpr(Expression expr){
-      if (expr is UnaryExpr){
+      if (expr is UnaryOpExpr){
+        var unaryExpr = expr as UnaryOpExpr;
+        var e = CloneExpr(unaryExpr.E);
+        switch(unaryExpr.Op) {
+          case UnaryOpExpr.Opcode.Not:
+            if(e is LiteralExpr && (e as LiteralExpr).Value is bool ) {
+              var value = !(bool)(e as LiteralExpr).Value;
+              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+            }
+            break;
+          default:
+            break;
+        }
+        return new UnaryOpExpr(new Token(Interpreter.TacticCodeTokLine,0),
+          unaryExpr.Op, e);
       } else if (expr is BinaryExpr){
         var binExpr = expr as BinaryExpr;
         var e0 = CloneExpr(binExpr.E0);
         var e1 = CloneExpr(binExpr.E1);
 
         switch(binExpr.Op) {
+          case BinaryExpr.Opcode.And:
+            if (e0 is LiteralExpr && e1 is LiteralExpr &&
+                (e0 as LiteralExpr).Value is bool &&
+                (e1 as LiteralExpr).Value is bool){
+              var value =
+                (bool)(e0 as LiteralExpr).Value && (bool)(e1 as LiteralExpr).Value;
+              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+            }
+            break;
+          case BinaryExpr.Opcode.Or:
+            if(e0 is LiteralExpr && e1 is LiteralExpr &&
+                (e0 as LiteralExpr).Value is bool ||
+                (e1 as LiteralExpr).Value is bool) {
+              var value =
+                (bool)(e0 as LiteralExpr).Value && (bool)(e1 as LiteralExpr).Value;
+              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+            }
+            break;
+          case BinaryExpr.Opcode.Le:
+            if(e0 is LiteralExpr && e1 is LiteralExpr &&
+               (e0 as LiteralExpr).Value is BigInteger &&
+               (e1 as LiteralExpr).Value is BigInteger ) {
+              var value =
+                (BigInteger) (e0 as LiteralExpr).Value <
+                (BigInteger) (e1 as LiteralExpr).Value;
+                
+              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+            }
+            break;
+          case BinaryExpr.Opcode.Lt:
+            if(e0 is LiteralExpr && e1 is LiteralExpr &&
+              (e0 as LiteralExpr).Value is BigInteger &&
+              (e1 as LiteralExpr).Value is BigInteger) {
+              var value =
+                (BigInteger)(e0 as LiteralExpr).Value <=
+                (BigInteger)(e1 as LiteralExpr).Value;
+
+              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+            }
+            break;
+          case BinaryExpr.Opcode.Ge:
+            if(e0 is LiteralExpr && e1 is LiteralExpr &&
+              (e0 as LiteralExpr).Value is BigInteger &&
+              (e1 as LiteralExpr).Value is BigInteger) {
+              var value =
+                (BigInteger)(e0 as LiteralExpr).Value >
+                (BigInteger)(e1 as LiteralExpr).Value;
+
+              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+            }
+            break;
+          case BinaryExpr.Opcode.Gt:
+            if(e0 is LiteralExpr && e1 is LiteralExpr &&
+              (e0 as LiteralExpr).Value is BigInteger &&
+              (e1 as LiteralExpr).Value is BigInteger) {
+              var value =
+                (BigInteger)(e0 as LiteralExpr).Value >=
+                (BigInteger)(e1 as LiteralExpr).Value;
+
+              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+            }
+            break;
           case BinaryExpr.Opcode.Add:
-            if (e0 is LiteralExpr && e1 is LiteralExpr){
+            if (e0 is LiteralExpr && e1 is LiteralExpr &&
+              (e0 as LiteralExpr).Value is BigInteger &&
+              (e1 as LiteralExpr).Value is BigInteger){
               var value =  BigInteger.Add(
                 (BigInteger) (e0 as LiteralExpr).Value,
                 (BigInteger) (e1 as LiteralExpr).Value
@@ -64,16 +142,15 @@ namespace Microsoft.Dafny.Tacny.Expr {
                
               return new SetDisplayExpr(new Token(Interpreter.TacticCodeTokLine,0), 
                 (e0 as SetDisplayExpr).Finite, NormaliseSet(newEles));
-            } else {
-              return new BinaryExpr(new Token(Interpreter.TacticCodeTokLine, 0),
-                binExpr.Op, e0, e1);
             }
-
+            break;
+          case BinaryExpr.Opcode.Sub:
             break;
           default:
             break;
         }
-
+        return new BinaryExpr(new Token(Interpreter.TacticCodeTokLine, 0),
+               binExpr.Op, e0, e1);
       } else if (expr is TernaryExpr) { }
 
       return base.CloneExpr(expr);
