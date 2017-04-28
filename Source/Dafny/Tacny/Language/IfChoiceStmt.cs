@@ -70,11 +70,11 @@ namespace Microsoft.Dafny.Tacny.Language{
       guardBodyList = GetGuadBodyList(statement, guardBodyList);
       Contract.Assert(guardBodyList.Count > 0);
 
-      var tryEval = RewriteExpr.UnfoldTacticProjection(state0, guardBodyList[0].Item1) as RewriteExpr.BooleanRet;
+      var tryEval = SimpExpr.UnfoldTacticProjection(state0, guardBodyList[0].Item1) as SimpExpr.BooleanRet;
       //check whether the top level of the first guard is tactic level or object level
       if (tryEval == null){
         var state = state0.Copy();
-        var st = RewriteExpr.SimpTacticExpr(state, statement);
+        var st = SimpExpr.SimpTacticExpr(state, statement);
         state.NeedVerify = true;
         state.AddStatement(st);
         yield return state;
@@ -94,7 +94,7 @@ namespace Microsoft.Dafny.Tacny.Language{
             yield return state;
           }
           else{
-            var res = RewriteExpr.UnfoldTacticProjection(state0, item.Item1) as RewriteExpr.BooleanRet;
+            var res = SimpExpr.UnfoldTacticProjection(state0, item.Item1) as SimpExpr.BooleanRet;
             if (res != null && res.Value){
               counter++;
               var state = state0.Copy();

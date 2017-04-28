@@ -54,11 +54,11 @@ namespace Microsoft.Dafny.Tacny.Atomic {
           object l;
           try
           {
-            l = RewriteExpr.SimpTacticExpr(state, destExpr.E1);
+            l = SimpExpr.SimpTacticExpr(state, destExpr.E1);
           }
           catch (Exception e)
           {
-            l = RewriteExpr.UnfoldTacticProjection(state, destExpr.E1);
+            l = SimpExpr.UnfoldTacticProjection(state, destExpr.E1);
           }
 
           if (l is SetDisplayExpr){

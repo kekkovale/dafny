@@ -3,15 +3,53 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 
 namespace Microsoft.Dafny.Tacny.Expr {
+  class EvalExpr : SimpExpr{
+    protected EvalExpr(ProofState state) : base(state){}
 
+    public override Expression CloneExpr(Expression expr){
+      if (expr is UnaryExpr){
+      } else if (expr is BinaryExpr){
+        var binExpr = expr as BinaryExpr;
+        var e0 = CloneExpr(binExpr.E0);
+        var e1 = CloneExpr(binExpr.E1);
 
-  class RewriteExpr : Cloner{
+        switch(binExpr.Op) {
+          case BinaryExpr.Opcode.Add:
+            if (e0 is LiteralExpr && e1 is LiteralExpr){
+              var value =  BigInteger.Add(
+                (BigInteger) (e0 as LiteralExpr).Value,
+                (BigInteger) (e1 as LiteralExpr).Value
+                );
+              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine,0), value);
+            }
+
+            break;
+          default:
+            break;
+        }
+
+      } else if (expr is TernaryExpr) { }
+
+      return base.CloneExpr(expr);
+    }
+
+    public static Expression EvalTacticExpression(ProofState state, Expression expr){
+      var rewriter = new EvalExpr(state);
+      return rewriter.CloneExpr(expr);
+    }
+  }
+
+  /// <summary>
+  /// only simplify tactic expression
+  /// </summary>
+  class SimpExpr : Cloner{
     private readonly ProofState _state;
 
-    private RewriteExpr(ProofState state) {
+    protected SimpExpr(ProofState state) {
       _state = state;
     }
 
@@ -75,7 +113,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
     }
 
     public static object UnfoldTacticProjection(ProofState state, Expression expr){
-      var e = new RewriteExpr(state);
+      var e = new SimpExpr(state);
       if (e.IsTVar(expr))
         return e.EvalTVar(expr as NameSegment, true);
       else
@@ -94,13 +132,13 @@ namespace Microsoft.Dafny.Tacny.Expr {
     }
 
     public static Statement SimpTacticExpr(ProofState state, Statement stmt){
-      var cloner = new RewriteExpr(state);
-      return cloner.CloneStmt(stmt);
+      var simplifier = new SimpExpr(state);
+      return simplifier.CloneStmt(stmt);
     }
 
     public static Expression SimpTacticExpr(ProofState state, Expression expr){
-      var cloner = new RewriteExpr(state);
-      return cloner.CloneExpr(expr);
+      var simplifier = new SimpExpr(state);
+      return simplifier.CloneExpr(expr);
     }
 
     public override Expression CloneApplySuffix(ApplySuffix e){
