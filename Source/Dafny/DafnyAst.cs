@@ -6199,41 +6199,6 @@ namespace Microsoft.Dafny {
 
     }
 
-    // This should really just be TacticBlockStmt
-    public class TacticBasicBlockStmt : TStatement
-    {
-        public readonly BlockStmt Body;
-        public virtual string WhatKind => "BasicBlockStmt";
-
-
-        [ContractInvariantMethod]
-        void ObjectInvariant()
-        {
-            Contract.Invariant(Body != null);
-        }
-
-        public TacticBasicBlockStmt(IToken tok, IToken endTok, BlockStmt body)
-        : base(tok, endTok) {
-            Contract.Requires(tok != null);
-            Contract.Requires(endTok != null);
-            Contract.Requires(body != null);
-
-            this.Body = body;
-        }
-
-        public TacticBasicBlockStmt(IToken tok, IToken endTok, Attributes attrs, BlockStmt body)
-        : base(tok, endTok) {
-            Contract.Requires(tok != null);
-            Contract.Requires(endTok != null);
-            Contract.Requires(body != null);
-
-            this.Body = body;
-            this.Attributes = attrs;
-        }
-
-    }
-
-
     // GG: why is this a blcokStmt (why not SingleCase or something?)
     public class TacticBlockStmt : TStatement {
     public readonly Expression Guard;
@@ -6303,6 +6268,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(body != null);
     }
   }
+
+  public class InlineTacticBlockStmt : TacticBlockStmt
+  {
+    public override string WhatKind => "inline";
+    public string name; 
+    public InlineTacticBlockStmt(IToken tok, IToken endTok, Attributes attrs, BlockStmt body)
+        : base(tok, endTok, null, attrs, body) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(body != null);
+      this.name = tok.val;
+    }
+  }
+
 
   public class IfStmt : Statement {
     public readonly bool IsExistentialGuard;

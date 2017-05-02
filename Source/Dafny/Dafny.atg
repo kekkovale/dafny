@@ -702,6 +702,7 @@ TOKENS
   reveal = "reveal".
   /* tokens for tactic */
   tactic = "tactic".
+  inline = "inline".
   element = "element".
   term = "term".
 
@@ -1919,7 +1920,6 @@ TacticStmt<out Statement/*!*/ s>
     | "match"       (.x = t;.)    TacticCasesBlockStmt<out s, x> 
     | "invariant"   (.x = t;.)    TacticInvariantStmt<out s, x>  
     | "assert"      (.x = t;.)    TacticAssertStmt<out s, x> 
-	| TacticBlockStmt<out s,x>
 	| "forall" (.x = t;.) TacticForallStmt<out s,x>
     )
     | "tvar"        (.x = t;.)    TacticVarDeclStmt<out s, x>        
@@ -1928,21 +1928,10 @@ TacticStmt<out Statement/*!*/ s>
     | "invariant"   (.x = t;.)    TacticInvariantStmt<out s, x, true>
     | "tassert"     (.x = t;.)    TacticAssertStmt<out s, x>
 	| TacticTryBlockStmt<out s>
+	| InlineTacticBlockStmt<out s>
+
   )  
 . 
-
-TacticBlockStmt<out Statement/*!*/ s, IToken x, bool isObject = false>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-     Expression e = dummyExpr; Attributes attrs = null;
-   BlockStmt/*!*/ bs; IToken/*!*/ bodyStart; IToken/*!*/ bodyEnd; 
-   IToken/*!*/ st;
-  .)
-  (. st = t; .)
-  { IF(IsAttribute()) Attribute<ref attrs> } 
-  BlockStmt<out bs, out bodyStart, out bodyEnd>
-  (. s = new TacticBasicBlockStmt(st,bodyEnd,attrs,bs); .)
-  .
-
 
 TacticForallStmt<out Statement/*!*/ s, IToken x, bool isObject = false>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
@@ -1994,8 +1983,6 @@ TacticVarDeclStmt<.out Statement/*!*/ s, IToken x.>
      IToken endTok;
      Expression or = null;
   .)
-
-  
   { Attribute<ref attrs> }
   LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
   { ","
@@ -2077,6 +2064,31 @@ TacticTryBlockStmt<out Statement/*!*/ tacticTryStatement>
   (
     BlockStmt<out body, out bodyStart, out bodyEnd>    (. endTok = body.EndTok; .)
     (. tacticTryStatement = new TacticTryBlockStmt(x, endTok, body); .)
+  )
+  .
+
+  InlineTacticBlockStmt<out Statement/*!*/ inlineTacticStatement>
+= (. Contract.Ensures(Contract.ValueAtReturn(out inlineTacticStatement) != null); 
+	 IToken/*!*/ x;
+	 IToken/*!*/ id = Token.NoToken;
+     BlockStmt/*!*/ body;
+     IToken bodyStart, bodyEnd, endTok;
+	 bool hasName = false;
+	 Attributes attrs = null;
+	 String name;
+     inlineTacticStatement = dummyStmt; 
+  .)
+  "inline" "tactic"                       (. x = t; .)
+  { Attribute<ref attrs> }
+  [ NoUSIdent<out id>					  (. hasName = true; .)
+  ]
+  (. if (!hasName) {
+       SemErr(la, "an inline tactic must be given a name (expecting identifier)");
+     }
+  .)
+  (
+    BlockStmt<out body, out bodyStart, out bodyEnd>    (. endTok = body.EndTok; .)
+    (. inlineTacticStatement = new InlineTacticBlockStmt(id, endTok, attrs, body); .)
   )
   .
 

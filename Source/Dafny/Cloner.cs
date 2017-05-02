@@ -643,15 +643,15 @@ namespace Microsoft.Dafny
         var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
         r = new TacticVarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
       
-      } else if (stmt is TacticBasicBlockStmt) {
-         var s = (TacticBasicBlockStmt) stmt;
-         r = new TacticBasicBlockStmt(Tok(s.Tok), Tok(s.EndTok), CloneAttributes(s.Attributes),CloneBlockStmt((BlockStmt)s.Body));
       } else if (stmt is TacticForallStmt) {
                 var s = (TacticForallStmt)stmt;
                 r = new TacticForallStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Spec), CloneBlockStmt((BlockStmt)s.Body), CloneAttributes(s.Attributes));
       } else if (stmt is TacticTryBlockStmt){
         var s = (TacticTryBlockStmt)stmt;
         r = new TacticTryBlockStmt(Tok(s.Tok), Tok(s.EndTok), CloneBlockStmt((BlockStmt)s.Body));
+      } else if (stmt is InlineTacticBlockStmt) {
+        var s = (InlineTacticBlockStmt)stmt;
+        r = new InlineTacticBlockStmt(Tok(s.Tok), Tok(s.EndTok), CloneAttributes(s.Attributes), CloneBlockStmt((BlockStmt)s.Body));
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }

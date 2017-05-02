@@ -937,7 +937,7 @@ Everything) {
           wr.Write(" by ");
           PrintStatement(assertStmt.Proof, indent);
         } else {
-          wr.Write(";");
+          wr.WriteLine(";");
         }
       } else if (stmt is TacticPredicateStmt) {
         var s = stmt as TacticPredicateStmt;
@@ -1222,6 +1222,12 @@ Everything) {
       } else if(stmt is TacticTryBlockStmt) {
         var tbs = stmt as TacticTryBlockStmt;
         wr.Write("try ");
+        PrintStatement(tbs.Body, indent);
+      } else if (stmt is InlineTacticBlockStmt) {
+        var tbs = stmt as InlineTacticBlockStmt;
+        wr.Write("inline tactic ");
+        wr.Write(tbs.name);
+        PrintAttributes(tbs.Attributes);
         PrintStatement(tbs.Body, indent);
       } else if (stmt is LetStmt) {
         var s = (LetStmt)stmt;

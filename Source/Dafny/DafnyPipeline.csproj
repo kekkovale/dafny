@@ -188,6 +188,7 @@
     <Compile Include="Tacny\Expr\RewriteExpr.cs" />
     <Compile Include="Tacny\Expr\Traversal.cs" />
     <Compile Include="Tacny\Expr\Zipper.cs" />
+    <Compile Include="Tacny\Language\InlineTacticStmt.cs" />
     <Compile Include="Tacny\Language\TBlockStmt.cs" />
     <Compile Include="Tacny\Language\TAssert.cs" />
     <Compile Include="Tacny\Language\TryBlockStmt.cs" />
