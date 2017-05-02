@@ -12,12 +12,16 @@ namespace Microsoft.Dafny.Tacny.Language
     }
 
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state) {
-      var tryBlockStmt = statement as InlineTacticBlockStmt;
-      if (tryBlockStmt != null) {
+      var inline = statement as InlineTacticBlockStmt;
+      //check whether the tactic name is fresh
+      bool isFresh = !(state.Tactics.ContainsKey(inline.name) || state.Members.ContainsKey(inline.name));
+      if (isFresh) {
         var frameCtrl = new DefaultTacticFrameCtrl();
-        frameCtrl.InitBasicFrameCtrl(tryBlockStmt.Body.Body, state.IsCurFramePartial(), null);
+        frameCtrl.InitBasicFrameCtrl(inline.Body.Body, state.IsCurFramePartial(), null);
         state.AddNewFrame(frameCtrl);
         yield return state;
+      } else {
+        CompoundErrorInformation.AddErrorInfo(state, "Duplicated inline tactic name.");
       }
     }
 

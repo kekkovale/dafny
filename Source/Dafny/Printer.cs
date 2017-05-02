@@ -937,7 +937,7 @@ Everything) {
           wr.Write(" by ");
           PrintStatement(assertStmt.Proof, indent);
         } else {
-          wr.WriteLine(";");
+          wr.Write(";");
         }
       } else if (stmt is TacticPredicateStmt) {
         var s = stmt as TacticPredicateStmt;

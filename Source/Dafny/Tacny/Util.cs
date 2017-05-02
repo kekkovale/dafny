@@ -405,6 +405,13 @@ namespace Microsoft.Dafny.Tacny {
       
       return errs;
     }
+
+    public static void AddErrorInfo(ProofState state, string msg) {
+      var errInfo = new CompoundErrorInformation(msg, state);  
+      if (state.GetErrHandler().ErrorList == null)
+         state.GetErrHandler().ErrorList = new List<ErrorInformation> ();
+      state.GetErrHandler().ErrorList.Add(errInfo);
+    }
   }
 
   public static class ObjectExtensions {

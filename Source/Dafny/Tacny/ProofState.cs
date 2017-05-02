@@ -214,7 +214,9 @@ namespace Microsoft.Dafny.Tacny{
       return top.TokenTracer;
     }
 
-    public Statement GetStmt(){
+    public Statement GetStmt()
+    {
+      GetErrHandler().ErrorList = null;
       return _scope.Peek().FrameCtrl.GetStmt();
     }
 

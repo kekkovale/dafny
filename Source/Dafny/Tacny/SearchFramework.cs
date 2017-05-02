@@ -119,8 +119,7 @@ namespace Microsoft.Dafny.Tacny
           if (enumerator == null || !enumerator.MoveNext()) {
             // check if current is valid. a enumerator is empty when current is invalid and MoveNext is null
             if (enumerator != null && wasNull) {
-              Console.WriteLine("Null eval result detected !");
-              proofState.GetErrHandler().ErrorList = null;// clear the error info, as those info are for the previous eval step rather tan the failed one
+              Console.WriteLine("Null eval result is detected !");
               discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Unresolved));
             }
 
