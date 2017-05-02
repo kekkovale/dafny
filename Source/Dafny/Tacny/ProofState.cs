@@ -188,10 +188,6 @@ namespace Microsoft.Dafny.Tacny{
       return _scope.Peek().FrameCtrl.EvalStep(this);
     }
 
-    // various getters
-
-    #region GETTERS
-
     internal TokenTracer GetTokenTracer(Frame f, TokenTracer tracer0) {
       var tracer = f.TokenTracer.Copy();
       tracer.AddSubTrace(tracer0);
@@ -216,6 +212,7 @@ namespace Microsoft.Dafny.Tacny{
 
     public Statement GetStmt()
     {
+      //clear previous error messages before moving onto the next stmt
       GetErrHandler().ErrorList = null;
       return _scope.Peek().FrameCtrl.GetStmt();
     }
@@ -425,6 +422,23 @@ namespace Microsoft.Dafny.Tacny{
       return _scope.Peek().ContainTVars(key);
     }
 
+    /// <summary>
+    /// Get inline tactic
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    public InlineTacticBlockStmt GetInlineTactic(string key) {
+      Contract.Requires<ArgumentNullException>(key != null, "key");
+      Contract.Ensures(Contract.Result<object>() != null);
+      return _scope.Peek().GetInlineTactic(key);
+    }
+
+    public bool ContainInlineTactic(string key) {
+      Contract.Requires<ArgumentNullException>(!string.IsNullOrEmpty(key), "key");
+      if (_scope == null || _scope.Count == 0) return false;
+      return _scope.Peek().ContainInlineTactic(key);
+    }
+
     private ITactic GetTactic(string name){
       Contract.Requires<ArgumentNullException>(name != null);
       Contract.Requires<ArgumentNullException>(Tactics.ContainsKey(name), "Tactic does not exist in the current context");
@@ -475,12 +489,6 @@ namespace Microsoft.Dafny.Tacny{
       return GetTactic(name);
     }
 
-    #endregion GETTERS
-
-    // helper methods
-
-    #region HELPERS
-
     /// <summary>
     ///   Check if an UpdateStmt is a tactic call
     /// </summary>
@@ -514,7 +522,26 @@ namespace Microsoft.Dafny.Tacny{
       return Tactics.ContainsKey(name);
     }
 
-    #endregion HELPERS
+    public bool IsInlineTacticCall(UpdateStmt us) {
+      Contract.Requires(us != null);
+      var name = Util.GetSignature(us);
+      if (ContainTVal(name)) {
+        var nameSegment = GetTVarValue(name) as NameSegment;
+        if (nameSegment != null) name = nameSegment.Name;
+      }
+      if (name == null) return false;
+      return ContainInlineTactic(name);
+    }
+
+    public bool IsInlineTacticCall(ApplySuffix aps)
+    {
+      Contract.Requires(aps != null);
+      var name = Util.GetSignature(aps);
+      if (name == null) return false;
+      return ContainInlineTactic(name);
+    }
+
+
 
     /// <summary>
     /// Check in an updateStmt is local assignment
@@ -565,6 +592,20 @@ namespace Microsoft.Dafny.Tacny{
         throw new Exception("tactic variable " + key + " has already been defined !");
       _scope.Peek().AddTVar(key, value);
     }
+
+
+    /// <summary>
+    /// Add an inline tactic to the top level frame
+    /// </summary>
+    /// <param name="key"></param>
+    /// <param name="value"></param>
+    public void AddInlineTactic(string key, InlineTacticBlockStmt stmt) {
+      Contract.Requires<ArgumentNullException>(key != null, "key");
+      if (ContainTVal(key))
+        throw new Exception("tactic variable " + key + " has already been defined !");
+      _scope.Peek().AddInlineTactic(key, stmt);
+    }
+
 
     /// <summary>
     /// Update a local variable
@@ -635,6 +676,7 @@ namespace Microsoft.Dafny.Tacny{
       public readonly Frame Parent;
       private readonly Dictionary<string, object> _declaredVariables; // tacny variables
       private readonly Dictionary<string, VariableData> _dafnyVariables; // dafny variables
+      private readonly Dictionary<string, InlineTacticBlockStmt> _inlineTactics;
       public TacticFrameCtrl FrameCtrl;
       public TokenTracer TokenTracer;
       private readonly ErrorReporter _reporter;
@@ -683,6 +725,7 @@ namespace Microsoft.Dafny.Tacny{
         _reporter = reporter;
         _declaredVariables = new Dictionary<string, object>();
         _dafnyVariables = new Dictionary<string, VariableData>();
+        _inlineTactics = new Dictionary<string, InlineTacticBlockStmt>();
 
       }
 
@@ -691,6 +734,7 @@ namespace Microsoft.Dafny.Tacny{
         // carry over the tactic info
         _declaredVariables = new Dictionary<string, object>();
         _dafnyVariables = new Dictionary<string, VariableData>();
+        _inlineTactics = new Dictionary<string, InlineTacticBlockStmt>();
         TokenTracer = parent.TokenTracer.GenSubTrace();
         Parent = parent;
         _reporter = parent._reporter;
@@ -698,6 +742,7 @@ namespace Microsoft.Dafny.Tacny{
       }
 
       [Pure]
+      // dafny variables
       internal VariableData GetLocalDafnyVar(string name){
         //Contract.Requires(_DafnyVariables.ContainsKey(name));
         return _dafnyVariables[name];
@@ -740,7 +785,7 @@ namespace Microsoft.Dafny.Tacny{
         }
       }
 
-
+      //tactic variables
       internal bool ContainTVars(string name){
         Contract.Requires<ArgumentNullException>(name != null, "name");
         // base case
@@ -794,6 +839,39 @@ namespace Microsoft.Dafny.Tacny{
           return Parent.GetAllTVars(toDict);
         }
       }
+
+      //inline tactics
+      internal InlineTacticBlockStmt GetLocalInlineTactic(string name) {
+        return _inlineTactics[name];
+      }
+
+      internal void AddInlineTactic(string name, InlineTacticBlockStmt stmt) {
+        Contract.Requires<ArgumentNullException>(name != null, "key");
+        if (_inlineTactics.All(v => v.Key != name)) {
+          _inlineTactics.Add(name, stmt);
+        } else {
+          throw new ArgumentException($"inline tactic {name} is already declared in the scope");
+        }
+      }
+
+      internal bool ContainInlineTactic(string name) {
+        Contract.Requires<ArgumentNullException>(name != null, "name");
+        // base case
+        if (Parent == null)
+          return _inlineTactics.Any(kvp => kvp.Key == name);
+        return _inlineTactics.Any(kvp => kvp.Key == name) || Parent.ContainInlineTactic(name);
+      }
+
+
+      internal InlineTacticBlockStmt GetInlineTactic(string name) {
+        //     Contract.Requires(ContainDafnyVars(name));
+        if (_inlineTactics.ContainsKey(name))
+          return _inlineTactics[name];
+        else {
+          return Parent.GetInlineTactic(name);
+        }
+      }
+
       internal List<Statement> GetGeneratedCode(){
         var code = GetGeneratedCode0();
         return code;

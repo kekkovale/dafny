@@ -2090,6 +2090,7 @@ TacticTryBlockStmt<out Statement/*!*/ tacticTryStatement>
     BlockStmt<out body, out bodyStart, out bodyEnd>    (. endTok = body.EndTok; .)
     (. inlineTacticStatement = new InlineTacticBlockStmt(id, endTok, attrs, body); .)
   )
+  SYNC ";"                         (. endTok = t; .)
   .
 
 SkeletonStmt<out Statement s>

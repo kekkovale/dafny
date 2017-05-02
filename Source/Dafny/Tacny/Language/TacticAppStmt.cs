@@ -4,10 +4,11 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Tacny.Language{
   public class TacticAppStmt : TacticFrameCtrl{
+    
     public override bool MatchStmt(Statement stmt, ProofState state)
     {
       var us = stmt as UpdateStmt;
-      return us != null && state.IsTacticCall(us);
+      return (us != null && state.IsTacticCall(us));
     }
 
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
@@ -16,12 +17,13 @@ namespace Microsoft.Dafny.Tacny.Language{
       if (tacApsStmt != null)
       {
         var aps = ((ExprRhs)tacApsStmt.Rhss[0]).Expr as ApplySuffix;
+    
         var tactic = state.GetTactic(aps) as Tactic;
 
         var frameCtrl = new DefaultTacticFrameCtrl();
         if (tactic != null)
         {
-
+          //unfolding preconditions
           List<Statement> body = new List<Statement>();
           if (tactic.Req != null) {
             foreach (var expr in tactic.Req) {
@@ -34,6 +36,7 @@ namespace Microsoft.Dafny.Tacny.Language{
             }
           }
           body.AddRange(tactic.Body.Body);
+          //unfolding postcondition
           if (tactic.Ens != null) {
             foreach (var expr in tactic.Ens) {
               body.Add(
@@ -45,7 +48,6 @@ namespace Microsoft.Dafny.Tacny.Language{
             }
           }
 
-    
           frameCtrl.InitBasicFrameCtrl(body, true, tacApsStmt.Rhss[0].Attributes, tactic);
           state.AddNewFrame(frameCtrl);
 
