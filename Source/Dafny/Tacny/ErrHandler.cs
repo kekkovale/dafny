@@ -21,10 +21,12 @@ namespace Microsoft.Dafny.Tacny
     private readonly TokenTracer _token;
     public ErrorType ErrType { get; set; }
     public List<ErrorInformation> ErrorList { get; set; }
+    public ErrorReporter Reporter;
     public static int ReportMode = 0; // 0 for brief mode, 1 for full mode
     public TacticBasicErr(TokenTracer t) {
       _token = t;
       ErrType = ErrorType.Deafult;
+      Reporter = new ConsoleErrorReporter();
     }
 
     public string GetErrMsg()

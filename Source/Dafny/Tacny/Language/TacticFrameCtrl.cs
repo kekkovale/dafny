@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.Tacny.Language{
           }
           break;
         default:
-          //_reporter.Warning(MessageSource.Tacny, ((MemberDecl)ActiveTactic).tok, $"Unrecognized attribute {attr.Name}");
+          //_reporter.Warning(MessageSource.Tactic, ((MemberDecl)ActiveTactic).tok, $"Unrecognized attribute {attr.Name}");
           break;
       }
 

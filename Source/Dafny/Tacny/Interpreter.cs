@@ -22,7 +22,6 @@ namespace Microsoft.Dafny.Tacny {
     private Stack<Dictionary<IVariable, Type>> _frame;
 
     private readonly ProofState _state;
-    private readonly ErrorReporter _errorReporter;
 
     public static Stopwatch Timer;
 
@@ -50,19 +49,11 @@ namespace Microsoft.Dafny.Tacny {
     private Interpreter(Program program) {
       Contract.Requires(Tcce.NonNull(program));
       // initialize state
-      _errorReporter = new ConsoleErrorReporter();
-      _state = new ProofState(program, _errorReporter);
+      _state = new ProofState(program);
       _frame = new Stack<Dictionary<IVariable, Type>>();
       //_resultList = new Dictionary<UpdateStmt, List<Statement>>();
     }
 
-
-    [ContractInvariantMethod]
-    private void ObjectInvariant() {
-      Contract.Invariant(Tcce.NonNull(_state));
-      Contract.Invariant(Tcce.NonNull(_frame));
-      Contract.Invariant(_errorReporter != null);
-    }
     /// <summary>
     /// 
     /// </summary>

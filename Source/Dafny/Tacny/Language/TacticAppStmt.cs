@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.Tacny.Language{
           state.AddNewFrame(frameCtrl);
 
           if(aps != null && aps.Args.Count != tactic.Ins.Count)
-            state.Reporter.Error(MessageSource.Tacny, tacApsStmt.Tok,
+            state.GetErrHandler().Reporter.Error(MessageSource.Tactic, tacApsStmt.Tok,
               $"Wrong number of method arguments (got {aps.Args.Count}, expected {tactic.Ins.Count})");
 
           for (var index = 0; index < aps.Args.Count; index++){
@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.Tacny.Language{
                 // in the case that referring to an exisiting tvar, dereference it
                 arg = state.GetTVarValue(name) as Expression;
               else{
-                state.Reporter.Error(MessageSource.Tacny, tacApsStmt.Tok,
+                state.GetErrHandler().Reporter.Error(MessageSource.Tactic, tacApsStmt.Tok,
                   $"Fail to dereferenen argument({name})");
               }
             }

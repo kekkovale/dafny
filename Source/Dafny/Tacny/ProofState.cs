@@ -18,36 +18,21 @@ namespace Microsoft.Dafny.Tacny{
     public TacticBasicErr ErrHandler;
     // Dynamic State
     public MemberDecl TargetMethod;
-    public ErrorReporter Reporter;
 
     //not all the eval step requires to be verified, e.g. var decl
     public bool NeedVerify { set; get; } = false;
 
     public bool InAsserstion { set; get; } = false;
     public UpdateStmt TopLevelTacApp;
-/*
-    public ITactic ActiveTactic {
-      get {
-        Contract.Assert(_scope != null);
-        Contract.Assert(_scope.Count > 0);
-        return _scope.Peek().ActiveTactic;
-      }
-    }
- */
     private Stack<Frame> _scope;
 
-    public ProofState(Program program, ErrorReporter reporter){
+    public ProofState(Program program){
       Contract.Requires(program != null);
       // get a new program instance
       Datatypes = new Dictionary<string, DatatypeDecl>();
       _topLevelClasses = new List<TopLevelClassDeclaration>();
-      Reporter = reporter;
       var files = new List<DafnyFile> {new DafnyFile(program.FullName)};
-      //note the differences between this ParseCheck and the one at the top level. This function only parses but the other one resolves.
-      //use the deafult error reportor, as the one from program include too much extra object/information for deep copy
-      var err = Main.Parse(files, program.Name, new ConsoleErrorReporter(), out _original);
-      if (err != null)
-        reporter.Error(MessageSource.Tacny, program.DefaultModuleDef.tok, $"Error parsing a fresh Tacny program: {err}");
+      Main.Parse(files, program.Name, new ConsoleErrorReporter(), out _original);
 
       // fill state
       FillStaticState(program);
@@ -66,10 +51,10 @@ namespace Microsoft.Dafny.Tacny{
 
       var aps = ((ExprRhs) tacAps.Rhss[0]).Expr as ApplySuffix;
       if (tactic != null && (aps != null && aps.Args.Count != tactic.Ins.Count))
-        Reporter.Error(MessageSource.Tacny, tacAps.Tok,
+        GetErrHandler().Reporter.Error(MessageSource.Tactic, tacAps.Tok,
           $"Wrong number of method arguments (got {aps.Args.Count}, expected {tactic.Ins.Count})");
 
-      var frame = new Frame(tactic, tacAps.Rhss[0].Attributes, Reporter);
+      var frame = new Frame(tactic, tacAps.Rhss[0].Attributes);
 
       foreach (var item in variables){
         if (!frame.ContainDafnyVar(item.Key.Name))
@@ -412,7 +397,7 @@ namespace Microsoft.Dafny.Tacny{
     }
 
     /// <summary>
-    /// Check if Tacny variable has been declared
+    /// Check if Tactic variable has been declared
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
@@ -674,20 +659,18 @@ namespace Microsoft.Dafny.Tacny{
 
     internal class Frame{
       public readonly Frame Parent;
-      private readonly Dictionary<string, object> _declaredVariables; // tacny variables
+      private readonly Dictionary<string, object> _declaredVariables; // tactic variables
       private readonly Dictionary<string, VariableData> _dafnyVariables; // dafny variables
       private readonly Dictionary<string, InlineTacticBlockStmt> _inlineTactics;
       public TacticFrameCtrl FrameCtrl;
       public TokenTracer TokenTracer;
-      private readonly ErrorReporter _reporter;
 
       /// <summary>
       /// Initialize the top level frame
       /// </summary>
       /// <param name="tactic"></param>
       /// <param name="attr"></param>
-      /// <param name="reporter"></param>
-      public Frame(ITactic tactic, Attributes attr, ErrorReporter reporter){
+      public Frame(ITactic tactic, Attributes attr){
         Contract.Requires<ArgumentNullException>(tactic != null, "tactic");
         Parent = null;
         var o = tactic as Tactic;
@@ -722,7 +705,6 @@ namespace Microsoft.Dafny.Tacny{
         FrameCtrl = new DefaultTacticFrameCtrl();
         FrameCtrl.InitBasicFrameCtrl(body, false, attr, o);
 
-        _reporter = reporter;
         _declaredVariables = new Dictionary<string, object>();
         _dafnyVariables = new Dictionary<string, VariableData>();
         _inlineTactics = new Dictionary<string, InlineTacticBlockStmt>();
@@ -737,7 +719,6 @@ namespace Microsoft.Dafny.Tacny{
         _inlineTactics = new Dictionary<string, InlineTacticBlockStmt>();
         TokenTracer = parent.TokenTracer.GenSubTrace();
         Parent = parent;
-        _reporter = parent._reporter;
         FrameCtrl = ctrl;
       }
 

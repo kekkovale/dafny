@@ -293,7 +293,7 @@ namespace Microsoft.Dafny.Tacny {
 /*
 #if _TACTIC_DEBUG
       var printer = new Printer(Console.Out);
-      Console.WriteLine("*********************Verifying Tacny Generated Prog*****************");
+      Console.WriteLine("*********************Verifying Tactic Generated Prog*****************");
       printer.PrintProgram(program, true);
       Console.WriteLine("\n*********************Prog END*****************");
 #endif

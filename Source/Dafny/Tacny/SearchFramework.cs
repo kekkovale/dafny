@@ -93,6 +93,12 @@ namespace Microsoft.Dafny.Tacny
 
     internal class DepthFirstSeach : BaseSearchStrategy
     {
+      /// <summary>
+      /// 
+      /// </summary>
+      /// <param name="rootState"></param>
+      /// <param name="errDelegate"></param> to report err back to GUI
+      /// <returns></returns>
       internal new static IEnumerable<ProofState> Search(ProofState rootState, ErrorReporterDelegate errDelegate) {
         var stack = new Stack<IEnumerator<ProofState>>();
         ProofState lastSucc = null; // the last verified state, for recovering over-backtracking
