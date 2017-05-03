@@ -6,6 +6,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Security.Claims;
 using Microsoft.Basetypes;
 
 namespace Microsoft.Dafny.Tacny.Expr {
@@ -213,14 +214,31 @@ namespace Microsoft.Dafny.Tacny.Expr {
       _state = state;
     }
 
+
     internal bool IsTVar(Expression expr)
     {
-      var var = expr as TacticLiteralExpr;
-      return (var != null && _state.ContainTVal((string)var.Value));
+      string key = null;
+      if (expr is TacticLiteralExpr)
+        key = (string) ((TacticLiteralExpr) expr).Value;
+      else if (expr is NameSegment)
+        key = (expr as NameSegment).Name;
+
+      return key == null ? false : _state.ContainTVal(key);
     }
 
-    internal Expression EvalTVar(TacticLiteralExpr ns, bool deref){
-      var value = _state.GetTVarValue((string)ns.Value);
+    internal Expression EvalTVar(Expression expr, bool deref){
+
+      string key = null;
+      if (expr is TacticLiteralExpr)
+        key = (string)((TacticLiteralExpr)expr).Value;
+      else if (expr is NameSegment)
+        key = (expr as NameSegment).Name;
+
+      if (key == null) {
+        throw new Exception("expression for TVar can only be TacticLiteralExpr or NameSegment: " + expr);
+      }
+
+      var value = _state.GetTVarValue(key);
       if (deref && value is TacticLiteralExpr && IsTVar(value as TacticLiteralExpr))
         return EvalTVar(value as TacticLiteralExpr, true);
       else
@@ -258,7 +276,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
     public static Expression UnfoldTacticProjection(ProofState state, Expression expr){
       var e = new SimpExpr(state);
       if (e.IsTVar(expr))
-        return e.EvalTVar(expr as TacticLiteralExpr, true);
+        return e.EvalTVar(expr, true);
       else
       {
         var suffix = expr as ApplySuffix;
@@ -294,20 +312,15 @@ namespace Microsoft.Dafny.Tacny.Expr {
       else
         return base.CloneApplySuffix(e);
     }
-
-    public override Expression CloneNameSegment(Expression expr){
-      if (IsTVar(expr))
-        return (EvalTVar(expr as TacticLiteralExpr, true) as Expression);
-      return base.CloneNameSegment(expr);
-    }
+   
 
     public override Expression CloneExpr(Expression expr)
     {
       var suffix = expr as ApplySuffix;
       if (suffix != null)
         return CloneApplySuffix(suffix);
-      else if (expr is NameSegment){
-        return (CloneNameSegment(expr));
+      else if (IsTVar(expr)){
+        return (EvalTVar(expr, true));
       }
       else
         return base.CloneExpr(expr);

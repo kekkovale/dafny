@@ -262,6 +262,8 @@ namespace Microsoft.Dafny
         } else if (e is StringLiteralExpr) {
           var str = (StringLiteralExpr)e;
           return new StringLiteralExpr(Tok(e.tok), (string)e.Value, str.IsVerbatim);
+        } else if (e is TacticLiteralExpr) {
+          return new TacticLiteralExpr((string)e.Value);
         } else if (e.Value is Basetypes.BigDec) {
           return new LiteralExpr(Tok(e.tok), (Basetypes.BigDec)e.Value);
         } else {

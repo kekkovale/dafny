@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
       var ret = new List <Expression>();
 
       foreach (var x in ls) {
-        ret.Add(new TacticLiteralExpr(x.FullName));
+        ret.Add(new TacticLiteralExpr(x.Name));
       }
 
       return GenerateEATomExpr(ret);

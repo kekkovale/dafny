@@ -19,7 +19,7 @@ lemma ltest(d : Dummy)
 tactic tac(b: Element)
 {
 
-    tvar vs := variables();
-    tvar ls := lemmas();	
+    tvar vs := tactic.vars() + tactic.input();
+    tvar ls := tactic.lemmas();	
     explore(ls, vs);
 }
