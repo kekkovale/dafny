@@ -7787,6 +7787,13 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class TacticLiteralExpr : LiteralExpr
+  {
+    public TacticLiteralExpr(string s)
+      : base(new Token(-1,-1), s) {
+      Contract.Requires(s != null);
+    }
+  }
   public class DatatypeValue : Expression {
     public readonly string DatatypeName;
     public readonly string MemberName;

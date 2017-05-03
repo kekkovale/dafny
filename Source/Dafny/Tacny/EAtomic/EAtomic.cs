@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Tacny.EAtomic {
 
@@ -30,6 +31,11 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
       }
     }
 
+    public static Expression GenerateEATomExpr(List<Expression> es)
+    {
+      return new SetDisplayExpr(new Token(Interpreter.TacticCodeTokLine, 0), true, es );
+    }
+
     public abstract override string Signature { get; }
 
     // TypeOf (Expression expression, ProofState proofState); 
@@ -41,7 +47,7 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     /// <param name="expression">Expression to be resolved</param>
     /// <param name="proofState">Current tactic ProofState</param>
     /// <returns>Lazily returns generated objects one at a time</returns>
-    public abstract object Generate(Expression expression, ProofState proofState);
+    public abstract Expression Generate(Expression expression, ProofState proofState);
   }
  
 }

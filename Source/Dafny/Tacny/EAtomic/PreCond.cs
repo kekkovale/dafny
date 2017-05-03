@@ -6,7 +6,7 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     public override string Signature => "requires";
     public override int ArgsCount => 0;
 
-    public override object Generate(Expression expression, ProofState proofState) {
+    public override Expression Generate(Expression expression, ProofState proofState) {
 
       //need to get postconds from unresolved prog
       var prog = proofState.GetDafnyProgram();
@@ -20,9 +20,9 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
           foreach(var post in member.Req) {
             posts.Add(post.E);
           }
-        return posts;
+        return GenerateEATomExpr(posts);
       }
-      return null;
+      return GenerateEATomExpr(new List<Expression>());
     }
   }
 }

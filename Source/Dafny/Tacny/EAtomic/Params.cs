@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.Dafny.Tacny.EAtomic {
   class Params : EAtomic {
@@ -22,9 +23,14 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     /// <param name="expression"></param>
     /// <param name="proofState"></param>
     /// <returns></returns>
-    public override object Generate(Expression expression, ProofState proofState) {
+    public override Expression Generate(Expression expression, ProofState proofState) {
       var vars = proofState.GetAllDafnyVars().Values.ToList().Where(IsParam);
-      return vars.Select(x => x.Variable).ToList();
+      var ret = new List<Expression>();
+
+      foreach (var x in vars) {
+        ret.Add(new TacticLiteralExpr(x.Variable.Name));
+      }
+      return GenerateEATomExpr(ret);
     }
   }
 }

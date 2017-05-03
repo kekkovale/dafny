@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 
 
 namespace Microsoft.Dafny.Tacny.EAtomic {
@@ -15,9 +16,15 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     /// <param name="expression"></param>
     /// <param name="proofState"></param>
     /// <returns></returns>
-    public override object Generate(Expression expression, ProofState proofState){
-      var ls = proofState.Members.Values.ToList().Where(IsLemma);
-       return ls.ToList();
+    public override Expression Generate(Expression expression, ProofState proofState){
+      var ls = proofState.Members.Values.ToList().Where(IsLemma).ToList();
+      var ret = new List <Expression>();
+
+      foreach (var x in ls) {
+        ret.Add(new TacticLiteralExpr(x.FullName));
+      }
+
+      return GenerateEATomExpr(ret);
     }
   }
 }
