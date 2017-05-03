@@ -25,10 +25,15 @@ namespace Microsoft.Dafny.Tacny.Atomic
       //TODO: implement this properly
       //var members = state.GetLocalValue(callArguments[0] as NameSegment) as IEnumerable<MemberDecl>;
       //evaluate the argument (methods/lemma)
-      var members0 = SimpExpr.UnfoldTacticProjection(state, callArguments[0]);
-      var members = members0 as List<MemberDecl>;
+      var members0 = SimpExpr.UnfoldTacticProjection(state, callArguments[0]) as SetDisplayExpr;
+      List<MemberDecl> members = new List<MemberDecl>();
 
-      if (members == null) {
+      foreach (var mem in members0.Elements) {
+        var key = (string) (mem as TacticLiteralExpr).Value;
+        if (state.Members.ContainsKey(key))
+          members.Add(state.Members[key]);
+      }
+      if (members.Count == 0) {
         yield break;
       }
 
@@ -48,11 +53,14 @@ namespace Microsoft.Dafny.Tacny.Atomic
           Contract.Assert(false, "In Explore Atomic call," + callArguments[0] + "is neither a Method or a Function");
 
         //evaluate the arguemnts for the lemma to be called
-        var ovars = SimpExpr.UnfoldTacticProjection(state, callArguments[1]);
-        Contract.Assert(ovars != null, "In Explore Atomic call," + callArguments[1] + "is not variable");
+        var ovars = SimpExpr.UnfoldTacticProjection(state, callArguments[1]) as SetDisplayExpr;
+        List<IVariable> vars = new List<IVariable>();
 
-        List<IVariable> vars = ovars as List<IVariable> ?? new List<IVariable>();
-        //Contract.Assert(vars != null, Util.Error.MkErr(call_arguments[0], 1, typeof(List<IVariable>)));
+        foreach (var var in ovars.Elements) {
+          var key = (string)(var as TacticLiteralExpr).Value;
+          if (state.GetAllDafnyVars().ContainsKey(key))
+            vars.Add(state.GetAllDafnyVars()[key].Variable);
+        }
 
         //for the case when no args, just add an empty list
         if (mdIns.Count == 0) {

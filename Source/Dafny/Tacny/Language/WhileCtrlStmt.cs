@@ -24,9 +24,9 @@ namespace Microsoft.Dafny.Tacny.Language {
 
       if (whileStmt != null)
       {
-        var tryEval = SimpExpr.UnfoldTacticProjection(state0, whileStmt.Guard) as SimpExpr.BooleanRet;
+        var tryEval = EvalExpr.EvalTacticExpression(state0, whileStmt.Guard);
 
-        if(tryEval == null) {
+        if (!(tryEval is LiteralExpr && (tryEval as LiteralExpr).Value is bool)) {
           var state = state0.Copy();
           var st = SimpExpr.SimpTacticExpr(state, statement);
           state.NeedVerify = true;
@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.Tacny.Language {
           whileCtrl._guard = whileStmt.Guard;
           whileCtrl._body = whileStmt.Body.Body;
 
-          if (tryEval.Value) {
+          if ((bool)(tryEval as LiteralExpr).Value) {
             // insert the control frame
             var dummyBody = new List<Statement> {whileStmt};
             whileCtrl.InitBasicFrameCtrl(dummyBody, true, null);
@@ -60,25 +60,24 @@ namespace Microsoft.Dafny.Tacny.Language {
     public override IEnumerable<ProofState> EvalStep(ProofState state0){
       var state = state0.Copy();
 
-      var tryEval = SimpExpr.UnfoldTacticProjection(state, _guard) as SimpExpr.BooleanRet;
-      Contract.Assert(tryEval != null);
+      var tryEval = EvalExpr.EvalTacticExpression(state, _guard);
 
-      if(tryEval.Value){
+      var literalExpr = tryEval as LiteralExpr;
+      if(literalExpr != null && (bool)literalExpr.Value){
         //insert the body frame
         var bodyFrame = new DefaultTacticFrameCtrl();
         bodyFrame.InitBasicFrameCtrl(_body, state.IsCurFramePartial(), null);
         state.AddNewFrame(bodyFrame);
-      }
-      else{
+      } else {
         state.NeedVerify = true;
       }
       yield return state;
     }
 
     public override bool EvalTerminated(bool childFrameRes, ProofState state){
-      var tryEval = SimpExpr.UnfoldTacticProjection(state, _guard) as SimpExpr.BooleanRet;
-      Contract.Assert(tryEval != null);
-      return !tryEval.Value;
+      var tryEval = EvalExpr.EvalTacticExpression(state, _guard);
+      var literalExpr = tryEval as LiteralExpr;
+      return (literalExpr != null && (bool) literalExpr.Value);
     }
 
     public override List<Statement> AssembleStmts(List<List<Statement>> raw){
