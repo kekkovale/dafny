@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
       } else if (e0.Value is BigInteger && e1.Value is BigInteger){
          return BigInteger.Compare((BigInteger)e0.Value, (BigInteger)e1.Value) == 0;
       } else if (e0.Value is string && e1.Value is string){
-        return String.Compare((string) e0.Value, (string) e1.Value) == 0;
+        return ((string) e0.Value).Equals((string)e1.Value);
       }
       
       return false;
@@ -41,6 +41,29 @@ namespace Microsoft.Dafny.Tacny.Expr {
       }
       return newL;
     }
+
+    internal List<Expression> SetRemoveDup(List<Expression> l) {
+      var newL = new List<Expression>();
+      foreach (var item in l) {
+        if (l.FindAll(y => EqExpr(item, y)).Count == 1)
+          newL.Add(item);
+      }
+      return newL;
+    }
+
+    internal List<Expression> SetSubstract(List<Expression> l, List<Expression> r)
+    {
+      var ret = new List<Expression>();
+      var newL = NormaliseSet(l);
+
+      foreach (var item in newL) {
+        if (r.Find(y => EqExpr(item, y)) == null)
+          ret.Add(item);
+      }
+      return ret;
+    }
+  
+
     public override Expression CloneExpr(Expression expr){
       if (expr is UnaryOpExpr){
         var unaryExpr = expr as UnaryOpExpr;
@@ -74,10 +97,10 @@ namespace Microsoft.Dafny.Tacny.Expr {
             break;
           case BinaryExpr.Opcode.Or:
             if(e0 is LiteralExpr && e1 is LiteralExpr &&
-                (e0 as LiteralExpr).Value is bool ||
+                (e0 as LiteralExpr).Value is bool &&
                 (e1 as LiteralExpr).Value is bool) {
               var value =
-                (bool)(e0 as LiteralExpr).Value && (bool)(e1 as LiteralExpr).Value;
+                (bool)(e0 as LiteralExpr).Value || (bool)(e1 as LiteralExpr).Value;
               return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
             }
             break;
@@ -145,6 +168,23 @@ namespace Microsoft.Dafny.Tacny.Expr {
             }
             break;
           case BinaryExpr.Opcode.Sub:
+            if (e0 is LiteralExpr && e1 is LiteralExpr &&
+             (e0 as LiteralExpr).Value is BigInteger &&
+             (e1 as LiteralExpr).Value is BigInteger) {
+              var value = BigInteger.Subtract(
+                (BigInteger)(e0 as LiteralExpr).Value,
+                (BigInteger)(e1 as LiteralExpr).Value
+                );
+              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+            } else if (e0 is SetDisplayExpr && e1 is SetDisplayExpr) {
+
+              var newEles = SetSubstract(
+                (e0 as SetDisplayExpr).Elements,              
+                (e1 as SetDisplayExpr).Elements);
+
+              return new SetDisplayExpr(new Token(Interpreter.TacticCodeTokLine, 0),
+                (e0 as SetDisplayExpr).Finite, newEles);
+            }
             break;
           default:
             break;
