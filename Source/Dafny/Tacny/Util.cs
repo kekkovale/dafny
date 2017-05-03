@@ -277,8 +277,8 @@ namespace Microsoft.Dafny.Tacny {
       }
 
 
-      if (prog.reporter.Count(ErrorLevel.Error) != 0){
-
+      if (prog.reporter.Count(ErrorLevel.Error) != 0) {
+        state.GetErrHandler().Reporter = prog.reporter;
 #if _TACTIC_DEBUG
         Console.Write("Fail to resolve prog, skip verifier ! \n");
 #endif
@@ -357,62 +357,6 @@ namespace Microsoft.Dafny.Tacny {
       }
     }
 
-  }
-
-  public class CompoundErrorInformation : ErrorInformation
-  {
-    public readonly ProofState S;
-
-    private static string StringOfStmt(ProofState state){
-      var writer = new System.IO.StringWriter();
-      var r = new Printer(writer);
-      r.PrintStatement(state.GetLastStmt(),0);
-    
-      var str = writer.ToString();
-     // Console.WriteLine(str);
-      return str;
-    }
-
-    private CompoundErrorInformation(string msg, ProofState state)
-      : base(new Token(Interpreter.TacticCodeTokLine, Interpreter.TacticCodeTokLine),
-          msg == "" ? " Error in: " + StringOfStmt(state) : msg) {
-     
-      ImplementationName = "Impl$$" + state.TargetMethod.FullName;
-      S = state;
-    }
-
-    private CompoundErrorInformation(string msg, ErrorInformation e, ProofState s) 
-      :base(s.TopTokenTracer().Origin, msg + " " + e.FullMsg)
-    {
-      this.ImplementationName = e.ImplementationName;
-      S = s;
-    }
-
-    public static List<CompoundErrorInformation> GenerateErrorInfoList(ProofState state, string msg = ""){
-      List<CompoundErrorInformation> errs = new List<CompoundErrorInformation>();
-      var l = state.GetErrHandler().ErrorList;
-      Console.WriteLine("\n================ Tactic Error: ================");
-
-      if (l != null && l.Count > 0){
-        foreach (var err in l){
-          errs.Add(new CompoundErrorInformation(msg, err, state));
-          Console.WriteLine(err.FullMsg);
-        }
-      }
-        var errInfo = new CompoundErrorInformation(msg, state);
-        Console.WriteLine(errInfo.FullMsg);
-        Console.WriteLine("================ End of Tactic Error ================");
-        errs.Add(errInfo);
-      
-      return errs;
-    }
-
-    public static void AddErrorInfo(ProofState state, string msg) {
-      var errInfo = new CompoundErrorInformation(msg, state);  
-      if (state.GetErrHandler().ErrorList == null)
-         state.GetErrHandler().ErrorList = new List<ErrorInformation> ();
-      state.GetErrHandler().ErrorList.Add(errInfo);
-    }
   }
 
   public static class ObjectExtensions {

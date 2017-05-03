@@ -229,6 +229,18 @@ namespace Microsoft.Dafny.Tacny {
       try
       {
 #endif
+        if (state.GetErrHandler().Reporter.Count(ErrorLevel.Error) != 0) {
+          var errs = CompoundErrorInformation.GenerateErrorInfoList(state);
+          if (_errorReporterDelegate != null) {
+            lock (_errorReporterDelegate) {
+              foreach (var err in errs) {
+                _errorReporterDelegate(err);
+              }
+            }
+          }
+
+          return null;
+        }
         ret = search.Search(state, _errorReporterDelegate).FirstOrDefault();
 #if !TACNY_DEBUG
       } catch (Exception e){

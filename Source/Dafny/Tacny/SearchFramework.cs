@@ -69,8 +69,6 @@ namespace Microsoft.Dafny.Tacny
     }
 
 
-
-
     public static VerifyResult VerifyState(ProofState state) {
 
       if (state.IsTimeOut()) {
@@ -79,7 +77,7 @@ namespace Microsoft.Dafny.Tacny
       }
 
       var prog = Util.GenerateResolvedProg(state);
-      if (prog == null) {
+      if (prog == null || state.GetErrHandler().Reporter.Count(ErrorLevel.Error) != 0) {
         return VerifyResult.Unresolved;
       }
 

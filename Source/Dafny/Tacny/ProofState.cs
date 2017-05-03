@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.Tacny{
     private readonly List<TopLevelClassDeclaration> _topLevelClasses;
     private readonly Program _original;
 
-    public TacticBasicErr ErrHandler;
+    private TacticBasicErr ErrHandler;
     // Dynamic State
     public MemberDecl TargetMethod;
 
@@ -50,9 +50,6 @@ namespace Microsoft.Dafny.Tacny{
       var tactic = GetTactic(tacAps) as Tactic;
 
       var aps = ((ExprRhs) tacAps.Rhss[0]).Expr as ApplySuffix;
-      if (tactic != null && (aps != null && aps.Args.Count != tactic.Ins.Count))
-        GetErrHandler().Reporter.Error(MessageSource.Tactic, tacAps.Tok,
-          $"Wrong number of method arguments (got {aps.Args.Count}, expected {tactic.Ins.Count})");
 
       var frame = new Frame(tactic, tacAps.Rhss[0].Attributes);
 
@@ -70,9 +67,14 @@ namespace Microsoft.Dafny.Tacny{
       }
 
       frame.TokenTracer = new TokenTracer(tacAps.Tok);
-
       _scope.Push(frame);
+
       TopLevelTacApp = tacAps.Copy();
+
+      if (tactic != null && (aps != null && aps.Args.Count != tactic.Ins.Count))
+        GetErrHandler().Reporter.Error(MessageSource.Tactic, tacAps.Tok,
+          $"Wrong number of method arguments (got {aps.Args.Count}, expected {tactic.Ins.Count})");
+
     }
 
     // Permanent state information
@@ -170,6 +172,8 @@ namespace Microsoft.Dafny.Tacny{
     }
 
     public IEnumerable<ProofState> EvalStep(){
+      //clear previous error messages before moving onto the next stmt
+      GetErrHandler().ClearErrMsg();
       return _scope.Peek().FrameCtrl.EvalStep(this);
     }
 
@@ -195,15 +199,10 @@ namespace Microsoft.Dafny.Tacny{
       return top.TokenTracer;
     }
 
-    public Statement GetStmt()
-    {
-      //clear previous error messages before moving onto the next stmt
-      GetErrHandler().ErrorList = null;
-      return _scope.Peek().FrameCtrl.GetStmt();
-    }
-
     public Statement GetLastStmt() {
-      return _scope.Peek().FrameCtrl.GetLastStmt();
+      var stmt =  _scope.Peek().FrameCtrl.GetLastStmt();
+      return stmt ?? TopLevelTacApp;
+     
     }
 
 
