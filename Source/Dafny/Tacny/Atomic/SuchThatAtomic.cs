@@ -51,48 +51,19 @@ namespace Microsoft.Dafny.Tacny.Atomic {
         var destExpr = (suchThat.Expr as BinaryExpr);
         if (destExpr != null)
         {
-          object l;
-          try
-          {
-            l = SimpExpr.SimpTacticExpr(state, destExpr.E1);
-          }
-          catch (Exception)
-          {
-            l = SimpExpr.UnfoldTacticProjection(state, destExpr.E1);
-          }
-
+          Expression  l = SimpExpr.SimpTacticExpr(state, destExpr.E1);
+          
           if (l is SetDisplayExpr){
             var setDisplayExpr = l as SetDisplayExpr;
             foreach (var item in setDisplayExpr.Elements)
             {
               var copy = state.Copy();
-              copy.UpdateTacnyVar(local, item);
+              copy.UpdateTacticVar(local, item);
               copy.TopTokenTracer().AddBranchTrace(count);
               yield return copy;
               count++;
             }
-          } else if (l is List<MemberDecl>)
-          {
-            var objList = l as List<MemberDecl>;
-            foreach (var item in objList) {
-              var copy = state.Copy();
-              copy.UpdateTacnyVar(local, item);
-              copy.TopTokenTracer().AddBranchTrace(count);
-              yield return copy;
-              count++;
-            }
-          } else if (l is List<IVariable>)
-          {
-            var objList = l as List<IVariable>;
-            foreach (var item in objList)
-            {
-              var copy = state.Copy();
-              copy.UpdateTacnyVar(local, item);
-              copy.TopTokenTracer().AddBranchTrace(count);
-              yield return copy;
-              count++;
-            }
-          }
+          } 
         }
       }
     }

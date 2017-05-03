@@ -1,5 +1,6 @@
 ﻿using Microsoft.Boogie;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -212,23 +213,16 @@ namespace Microsoft.Dafny.Tacny.Expr {
       _state = state;
     }
 
-    public abstract class EvalValRet { }
-
-    public class BooleanRet : EvalValRet
-    {
-      public bool Value;
-    }
-
     internal bool IsTVar(Expression expr)
     {
-      var segment = expr as NameSegment;
-      return (segment != null && _state.ContainTVal(segment.Name));
+      var var = expr as TacticLiteralExpr;
+      return (var != null && _state.ContainTVal((string)var.Value));
     }
 
-    internal object EvalTVar(NameSegment ns, bool deref){
-      var value = _state.GetTVarValue(ns.Name);
-      if (deref && value is Expression && IsTVar(value as Expression))
-        return EvalTVar(value as NameSegment, true);
+    internal Expression EvalTVar(TacticLiteralExpr ns, bool deref){
+      var value = _state.GetTVarValue((string)ns.Value);
+      if (deref && value is TacticLiteralExpr && IsTVar(value as TacticLiteralExpr))
+        return EvalTVar(value as TacticLiteralExpr, true);
       else
         return value;
     }
@@ -237,7 +231,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return EAtomic.EAtomic.IsEAtomicSig(Util.GetSignature(aps));
     }
 
-    internal object EvalEAtomExpr(ApplySuffix aps){
+    internal Expression EvalEAtomExpr(ApplySuffix aps){
       var sig = Util.GetSignature(aps);
       var types = Assembly.GetAssembly(typeof(EAtomic.EAtomic)).GetTypes()
         .Where(t => t.IsSubclassOf(typeof(EAtomic.EAtomic)));
@@ -256,15 +250,15 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return false;
     }
 
-    internal object EvalETacticCall(ApplySuffix aps){
+    internal Expression EvalETacticCall(ApplySuffix aps){
       //fucntion expression call, yet to be supported
       throw new NotImplementedException();
     }
 
-    public static object UnfoldTacticProjection(ProofState state, Expression expr){
+    public static Expression UnfoldTacticProjection(ProofState state, Expression expr){
       var e = new SimpExpr(state);
       if (e.IsTVar(expr))
-        return e.EvalTVar(expr as NameSegment, true);
+        return e.EvalTVar(expr as TacticLiteralExpr, true);
       else
       {
         var suffix = expr as ApplySuffix;
@@ -273,7 +267,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
           if (e.IsEAtmoicCall(aps))
             return e.EvalEAtomExpr(aps);
           else if (e.IsETacticCall(aps))
-            return e.IsETacticCall(aps);
+            throw new NotImplementedException();
         }
       }
       //TODO: evaluate expr as boolean and return as BooleanRet
@@ -292,14 +286,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
 
     public override Expression CloneApplySuffix(ApplySuffix e){
       if (IsEAtmoicCall(e)){
-         var obj = EvalEAtomExpr(e);
-        if (obj is Expression)
-          return obj as Expression;
-        else if (obj is List<Expression>)
-          return new SetDisplayExpr(new Token(Interpreter.TacticCodeTokLine,0), true, obj as List<Expression>);
-        else
-          throw new NotSupportedException ("Unknown type to handle when simplifying an expression");
-
+         return EvalEAtomExpr(e);
       }
       else if (IsETacticCall(e)){
         return (EvalETacticCall(e) as Expression);
@@ -310,7 +297,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
 
     public override Expression CloneNameSegment(Expression expr){
       if (IsTVar(expr))
-        return (EvalTVar(expr as NameSegment, true) as Expression);
+        return (EvalTVar(expr as TacticLiteralExpr, true) as Expression);
       return base.CloneNameSegment(expr);
     }
 

@@ -70,17 +70,16 @@ namespace Microsoft.Dafny.Tacny.Language{
       guardBodyList = GetGuadBodyList(statement, guardBodyList);
       Contract.Assert(guardBodyList.Count > 0);
 
-      var tryEval = SimpExpr.UnfoldTacticProjection(state0, guardBodyList[0].Item1) as SimpExpr.BooleanRet;
+      var tryEval = EvalExpr.EvalTacticExpression(state0, guardBodyList[0].Item1);
       //check whether the top level of the first guard is tactic level or object level
-      if (tryEval == null){
+      if (!(tryEval is LiteralExpr && (tryEval as LiteralExpr).Value is bool)) {
         var state = state0.Copy();
         var st = SimpExpr.SimpTacticExpr(state, statement);
         state.NeedVerify = true;
         state.AddStatement(st);
         yield return state;
         yield break;
-      }
-      else{
+      } else{
         // tactic if
         foreach (var item in guardBodyList){
           if (item.Item1 == null && counter == 0) //else branch and no other branch is satisfied.
@@ -94,8 +93,10 @@ namespace Microsoft.Dafny.Tacny.Language{
             yield return state;
           }
           else{
-            var res = SimpExpr.UnfoldTacticProjection(state0, item.Item1) as SimpExpr.BooleanRet;
-            if (res != null && res.Value){
+            var res = EvalExpr.EvalTacticExpression(state0, item.Item1);
+            if (res is LiteralExpr && 
+              (res as LiteralExpr).Value is bool && 
+              (bool)(res as LiteralExpr).Value){
               counter++;
               var state = state0.Copy();
               var ifChoice = this.Copy();

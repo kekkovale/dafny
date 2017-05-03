@@ -400,9 +400,9 @@ namespace Microsoft.Dafny.Tacny {
         if(exprRhs?.Expr is ApplySuffix) {
           var aps = (ApplySuffix)exprRhs.Expr;
           var result = SimpExpr.UnfoldTacticProjection(state, aps);
-           state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, result);
+           state.UpdateTacticVar(((NameSegment)us.Lhss[index]).Name, result);
         } else if(exprRhs?.Expr is Microsoft.Dafny.LiteralExpr) {
-          state.UpdateTacnyVar(((NameSegment)us.Lhss[index]).Name, (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);
+          state.UpdateTacticVar(((NameSegment)us.Lhss[index]).Name, (Microsoft.Dafny.LiteralExpr)exprRhs?.Expr);
         } else {
           throw new NotSupportedException("Not supported update statement");
         }

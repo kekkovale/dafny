@@ -369,9 +369,9 @@ namespace Microsoft.Dafny.Tacny{
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public object GetTVarValue(NameSegment key){
+    public Expression GetTVarValue(NameSegment key){
       Contract.Requires<ArgumentNullException>(key != null, "key");
-      Contract.Ensures(Contract.Result<object>() != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
       return GetTVarValue(key.Name);
     }
 
@@ -380,9 +380,9 @@ namespace Microsoft.Dafny.Tacny{
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public object GetTVarValue(string key){
+    public Expression GetTVarValue(string key){
       Contract.Requires<ArgumentNullException>(key != null, "key");
-      Contract.Ensures(Contract.Result<object>() != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
       return _scope.Peek().GetTValData(key);
     }
 
@@ -391,8 +391,8 @@ namespace Microsoft.Dafny.Tacny{
       return ContainTVal(key.Name);
     }
 
-    public Dictionary<string, object> GetAllTVars() {
-      return _scope.Peek().GetAllTVars(new Dictionary<string, object>());
+    public Dictionary<string, Expression> GetAllTVars() {
+      return _scope.Peek().GetAllTVars(new Dictionary<string, Expression>());
     }
 
     /// <summary>
@@ -558,7 +558,7 @@ namespace Microsoft.Dafny.Tacny{
     /// </summary>
     /// <param name="key"></param>
     /// <param name="value"></param>
-    public void AddTacnyVar(IVariable key, object value){
+    public void AddTacnyVar(IVariable key, Expression value){
       Contract.Requires<ArgumentNullException>(key != null, "key");
       if (ContainTVal(key.Name))
         throw new Exception("tactic variable " + key.Name + " has already been defined !");
@@ -570,7 +570,7 @@ namespace Microsoft.Dafny.Tacny{
     /// </summary>
     /// <param name="key"></param>
     /// <param name="value"></param>
-    public void AddTacnyVar(string key, object value){
+    public void AddTacnyVar(string key, Expression value){
       Contract.Requires<ArgumentNullException>(key != null, "key");
       if(ContainTVal(key))
         throw new Exception("tactic variable " + key + " has already been defined !");
@@ -596,9 +596,9 @@ namespace Microsoft.Dafny.Tacny{
     /// </summary>
     /// <param name="key"></param>
     /// <param name="value"></param>
-    public void UpdateTacnyVar(IVariable key, object value){
+    public void UpdateTacticVar(IVariable key, Expression value){
       Contract.Requires<ArgumentNullException>(key != null, "key");
-      UpdateTacnyVar(key.Name, value);
+      UpdateTacticVar(key.Name, value);
     }
 
     /// <summary>
@@ -606,7 +606,7 @@ namespace Microsoft.Dafny.Tacny{
     /// </summary>
     /// <param name="key"></param>
     /// <param name="value"></param>
-    public void UpdateTacnyVar(string key, object value){
+    public void UpdateTacticVar(string key, Expression value){
       Contract.Requires<ArgumentNullException>(key != null, "key");
       _scope.Peek().UpdateLocalTVar(key, value);
     }
@@ -658,7 +658,7 @@ namespace Microsoft.Dafny.Tacny{
 
     internal class Frame{
       public readonly Frame Parent;
-      private readonly Dictionary<string, object> _declaredVariables; // tactic variables
+      private readonly Dictionary<string, Expression> _declaredVariables; // tactic variables
       private readonly Dictionary<string, VariableData> _dafnyVariables; // dafny variables
       private readonly Dictionary<string, InlineTacticBlockStmt> _inlineTactics;
       public TacticFrameCtrl FrameCtrl;
@@ -704,7 +704,7 @@ namespace Microsoft.Dafny.Tacny{
         FrameCtrl = new DefaultTacticFrameCtrl();
         FrameCtrl.InitBasicFrameCtrl(body, false, attr, o);
 
-        _declaredVariables = new Dictionary<string, object>();
+        _declaredVariables = new Dictionary<string, Expression>();
         _dafnyVariables = new Dictionary<string, VariableData>();
         _inlineTactics = new Dictionary<string, InlineTacticBlockStmt>();
 
@@ -713,7 +713,7 @@ namespace Microsoft.Dafny.Tacny{
       public Frame(Frame parent, TacticFrameCtrl ctrl){
         Contract.Requires<ArgumentNullException>(parent != null);
         // carry over the tactic info
-        _declaredVariables = new Dictionary<string, object>();
+        _declaredVariables = new Dictionary<string, Expression>();
         _dafnyVariables = new Dictionary<string, VariableData>();
         _inlineTactics = new Dictionary<string, InlineTacticBlockStmt>();
         TokenTracer = parent.TokenTracer.GenSubTrace();
@@ -774,7 +774,7 @@ namespace Microsoft.Dafny.Tacny{
         return _declaredVariables.Any(kvp => kvp.Key == name) || Parent.ContainTVars(name);
       }
 
-      internal void AddTVar(string variable, object value){
+      internal void AddTVar(string variable, Expression value){
         Contract.Requires<ArgumentNullException>(variable != null, "key");
         if (_declaredVariables.All(v => v.Key != variable)){
           _declaredVariables.Add(variable, value);
@@ -784,14 +784,14 @@ namespace Microsoft.Dafny.Tacny{
         }
       }
 
-      internal void UpdateLocalTVar(IVariable key, object value){
+      internal void UpdateLocalTVar(IVariable key, Expression value){
         Contract.Requires<ArgumentNullException>(key != null, "key");
         Contract.Requires<ArgumentException>(ContainTVars(key.Name));
         //, $"{key} is not declared in the current scope".ToString());
         UpdateLocalTVar(key.Name, value);
       }
 
-      internal void UpdateLocalTVar(string key, object value){
+      internal void UpdateLocalTVar(string key, Expression value){
         Contract.Requires<ArgumentNullException>(key != null, "key");
         //Contract.Requires<ArgumentException>(_declaredVariables.ContainsKey(key));
         if (_declaredVariables.ContainsKey(key))
@@ -801,17 +801,15 @@ namespace Microsoft.Dafny.Tacny{
         }
       }
 
-      internal object GetTValData(string name){
+      internal Expression GetTValData(string name){
         Contract.Requires<ArgumentNullException>(name != null, "key");
-        //Contract.Requires<ArgumentException>(ContainTVars(key));
-        Contract.Ensures(Contract.Result<object>() != null);
         if (_declaredVariables.ContainsKey(name))
           return _declaredVariables[name];
         else{
           return Parent.GetTValData(name);
         }
       }
-      internal Dictionary<string, object> GetAllTVars(Dictionary<string, object> toDict) {
+      internal Dictionary<string, Expression> GetAllTVars(Dictionary<string, Expression> toDict) {
         _declaredVariables.Where(x => !toDict.ContainsKey(x.Key)).ToList().ForEach(x => toDict.Add(x.Key, x.Value));
         if (Parent == null)
           return toDict;
