@@ -3494,7 +3494,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     bool InferredDecreases { get; set; }
   }
-
+  //?Yuhui: consider to remove
   public interface ITactic {
     List<Formal> Ins { get; }
     string Name { get; }
@@ -5515,17 +5515,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(endTok != null);
       Contract.Requires(expr != null);
     }
-  }
- 
-  public class TacticInvariantStmt : TacticPredicateStmt {
-    public TacticInvariantStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs, bool objectLevel)
-        : base(tok, endTok, expr, attrs, objectLevel) {
-      Contract.Requires(tok != null);
-      Contract.Requires(endTok != null);
-      Contract.Requires(expr != null);
-    }
-  }
- 
+  } 
  
   public class TacticVarDeclStmt : TStatement {
     public readonly List<LocalVariable> Locals;
@@ -8594,19 +8584,6 @@ namespace Microsoft.Dafny {
       get { return _theResolvedOp; }
     }
 
-    public static bool IsEqualityOp(Opcode op) {
-      switch(op) {
-        case Opcode.Eq:
-        case Opcode.Neq:
-        case Opcode.Ge:
-        case Opcode.Gt:
-        case Opcode.Le:
-        case Opcode.Lt:
-          return true;
-        default:
-          return false;
-      }
-    }
 
     public static bool IsEqualityOp(ResolvedOpcode op) {
       switch (op) {

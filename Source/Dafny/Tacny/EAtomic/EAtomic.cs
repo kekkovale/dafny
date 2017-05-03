@@ -9,7 +9,6 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
   /// <summary>
   ///   Abstact class for Atomic Expressions
   /// </summary>
-  [ContractClass(typeof(EAtomicContract))]
   public abstract class EAtomic : BaseTactic {
     public static List<string> EATomicSigList;
 
@@ -44,22 +43,5 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     /// <returns>Lazily returns generated objects one at a time</returns>
     public abstract object Generate(Expression expression, ProofState proofState);
   }
-
-  [ContractClassFor(typeof(EAtomic))]
-  public class EAtomicContract : EAtomic {
-    public EAtomicContract(string signature, int argsCount)
-    {
-      Signature = signature;
-      ArgsCount = argsCount;
-    }
-
-    public override string Signature { get; }
-    public override int ArgsCount { get; }
-
-    public override object Generate(Expression expression, ProofState proofState) {
-      Contract.Requires(expression != null);
-      Contract.Requires(proofState != null);
-      return null;
-    }
-  }
+ 
 }

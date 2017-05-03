@@ -52,14 +52,10 @@ namespace Microsoft.Dafny.Tacny
     }
 
     public IEnumerable<ProofState> Search(ProofState state, ErrorReporterDelegate er) {
-      Contract.Requires<ArgumentNullException>(state != null, "rootState");
-
       IEnumerable<ProofState> enumerable;
       switch (ActiveStrategy) {
         case Strategy.Bfs:
           throw new NotSupportedException("Breath first search has not been supported ");
-          //enumerable = BreadthFirstSeach.Search(state, errDelegate);
-          break;
         case Strategy.Dfs:
           enumerable = DepthFirstSeach.Search(state, er);
           break;

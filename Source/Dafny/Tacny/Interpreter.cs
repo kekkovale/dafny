@@ -293,10 +293,7 @@ namespace Microsoft.Dafny.Tacny {
           enumerable = EvalSuchThatStmt((AssignSuchThatStmt)stmt, state);
         } else if(stmt is PredicateStmt) {
           enumerable = EvalPredicateStmt((PredicateStmt)stmt, state);
-        } else if(stmt is TacticInvariantStmt){
-          enumerable = new Atomic.TacticInv().Generate(stmt, state);
-        } else
-        {
+        } else {
           var updateStmt = stmt as UpdateStmt;
           if(updateStmt != null) {
             var us = updateStmt;
@@ -387,6 +384,7 @@ namespace Microsoft.Dafny.Tacny {
       yield return state.Copy();
     }
 
+    [Pure]
     private static IEnumerable<ProofState> UpdateLocalValue(UpdateStmt us, ProofState state) {
       Contract.Requires<ArgumentNullException>(us != null, "stmt");
       Contract.Requires<ArgumentNullException>(state != null, "state");

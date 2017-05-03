@@ -154,8 +154,9 @@ namespace Microsoft.Dafny.Tacny.Language{
     public void Assemble(){
       GeneratedCode = AssembleStmts(RawCodeList);
     }
-      
-    public abstract bool MatchStmt(Statement stmt, ProofState state); 
+
+    public abstract bool MatchStmt(Statement stmt, ProofState state);
+       
     public abstract IEnumerable <ProofState> EvalInit(Statement statement, ProofState state0);
     public abstract IEnumerable<ProofState> EvalStep(ProofState state0);
     public abstract bool EvalTerminated(bool childFrameRes, ProofState state);

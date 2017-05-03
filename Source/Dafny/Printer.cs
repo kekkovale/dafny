@@ -945,15 +945,11 @@ Everything) {
         if (s.IsObjectLevel) {
           if (s is TacticAssertStmt) {
             wr.Write("assert");
-          } else if (s is TacticInvariantStmt) {
-            wr.Write("invariant");
-          }
+          } 
         } else {
           if (s is TacticAssertStmt) {
             wr.Write("tactic assert");
-          } else if (s is TacticInvariantStmt) {
-            wr.Write("tactic invariant");
-          }
+          } 
         }
         wr.Write(" ");
         PrintExpression(expr, true);

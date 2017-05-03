@@ -476,6 +476,7 @@ namespace Microsoft.Dafny.Tacny{
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"> </exception>
     /// <exception cref="ArgumentException"> Provided ApplySuffix is not a tactic application</exception>
+    [Pure]
     public ITactic GetTactic(ApplySuffix aps){
       Contract.Requires(aps != null);
       Contract.Requires(IsTacticCall(aps));
@@ -562,7 +563,6 @@ namespace Microsoft.Dafny.Tacny{
       return true;
     }
 
-    [Pure]
     public bool IsArgumentApplication(UpdateStmt us){
       Contract.Requires<ArgumentNullException>(us != null, "us");
       var ns = Util.GetNameSegment(us);
@@ -741,7 +741,6 @@ namespace Microsoft.Dafny.Tacny{
         FrameCtrl = ctrl;
       }
 
-      [Pure]
       // dafny variables
       internal VariableData GetLocalDafnyVar(string name){
         //Contract.Requires(_DafnyVariables.ContainsKey(name));
@@ -786,6 +785,7 @@ namespace Microsoft.Dafny.Tacny{
       }
 
       //tactic variables
+      [Pure]
       internal bool ContainTVars(string name){
         Contract.Requires<ArgumentNullException>(name != null, "name");
         // base case

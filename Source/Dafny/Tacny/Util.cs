@@ -51,6 +51,7 @@ namespace Microsoft.Dafny.Tacny {
     /// </summary>
     /// <param name="aps"></param>
     /// <returns></returns>
+    [Pure]
     public static string GetSignature(ApplySuffix aps) {
       Contract.Requires<ArgumentNullException>(Tcce.NonNull(aps));
       Contract.Ensures(Contract.Result<string>() != null);

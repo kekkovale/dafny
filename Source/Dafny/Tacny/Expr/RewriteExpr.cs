@@ -178,15 +178,6 @@ namespace Microsoft.Dafny.Tacny.Expr {
     {
       public bool Value;
     }
-    public class IntRet : EvalValRet
-    {
-      public int Value;
-    }
-
-    public class ExprRet : EvalValRet
-    {
-      public Expression Value;
-    }
 
     internal bool IsTVar(Expression expr)
     {
@@ -207,7 +198,6 @@ namespace Microsoft.Dafny.Tacny.Expr {
     }
 
     internal object EvalEAtomExpr(ApplySuffix aps){
-      Contract.Requires(EAtomic.EAtomic.IsEAtomicSig(Util.GetSignature(aps)));
       var sig = Util.GetSignature(aps);
       var types = Assembly.GetAssembly(typeof(EAtomic.EAtomic)).GetTypes()
         .Where(t => t.IsSubclassOf(typeof(EAtomic.EAtomic)));

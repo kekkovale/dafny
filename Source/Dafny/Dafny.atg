@@ -1910,22 +1910,18 @@ OneStmt<out Statement/*!*/ s>
   .
 
 TacticStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  IToken/*!*/ id;  string label = null;
-     BlockStmt/*!*/ bs; IToken/*!*/ bodyStart; IToken/*!*/ bodyEnd;
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x; 
      s = dummyStmt;  /* to please the compiler */
   .)
   SYNC
   ("tactic" (.x = t;.) (
      "var"          (.x = t;.)    TacticVarDeclStmt<out s, x>         
     | "match"       (.x = t;.)    TacticCasesBlockStmt<out s, x> 
-    | "invariant"   (.x = t;.)    TacticInvariantStmt<out s, x>  
     | "assert"      (.x = t;.)    TacticAssertStmt<out s, x> 
 	| "forall" (.x = t;.) TacticForallStmt<out s,x>
     )
     | "tvar"        (.x = t;.)    TacticVarDeclStmt<out s, x>        
     | "tmatch"      (.x = t;.)    TacticCasesBlockStmt<out s, x>
-    | "tinvariant"  (.x = t;.)    TacticInvariantStmt<out s, x>
-    | "invariant"   (.x = t;.)    TacticInvariantStmt<out s, x, true>
     | "tassert"     (.x = t;.)    TacticAssertStmt<out s, x>
 	| TacticTryBlockStmt<out s>
 	| InlineTacticBlockStmt<out s>
@@ -1947,17 +1943,6 @@ TacticForallStmt<out Statement/*!*/ s, IToken x, bool isObject = false>
   (. s = new TacticForallStmt(st,bodyEnd,e,bs,attrs); .)
   .
 
-TacticInvariantStmt<out Statement/*!*/ s, IToken x, bool isObject = false>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-     Expression e = dummyExpr; Attributes attrs = null;
-  .)
-  
-  { IF(IsAttribute()) Attribute<ref attrs> } 
-  ( Expression<out e, false, true>)
-  ";"
-  
-  (. s = new TacticInvariantStmt(x, t, e, attrs, isObject); .)
-  .
 TacticAssertStmt<out Statement/*!*/ s, IToken x, bool isObject = false>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      Expression e = dummyExpr; Attributes attrs = null;
@@ -2075,7 +2060,6 @@ TacticTryBlockStmt<out Statement/*!*/ tacticTryStatement>
      IToken bodyStart, bodyEnd, endTok;
 	 bool hasName = false;
 	 Attributes attrs = null;
-	 String name;
      inlineTacticStatement = dummyStmt; 
   .)
   "inline" "tactic"                       (. x = t; .)

@@ -106,8 +106,8 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
-      Contract.Requires(statement != null);
-      Contract.Requires(statement is TacticCasesBlockStmt);
+      Contract.Assume(statement != null);
+      Contract.Assume(statement is TacticCasesBlockStmt);
       var partial = false || state0.IsCurFramePartial();
 
       var state = state0.Copy();

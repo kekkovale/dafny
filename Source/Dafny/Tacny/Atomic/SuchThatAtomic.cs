@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
           {
             l = SimpExpr.SimpTacticExpr(state, destExpr.E1);
           }
-          catch (Exception e)
+          catch (Exception)
           {
             l = SimpExpr.UnfoldTacticProjection(state, destExpr.E1);
           }

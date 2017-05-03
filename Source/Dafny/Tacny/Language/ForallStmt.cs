@@ -17,8 +17,8 @@ namespace Microsoft.Dafny.Tacny.Language {
 
 
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0) {
-      Contract.Requires(statement != null);
-      Contract.Requires(statement is TacticForallStmt);
+      Contract.Assume(statement != null);
+      Contract.Assume(statement is TacticForallStmt);
 
       _stmt = statement as TacticForallStmt;
  
@@ -210,10 +210,8 @@ namespace Microsoft.Dafny.Tacny.Language {
 
     private void BoundVars(ProofState state,Expression e) {
       var varDict = state.GetAllDafnyVars();
-     
-
       Zipper zip = new Zipper(e);
-    
+
       Func<Expression, ISet<string>, ISet<string>> fv = (expr, set) => {
         var segment = expr as NameSegment;
         if (segment != null) {
@@ -229,7 +227,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
     public override bool MatchStmt(Statement stmt, ProofState state) {
-      Contract.Requires(stmt != null);
+      Contract.Assume(stmt != null);
 
       return stmt is TacticForallStmt;
     }

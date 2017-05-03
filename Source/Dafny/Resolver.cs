@@ -7303,13 +7303,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    /// <summary>
-    /// Ignore types from Tacny, just for now, a proper fix should be adding thoes types in DanyAst
-    /// 
-    /// </summary>
-    /// <param name="typeN"></param>
-    /// <returns></returns>
-    private bool isTacnyTypes(string typeN){
+    private bool IsTacticTypes(string typeN){
       var ret = false;
       switch(typeN) {
         case "Element":
@@ -7341,7 +7335,7 @@ namespace Microsoft.Dafny
         builtIns.Bitwidths.Add(t.Width);
       } else if (type is BasicType) {
         // nothing to resolve
-      } else if(isTacnyTypes(type.ToString())) {
+      } else if(IsTacticTypes(type.ToString())) {
 
       } else if (type is MapType) {
         var mt = (MapType)type;
@@ -7889,11 +7883,6 @@ namespace Microsoft.Dafny
           ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
         }
 
-        if (s.TInvariants != null && s.TInvariants.Count > 0){
-          if(codeContext is Method) {
-            ((Method)codeContext).CallsTactic = true;
-          }
-        }
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, fvs);
 
         if (s.Body != null) {
@@ -11265,10 +11254,6 @@ namespace Microsoft.Dafny
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(opts != null);
       Contract.Requires((option.Opt == ResolveTypeOptionEnum.DontInfer || option.Opt == ResolveTypeOptionEnum.InferTypeProxies) == (defaultTypeArguments == null));
-      if (expr.Name == "Tree")
-      {
-        var t = 1;
-      }
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, option, defaultTypeArguments);

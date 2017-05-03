@@ -515,10 +515,6 @@ namespace Microsoft.Dafny
         var s = (AssumeStmt)stmt;
         r = new AssumeStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), null);
 
-      } else if (stmt is TacticInvariantStmt) {
-        var s = (TacticInvariantStmt)stmt;
-        r = new TacticInvariantStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), null, s.IsObjectLevel);
-
       } else if (stmt is TacticAssertStmt) {
         var s = (TacticAssertStmt)stmt;
         r = new TacticAssertStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), null, s.IsObjectLevel);

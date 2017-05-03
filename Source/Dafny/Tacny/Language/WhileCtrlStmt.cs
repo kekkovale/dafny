@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
-      Contract.Requires(statement is WhileStmt);
+      Contract.Assume(statement is WhileStmt);
       var whileStmt = statement as WhileStmt;
 
       if (whileStmt != null)
