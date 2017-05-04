@@ -90,7 +90,7 @@ namespace Microsoft.Dafny.Tacny
     public void ExceptionReport()
     {
       var err = "";
-      err += ("\n================ Tactic Error: ================\n");
+      err += ("\n================ Tactic exception: ================\n");
       err += ("Fail to apply tactic in line ") + _token.Origin.line + "\n" + (GetErrMsg());
       Console.WriteLine(err);
 
@@ -102,7 +102,7 @@ namespace Microsoft.Dafny.Tacny
         default:
           break;
       }
-      Console.WriteLine("================ End of Tactic Error ================\n");
+      Console.WriteLine("================ End of tactic exception ================\n");
     }
   }
   
@@ -122,7 +122,7 @@ namespace Microsoft.Dafny.Tacny
 
     private CompoundErrorInformation(string msg, ProofState state)
       : base(new Token(Interpreter.TacticCodeTokLine, Interpreter.TacticCodeTokLine),
-          msg == "" ? " Error in: " + StringOfStmt(state) : msg) {
+          msg == "" ? " Exception in: " + StringOfStmt(state) : msg) {
 
       ImplementationName = "Impl$$" + state.TargetMethod.FullName;
       S = state;
@@ -145,7 +145,7 @@ namespace Microsoft.Dafny.Tacny
       }
       // verification error + resolving errors
       var l = state.GetErrHandler().ErrorList;
-      Console.WriteLine("\n================ Tactic Error: ================");
+      Console.WriteLine("\n================ Tactic exception: ================");
 
       if (l != null && l.Count > 0) {
         foreach (var err in l) {
@@ -155,7 +155,7 @@ namespace Microsoft.Dafny.Tacny
       }
       var errInfo = new CompoundErrorInformation(msg, state);
       Console.WriteLine(errInfo.FullMsg);
-      Console.WriteLine("================ End of Tactic Error ================");
+      Console.WriteLine("================ End of tactic exception ================");
       errs.Add(errInfo);
 
       return errs;

@@ -248,7 +248,7 @@ namespace Microsoft.Dafny.Tacny {
         List<CompoundErrorInformation> errs;
         try
         {
-          msg = "Tactic exception: " + e.Message;
+          msg = "Tactic unknown exception: " + e.Message;
           errs = CompoundErrorInformation.GenerateErrorInfoList(state, msg);
         }
         catch (Exception){
