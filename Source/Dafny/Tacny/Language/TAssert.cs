@@ -10,6 +10,13 @@ namespace Microsoft.Dafny.Tacny.Language
 {
   class TAssert : TacticFrameCtrl
   {
+    /// <summary>
+    /// tactic assert is implemented by introducing two frames: assertion control and assertion statement.
+    /// the assertion statement frame is just a default frame with body of a asssertion followed by assume fasle. 
+    /// The partial attribute will be set to false. It means the assertion has to be true before the evalaution can 
+    /// continue. Note that the assume false is used to make sure the following vcs after the assertion can't affect 
+    /// the verificaton.
+    /// </summary>
     private bool _pass = false;
     public override bool MatchStmt(Statement stmt, ProofState state)
     {
