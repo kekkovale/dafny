@@ -6251,11 +6251,13 @@ namespace Microsoft.Dafny {
 
   public class TacticTryBlockStmt : TacticBlockStmt {
     public override string WhatKind => "try";
-    public TacticTryBlockStmt(IToken tok, IToken endTok, BlockStmt body)
+    public BlockStmt Catch;
+    public TacticTryBlockStmt(IToken tok, IToken endTok, BlockStmt body, BlockStmt catchBlock = null)
         : base(tok, endTok, null, body) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(body != null);
+      Catch = catchBlock;
     }
   }
 

@@ -28,6 +28,11 @@ namespace Microsoft.Dafny.Tacny.Language {
 
     public override IEnumerable<ProofState> ApplyPatch(ProofState state0)
     {
+      if (_stmt.Catch != null) {
+        var frame = new DefaultTacticFrameCtrl();
+        frame.InitBasicFrameCtrl(_stmt.Catch.Body, true, null);
+        _oriState.AddNewFrame(frame);
+      } 
       yield return _oriState;
     }
   }
