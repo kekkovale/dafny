@@ -59,7 +59,6 @@ namespace Microsoft.Dafny.Tacny.Atomic {
             {
               var copy = state.Copy();
               copy.UpdateTacticVar(local, item);
-              copy.TopTokenTracer().AddBranchTrace(count);
               yield return copy;
               count++;
             }

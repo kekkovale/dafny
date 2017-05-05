@@ -111,13 +111,5 @@ namespace Microsoft.Dafny.Tacny.Language{
           yield return state0.Copy();
       }
     }
-
-    public override bool EvalTerminated(bool childFrameRes, ProofState ps){
-      return childFrameRes;
-    }
-
-    public override List<Statement> AssembleStmts(List<List<Statement>> raw){
-      return raw.SelectMany(x => x).ToList();
-    }
   }
 }

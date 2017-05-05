@@ -58,28 +58,19 @@ namespace Microsoft.Dafny.Tacny.Language {
             choices.Add(new BlockStmt(a.Body.First().Tok, a.Body.Last().EndTok, a.Body));
         }
       }
-      int count = 0;
       foreach(BlockStmt choice in choices) {
         var state = state0.Copy();
         var orChoice = this.Copy();
         orChoice.InitBasicFrameCtrl(choice.Body, partial, null);
         state.AddNewFrame(orChoice);
-        state.TopTokenTracer().AddBranchTrace(count);
         yield return state;
       }
-    }
-
-    public override IEnumerable<ProofState> EvalStep(ProofState state0){
-      var statement = GetStmt();
-      return Interpreter.EvalStmt(statement, state0);
     }
 
     public override bool EvalTerminated(bool childFrameRes, ProofState ps){
       return RawCodeList.Count == 1;
     }
 
-    public override List<Statement> AssembleStmts(List<List<Statement>> raw){
-      return raw.SelectMany(x => x).ToList();
-    }
+
   }
 }

@@ -7,6 +7,7 @@ using System.Linq;
 namespace Microsoft.Dafny.Tacny.Language{
   public abstract class TacticFrameCtrl{
     public List<Statement> Body;
+    private Func<ProofState, IEnumerable<ProofState>> _patch = null;
     private int _bodyCounter;
     public Statement CurStmt => _bodyCounter >= Body.Count ? null : Body[_bodyCounter];
     public Statement LastStmt => _bodyCounter == 0 ? null: Body[_bodyCounter - 1];
@@ -97,7 +98,8 @@ namespace Microsoft.Dafny.Tacny.Language{
         ParseTacticAttributes(attr.Prev);
     }
 
-    public void InitBasicFrameCtrl(List<Statement> body, bool parentPartial, Attributes attrs, Tactic tactic = null){
+    public void InitBasicFrameCtrl(List<Statement> body, bool parentPartial, Attributes attrs,
+      Func<ProofState, IEnumerable<ProofState>> patch = null, Tactic tactic = null){
       IsPartial = parentPartial;
       if (tactic != null)
         ParseTacticAttributes(tactic.Attributes);
@@ -106,6 +108,7 @@ namespace Microsoft.Dafny.Tacny.Language{
       OriginalBk = Backtrack;
       GeneratedCode = null;
       RawCodeList = new List<List<Statement>>();
+      _patch = patch;
     }
 
     public void AddGeneratedCode(Statement newStmt) {
@@ -162,9 +165,27 @@ namespace Microsoft.Dafny.Tacny.Language{
     public abstract bool MatchStmt(Statement stmt, ProofState state);
        
     public abstract IEnumerable <ProofState> EvalInit(Statement statement, ProofState state0);
-    public abstract IEnumerable<ProofState> EvalStep(ProofState state0);
-    public abstract bool EvalTerminated(bool childFrameRes, ProofState state);
-    public abstract List<Statement> AssembleStmts(List<List<Statement>> raw);
+
+    public virtual IEnumerable<ProofState> EvalStep(ProofState state0)
+    {
+      var statement = GetStmt();
+      return Interpreter.EvalStmt(statement, state0);
+    }
+
+    public virtual bool EvalTerminated(bool childFrameRes, ProofState state)
+    {
+      return childFrameRes;
+    }
+
+    public virtual List<Statement> AssembleStmts(List<List<Statement>> raw)
+    {
+      return raw.SelectMany(x => x).ToList();
+    }
+
+    public virtual IEnumerable<ProofState> ApplyPatch(ProofState state0)
+    {
+      return _patch?.Invoke(state0);
+    }
 
   }
 
@@ -176,24 +197,9 @@ namespace Microsoft.Dafny.Tacny.Language{
       return false;
     }
 
-    public override IEnumerable<ProofState> EvalStep(ProofState state0){
-      var statement = GetStmt();
-      state0.TopTokenTracer().Increase();
-      return Interpreter.EvalStmt(statement, state0);
-    }
-
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
-      // not supposed to be called, for the deault frame, no need to init
-      Contract.Assert(false);
-      return null;
+      throw new Exception("Not supposed to be called, for the deault frame, no need to init");
     }
 
-    public override bool EvalTerminated(bool latestChildFrameRes, ProofState state) {
-        return latestChildFrameRes;
-    }
-
-    public override List<Statement> AssembleStmts(List<List<Statement>> raw){
-      return raw.SelectMany(x => x).ToList();
-    }
   }
 }

@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.Tacny.Language{
             }
           }
 
-          frameCtrl.InitBasicFrameCtrl(body, true, tacApsStmt.Rhss[0].Attributes, tactic);
+          frameCtrl.InitBasicFrameCtrl(body, true, tacApsStmt.Rhss[0].Attributes, null, tactic);
           state.AddNewFrame(frameCtrl);
 
           if(aps != null && aps.Args.Count != tactic.Ins.Count)
@@ -74,19 +74,6 @@ namespace Microsoft.Dafny.Tacny.Language{
         }
       }
       yield return state;
-    }
-
-    public override IEnumerable<ProofState> EvalStep(ProofState state0){
-      var statement = GetStmt();
-      return Interpreter.EvalStmt(statement, state0);
-    }
-
-    public override bool EvalTerminated(bool childFrameRes, ProofState ps){
-      return childFrameRes;
-    }
-
-    public override List<Statement> AssembleStmts(List<List<Statement>> raw){
-      return raw.SelectMany(x => x).ToList();
     }
   }
 }

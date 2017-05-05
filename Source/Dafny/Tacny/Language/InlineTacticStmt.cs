@@ -6,15 +6,18 @@ namespace Microsoft.Dafny.Tacny.Language
 {
   public class InlineTacticStmt : TacticFrameCtrl
   {
-    public override bool MatchStmt(Statement stmt, ProofState state) {
-      if (stmt is InlineTacticBlockStmt)
-        return true;
-      else if (stmt is UpdateStmt) {
-        var us = stmt as UpdateStmt;
-        return state.IsInlineTacticCall(us);
-      } else {
-        return false;
-      }
+    public override bool MatchStmt(Statement stmt, ProofState state)
+    {
+      return false;
+      /* if (stmt is InlineTacticBlockStmt)
+         return true;
+       else if (stmt is UpdateStmt) {
+         var us = stmt as UpdateStmt;
+         return state.IsInlineTacticCall(us);
+       } else {
+         return false;
+       }
+       */
     }
 
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state) {
@@ -50,17 +53,5 @@ namespace Microsoft.Dafny.Tacny.Language
       }
     }
 
-    public override IEnumerable<ProofState> EvalStep(ProofState state0) {
-      var statement = GetStmt();
-      return Interpreter.EvalStmt(statement, state0);
-    }
-
-    public override bool EvalTerminated(bool childFrameRes, ProofState ps) {
-      return childFrameRes;
-    }
-
-    public override List<Statement> AssembleStmts(List<List<Statement>> raw) {
-      return raw.SelectMany(x => x).ToList();
-    }
   }
 }

@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.Tacny{
     private readonly List<TopLevelClassDeclaration> _topLevelClasses;
     private readonly Program _original;
 
-    private TacticBasicErr ErrHandler;
+    private TacticBasicErr _errHandler;
     // Dynamic State
     public MemberDecl TargetMethod;
 
@@ -65,8 +65,6 @@ namespace Microsoft.Dafny.Tacny{
         var arg = aps.Args[index];
         if (tactic != null) frame.AddTVar(tactic.Ins[index].Name, arg);
       }
-
-      frame.TokenTracer = new TokenTracer(tacAps.Tok);
       _scope.Push(frame);
 
       TopLevelTacApp = tacAps.Copy();
@@ -83,7 +81,7 @@ namespace Microsoft.Dafny.Tacny{
 
     public TacticBasicErr GetErrHandler()
     {
-      return ErrHandler ?? (ErrHandler = new TacticBasicErr(GetTokenTracer()));
+      return _errHandler ?? (_errHandler = new TacticBasicErr());
     }
     public Program GetDafnyProgram(){
       //Contract.Requires(_original != null, "_original");
@@ -158,12 +156,10 @@ namespace Microsoft.Dafny.Tacny{
       _scope.Peek().FrameCtrl.MarkAsEvaluated(curFrameProved, out ifbacktracked);
 
       var code = _scope.Peek().FrameCtrl.GetFinalCode();
-      var trace = _scope.Peek().TokenTracer;
 
       // add the assembled code to the parent frame
       if (code != null && _scope.Peek().Parent != null){
         _scope.Peek().Parent.FrameCtrl.AddGeneratedCode(code);
-        _scope.Peek().Parent.TokenTracer.AddSubTrace(trace);
         _scope.Pop();
         if (_scope.Peek().FrameCtrl.EvalTerminated(curFrameProved, this) || IsEvaluated())
            MarkCurFrameAsTerminated(curFrameProved, out ifbacktrackedInRecurCall);
@@ -177,27 +173,11 @@ namespace Microsoft.Dafny.Tacny{
       return _scope.Peek().FrameCtrl.EvalStep(this);
     }
 
-    internal TokenTracer GetTokenTracer(Frame f, TokenTracer tracer0) {
-      var tracer = f.TokenTracer.Copy();
-      tracer.AddSubTrace(tracer0);
-
-      if (f.Parent == null)
-        return tracer;
-      else
-        return GetTokenTracer(f.Parent, tracer);
-    }
-    public TokenTracer GetTokenTracer() {
-      var top = _scope.Peek();
-      if (top.Parent == null)
-        return top.TokenTracer;
-      else
-       return GetTokenTracer(top.Parent, top.TokenTracer);
+    public IEnumerable<ProofState> ApplyPatch() {
+      return _scope.Peek().FrameCtrl.ApplyPatch(this);
     }
 
-    public TokenTracer TopTokenTracer() {
-      var top = _scope.Peek();
-      return top.TokenTracer;
-    }
+
 
     public Statement GetLastStmt() {
       var stmt =  _scope.Peek().FrameCtrl.GetLastStmt();
@@ -662,7 +642,6 @@ namespace Microsoft.Dafny.Tacny{
       private readonly Dictionary<string, VariableData> _dafnyVariables; // dafny variables
       private readonly Dictionary<string, InlineTacticBlockStmt> _inlineTactics;
       public TacticFrameCtrl FrameCtrl;
-      public TokenTracer TokenTracer;
 
       /// <summary>
       /// Initialize the top level frame
@@ -702,7 +681,7 @@ namespace Microsoft.Dafny.Tacny{
         }
 
         FrameCtrl = new DefaultTacticFrameCtrl();
-        FrameCtrl.InitBasicFrameCtrl(body, false, attr, o);
+        FrameCtrl.InitBasicFrameCtrl(body, false, attr, null, o);
 
         _declaredVariables = new Dictionary<string, Expression>();
         _dafnyVariables = new Dictionary<string, VariableData>();
@@ -716,7 +695,6 @@ namespace Microsoft.Dafny.Tacny{
         _declaredVariables = new Dictionary<string, Expression>();
         _dafnyVariables = new Dictionary<string, VariableData>();
         _inlineTactics = new Dictionary<string, InlineTacticBlockStmt>();
-        TokenTracer = parent.TokenTracer.GenSubTrace();
         Parent = parent;
         FrameCtrl = ctrl;
       }

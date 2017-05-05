@@ -14,23 +14,10 @@ namespace Microsoft.Dafny.Tacny.Language {
       var blockStmt = statement as Dafny.BlockStmt;
       if(blockStmt != null) {
         var frameCtrl = new DefaultTacticFrameCtrl();
-        frameCtrl.InitBasicFrameCtrl(blockStmt.Body, state0.IsCurFramePartial(), null);
+        frameCtrl.InitBasicFrameCtrl(blockStmt.Body, true, null);
         state.AddNewFrame(frameCtrl);
         yield return state;
       }
-    }
-
-    public override IEnumerable<ProofState> EvalStep(ProofState state0) {
-      var statement = GetStmt();
-      return Interpreter.EvalStmt(statement, state0);
-    }
-
-    public override bool EvalTerminated(bool childFrameRes, ProofState ps) {
-      return childFrameRes;
-    }
-
-    public override List<Statement> AssembleStmts(List<List<Statement>> raw) {
-      return raw.SelectMany(x => x).ToList();
     }
   }
 }

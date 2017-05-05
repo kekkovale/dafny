@@ -79,9 +79,5 @@ namespace Microsoft.Dafny.Tacny.Language {
       var literalExpr = tryEval as LiteralExpr;
       return (literalExpr != null && (bool) literalExpr.Value);
     }
-
-    public override List<Statement> AssembleStmts(List<List<Statement>> raw){
-      return raw.SelectMany(x => x).ToList();
-    }
   }
 }

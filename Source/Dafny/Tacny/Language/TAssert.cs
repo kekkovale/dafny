@@ -27,19 +27,38 @@ namespace Microsoft.Dafny.Tacny.Language
     {
 
       state0.InAsserstion = true;
+      Func<ProofState, IEnumerable<ProofState>> tassertFramePatch =
+        ps => {
+          bool dummy;
+          //set partial so that the assert-assume frame can be popped
+          this.IsPartial = true;
+          this._pass = true;
+          ps.MarkCurFrameAsTerminated(false, out dummy);
+          return ps.ApplyPatch();// this will call the parent patch handler
+        };
+
       var dummyBody = new List<Statement> { statement };
-      InitBasicFrameCtrl(dummyBody, false, null);
+      InitBasicFrameCtrl(dummyBody, false, null, tassertFramePatch);
       state0.AddNewFrame(this);
 
 
       var assertFrame = new DefaultTacticFrameCtrl();
-      assertFrame.InitBasicFrameCtrl(dummyBody, false, null);
+      Func<ProofState,IEnumerable<ProofState>> assertFramePatch = 
+        ps =>
+        {
+          bool dummy;
+          //set partial so that the assert-assume frame can be popped
+          assertFrame.IsPartial = true;
+          ps.MarkCurFrameAsTerminated(false, out dummy);
+          return ps.ApplyPatch();// this will call the patch handler in tassert
+        };
+      assertFrame.InitBasicFrameCtrl(dummyBody, false, null, assertFramePatch);
       assertFrame.IncCounter();
       state0.AddNewFrame(assertFrame);
 
       var st = SimpExpr.SimpTacticExpr(state0, (statement as TacticAssertStmt).Expr);
       // insert the simplified assert, followed by assume false so that the prover don't need to worry about the 
-      // following vcs.
+      // upcoming vcs.
 
       var asserts = new List<Statement>();
       asserts.Add(
@@ -74,8 +93,5 @@ namespace Microsoft.Dafny.Tacny.Language
       return _pass;
     }
 
-    public override List<Statement> AssembleStmts(List<List<Statement>> raw) {
-      return raw.SelectMany(x => x).ToList();
-    }
   }
 }

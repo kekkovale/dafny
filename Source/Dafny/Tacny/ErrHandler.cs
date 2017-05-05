@@ -18,13 +18,11 @@ namespace Microsoft.Dafny.Tacny
       NotProved,
       Deafult
     }
-    private readonly TokenTracer _token;
     public ErrorType ErrType { get; set; }
     public List<ErrorInformation> ErrorList { get; set; }
     public ErrorReporter Reporter;
     public static int ReportMode = 0; // 0 for brief mode, 1 for full mode
-    public TacticBasicErr(TokenTracer t) {
-      _token = t;
+    public TacticBasicErr() {
       ErrType = ErrorType.Deafult;
       Reporter = new ConsoleErrorReporter();
     }
@@ -87,23 +85,6 @@ namespace Microsoft.Dafny.Tacny
       return msg;
     }
 
-    public void ExceptionReport()
-    {
-      var err = "";
-      err += ("\n================ Tactic exception: ================\n");
-      err += ("Fail to apply tactic in line ") + _token.Origin.line + "\n" + (GetErrMsg());
-      Console.WriteLine(err);
-
-      switch (ReportMode) {
-        case 1:
-          _token.PrettyTrace();
-          break;
-        case 0:
-        default:
-          break;
-      }
-      Console.WriteLine("================ End of tactic exception ================\n");
-    }
   }
   
   public class CompoundErrorInformation : ErrorInformation
@@ -129,7 +110,7 @@ namespace Microsoft.Dafny.Tacny
     }
 
     private CompoundErrorInformation(string msg, ErrorInformation e, ProofState s)
-      : base(s.TopTokenTracer().Origin, msg + " " + e.FullMsg) {
+      : base(s.TopLevelTacApp.Tok, msg + " " + e.FullMsg) {
       this.ImplementationName = e.ImplementationName;
       S = s;
     }

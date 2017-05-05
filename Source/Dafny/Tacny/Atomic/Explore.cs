@@ -115,7 +115,6 @@ namespace Microsoft.Dafny.Tacny.Atomic
             //Printer p = new Printer(Console.Out);
             //p.PrintStatement(us,0);
             newState.AddStatement(us);
-            newState.TopTokenTracer().AddBranchTrace(count);
             count++;
             yield return newState;
           }

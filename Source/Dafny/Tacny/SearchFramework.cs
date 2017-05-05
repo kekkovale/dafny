@@ -168,6 +168,7 @@ namespace Microsoft.Dafny.Tacny
                 }
                 break;
               case VerifyResult.Unresolved:
+                Console.WriteLine("in unresolved");
                 discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Unresolved));
                 //discard current branch if fails to resolve
                 continue;
@@ -187,9 +188,14 @@ namespace Microsoft.Dafny.Tacny
             enumerator = (proofState.EvalStep().GetEnumerator());
           } else {
             backtackList = proofState.GetBackTrackCount(); // update the current bc count to the list
-            if (proofState.InAsserstion)
+            if (proofState.InAsserstion) {
               proofState.GetErrHandler().ErrType = TacticBasicErr.ErrorType.Assertion;
-            else
+              var patchRes = proofState.ApplyPatch();
+              if (patchRes != null) {
+                stack.Push(enumerator);
+                enumerator = patchRes.GetEnumerator();
+              }
+            } else
               proofState.GetErrHandler().ErrType = TacticBasicErr.ErrorType.NotProved;
 
             discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Failed));

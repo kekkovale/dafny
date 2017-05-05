@@ -100,11 +100,6 @@ namespace Microsoft.Dafny.Tacny.Language {
       yield return state;
     }
 
-    // not sure about this?
-    public override IEnumerable<ProofState> EvalStep(ProofState state0) {
-      var statement = GetStmt();
-      return Interpreter.EvalStmt(statement, state0);
-    }
 
     // not sure about this?
     public override bool EvalTerminated(bool childFrameRes, ProofState state) {
