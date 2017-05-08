@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.Tacny {
     /// <param name="state"></param>
     /// <param name="code"></param>
     /// <returns></returns>
-    public static BlockStmt InsertCode(ProofState state, Dictionary<UpdateStmt, List<Statement>> code) {
+    public static BlockStmt InsertCode(ProofState state, Dictionary<Statement, List<Statement>> code) {
       Contract.Requires<ArgumentNullException>(state != null, "state");
       Contract.Requires<ArgumentNullException>(code != null, "code");
 
@@ -84,31 +84,28 @@ namespace Microsoft.Dafny.Tacny {
       return body;
     }
 
-    private static BlockStmt InsertCodeInternal(BlockStmt body, List<Statement> code, UpdateStmt tacticCall) {
+    private static BlockStmt InsertCodeInternal(BlockStmt body, List<Statement> code, Statement tacticCall) {
       Contract.Requires<ArgumentNullException>(body != null, "body ");
       Contract.Requires<ArgumentNullException>(tacticCall != null, "'tacticCall");
 
       for (var i = 0; i < body.Body.Count; i++) {
         var stmt = body.Body[i];
-        if (stmt is UpdateStmt) {
+        if (stmt is UpdateStmt || stmt is InlineTacticBlockStmt) {
           // compare tokens
           if (Compare(tacticCall.Tok, stmt.Tok)) {
             body.Body.RemoveAt(i);
             body.Body.InsertRange(i, code);
             return body;
           }
-        } else if (stmt is IfStmt) {
-          /*body.Body[i] = InsertCodeIfStmt((IfStmt)stmt, code, tacticCall);*/
-        } else if (stmt is WhileStmt){
+        } else if (stmt is WhileStmt) {
           var whileStmt = stmt as WhileStmt;
-          for (var j = 0; j < whileStmt.TInvariants.Count; j ++){
+          for (var j = 0; j < whileStmt.TInvariants.Count; j++) {
             var item = whileStmt.TInvariants[j];
-            if(Compare(tacticCall.Tok, item.Tok)){
-              foreach (var genCode in code){
+            if (Compare(tacticCall.Tok, item.Tok)) {
+              foreach (var genCode in code) {
                 //each inviariant are assmebled as assume statement
                 var assumeStmt = genCode as AssumeStmt;
-                if (assumeStmt != null)
-                {
+                if (assumeStmt != null) {
                   var expr = assumeStmt.Expr;
                   whileStmt.Invariants.Insert(0, (new MaybeFreeExpression(expr)));
                 }
@@ -116,7 +113,8 @@ namespace Microsoft.Dafny.Tacny {
               }
             }
           }
-          ((WhileStmt)stmt).Body = InsertCodeInternal(((WhileStmt)stmt).Body, code, tacticCall);
+          ((WhileStmt) stmt).Body = InsertCodeInternal(((WhileStmt) stmt).Body, code, tacticCall);
+        } else if (stmt is IfStmt) { //InsertCodeIfStmt
         } else if (stmt is MatchStmt) {
           //TODO:
         } else if (stmt is CalcStmt) {
@@ -222,7 +220,7 @@ namespace Microsoft.Dafny.Tacny {
       var r = new Resolver(prog);
       r.ResolveProgram(prog);
       //get the generated code
-      var results = new Dictionary<UpdateStmt, List<Statement>>
+      var results = new Dictionary<Statement, List<Statement>>
       {
         {state.TopLevelTacApp, state.GetGeneratedCode().Copy()}
       };

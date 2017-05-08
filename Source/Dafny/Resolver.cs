@@ -8054,6 +8054,11 @@ namespace Microsoft.Dafny
         if (s.S != null) {
           ResolveStatement(s.S, codeContext);
         }
+      } else if (stmt is InlineTacticBlockStmt) {
+        if (codeContext is Method) {
+          ((Method)codeContext).CallsTactic = true;
+        }
+        return;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }

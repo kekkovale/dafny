@@ -7,6 +7,7 @@ using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Security.AccessControl;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Tacny.Expr;
 
@@ -17,7 +18,7 @@ namespace Microsoft.Dafny.Tacny {
 
     private static Interpreter _i;
     private static ErrorReporterDelegate _errorReporterDelegate;
-    private static Dictionary<UpdateStmt, List<Statement>> _resultList;
+    private static Dictionary<Statement, List<Statement>> _resultList;
 
     private Stack<Dictionary<IVariable, Type>> _frame;
 
@@ -30,7 +31,7 @@ namespace Microsoft.Dafny.Tacny {
         Timer = new Stopwatch();
 
       if(_resultList == null)
-        _resultList = new Dictionary<UpdateStmt, List<Statement>>();
+        _resultList = new Dictionary<Statement, List<Statement>>();
       else
         _resultList.Clear();
 
@@ -152,25 +153,26 @@ namespace Microsoft.Dafny.Tacny {
           var whileStmt = stmt as WhileStmt;
           ResolveWhileStmt(whileStmt);
         } else if(stmt is UpdateStmt) {
-          ResolveTacticCall(stmt as UpdateStmt);
+          if (_state.IsTacticCall(stmt as UpdateStmt)) {
+            ResolveTacticCall(stmt);
+          }
+        } else if (stmt is InlineTacticBlockStmt) {
+          ResolveTacticCall(stmt);
         } else if(stmt is BlockStmt) {
-          //TODO:
+          ResolveBlockStmt((stmt as BlockStmt));
         }
       }
       _frame.Pop();
     }
 
-    private void ResolveTacticCall(UpdateStmt stmt) {
-      var us = stmt as UpdateStmt;
-      if(_state.IsTacticCall(us)) {
+    private void ResolveTacticCall(Statement stmt) {
         var list = StackToDict(_frame);
         // this is a top level tactic call
         ProofState result = null;
         if (IfEvalTac){
-          result = EvalTopLevelTactic(_state, list, us);
+          result = EvalTopLevelTactic(_state, list, stmt);
         }
-        _resultList.Add(us.Copy(), result != null ? result.GetGeneratedCode().Copy() : new List<Statement>());
-      }
+        _resultList.Add(stmt.Copy(), result != null ? result.GetGeneratedCode().Copy() : new List<Statement>());
     }
 
     private void ResolveWhileStmt(WhileStmt stmt) {
@@ -217,10 +219,11 @@ namespace Microsoft.Dafny.Tacny {
     }
 
     public static ProofState EvalTopLevelTactic(ProofState state, Dictionary<IVariable, Type> variables,
-      UpdateStmt tacticApplication) {
+      Statement tacticApplication) {
       Contract.Requires<ArgumentNullException>(Tcce.NonNull(variables));
       Contract.Requires<ArgumentNullException>(Tcce.NonNull(tacticApplication));
       Contract.Requires<ArgumentNullException>(state != null, "state");
+      Contract.Requires(tacticApplication is UpdateStmt || tacticApplication is InlineTacticBlockStmt);
       state.InitState(tacticApplication, variables);
 
       var search = new BaseSearchStrategy(state.GetSearchStrategy());

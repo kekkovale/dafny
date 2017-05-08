@@ -2651,8 +2651,12 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			SkeletonStmt(out s);
 			break;
 		}
-		case 65: case 66: case 109: case 110: case 111: case 113: {
+		case 65: case 109: case 110: case 111: case 113: {
 			TacticStmt(out s);
+			break;
+		}
+		case 66: {
+			InlineTacticBlockStmt(out s);
 			break;
 		}
 		default: SynErr(213); break;
@@ -3314,8 +3318,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		s = dummyStmt;  /* to please the compiler */
 		
 		while (!(StartOf(30))) {SynErr(234); Get();}
-		switch (la.kind) {
-		case 65: {
+		if (la.kind == 65) {
 			Get();
 			x = t;
 			if (la.kind == 88) {
@@ -3335,36 +3338,53 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				x = t;
 				TacticForallStmt(out s,x);
 			} else SynErr(235);
-			break;
-		}
-		case 109: {
+		} else if (la.kind == 109) {
 			Get();
 			x = t;
 			TacticVarDeclStmt(out s, x);
-			break;
-		}
-		case 110: {
+		} else if (la.kind == 110) {
 			Get();
 			x = t;
 			TacticCasesBlockStmt(out s, x);
-			break;
-		}
-		case 111: {
+		} else if (la.kind == 111) {
 			Get();
 			x = t;
 			TacticAssertStmt(out s, x);
-			break;
-		}
-		case 113: {
+		} else if (la.kind == 113) {
 			TacticTryBlockStmt(out s);
-			break;
+		} else SynErr(236);
+	}
+
+	void InlineTacticBlockStmt(out Statement/*!*/ inlineTacticStatement) {
+		Contract.Ensures(Contract.ValueAtReturn(out inlineTacticStatement) != null); 
+		IToken/*!*/ x;
+		IToken/*!*/ id = Token.NoToken;
+		BlockStmt/*!*/ body;
+		IToken bodyStart, bodyEnd, endTok;
+		bool hasName = false;
+		Attributes attrs = null;
+		inlineTacticStatement = dummyStmt; 
+		
+		Expect(66);
+		Expect(65);
+		x = t; 
+		while (la.kind == 1) {
+			NoUSIdent(out id);
+			hasName = true; 
 		}
-		case 66: {
-			InlineTacticBlockStmt(out s);
-			break;
+		if (!hasName) {
+		id = x;
+		// SemErr(la, "an inline tactic must be given a name (expecting identifier)");
 		}
-		default: SynErr(236); break;
+		
+		BlockStmt(out body, out bodyStart, out bodyEnd);
+		endTok = body.EndTok; 
+		while (la.kind == 50) {
+			Attribute(ref attrs);
 		}
+		while (!(la.kind == 0 || la.kind == 30)) {SynErr(237); Get();}
+		Expect(30);
+		inlineTacticStatement = new InlineTacticBlockStmt(id, endTok, attrs, body); endTok = t;
 	}
 
 	void TacticVarDeclStmt(out Statement/*!*/ s, IToken x) {
@@ -3422,7 +3442,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				Expression(out suchThat, false, true);
 			}
 		}
-		while (!(la.kind == 0 || la.kind == 30)) {SynErr(237); Get();}
+		while (!(la.kind == 0 || la.kind == 30)) {SynErr(238); Get();}
 		Expect(30);
 		endTok = t; 
 		ConcreteUpdateStatement update;
@@ -3475,7 +3495,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			 tacticCasesStmt = new TacticCasesBlockStmt(x, endTok, guard, attrs, thn);
 			}
 			
-		} else SynErr(238);
+		} else SynErr(239);
 	}
 
 	void TacticAssertStmt(out Statement/*!*/ s, IToken x, bool isObject = false) {
@@ -3523,38 +3543,6 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			endTok = body.EndTok; 
 		}
 		tacticTryStatement = new TacticTryBlockStmt(x, endTok, body, catchBlock); 
-	}
-
-	void InlineTacticBlockStmt(out Statement/*!*/ inlineTacticStatement) {
-		Contract.Ensures(Contract.ValueAtReturn(out inlineTacticStatement) != null); 
-		IToken/*!*/ x;
-		IToken/*!*/ id = Token.NoToken;
-		BlockStmt/*!*/ body;
-		IToken bodyStart, bodyEnd, endTok;
-		bool hasName = false;
-		Attributes attrs = null;
-		inlineTacticStatement = dummyStmt; 
-		
-		Expect(66);
-		Expect(65);
-		x = t; 
-		while (la.kind == 50) {
-			Attribute(ref attrs);
-		}
-		if (la.kind == 1) {
-			NoUSIdent(out id);
-			hasName = true; 
-		}
-		if (!hasName) {
-		 SemErr(la, "an inline tactic must be given a name (expecting identifier)");
-		}
-		
-		BlockStmt(out body, out bodyStart, out bodyEnd);
-		endTok = body.EndTok; 
-		inlineTacticStatement = new InlineTacticBlockStmt(id, endTok, attrs, body); 
-		while (!(la.kind == 0 || la.kind == 30)) {SynErr(239); Get();}
-		Expect(30);
-		endTok = t; 
 	}
 
 	void Rhs(out AssignmentRhs r) {
@@ -5441,7 +5429,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		{_x,_T,_T,_T, _T,_x,_x,_x, _x,_T,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_x,_x, _T,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_T, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_T, _x,_x,_T,_x, _x,_x,_x,_x, _x,_x,_x,_T, _T,_T,_T,_x, _x,_x,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _x,_T,_x,_x, _T,_T,_T,_x, _T,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_T,_T,_T, _x,_x,_x},
 		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x},
 		{_x,_T,_T,_T, _T,_x,_x,_x, _x,_T,_x,_T, _x,_x,_T,_T, _T,_x,_T,_T, _T,_T,_x,_x, _T,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_x, _T,_x,_T,_x, _x,_x,_x,_x, _x,_T,_x,_x, _T,_T,_x,_x, _x,_x,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_x,_x,_x, _x,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_x,_T,_T, _T,_x,_x,_x, _x,_x,_x,_x, _x,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_T, _T,_T,_x,_x, _T,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_T,_T,_T, _x,_x,_x},
-		{_T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_T, _x,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x},
+		{_T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_T, _x,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x},
 		{_x,_x,_T,_T, _T,_x,_x,_x, _x,_T,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_x,_x, _T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_T,_T,_T, _x,_x,_x},
 		{_T,_T,_T,_T, _T,_x,_x,_x, _x,_T,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_x,_x, _T,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_T, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_T, _x,_x,_T,_x, _x,_x,_x,_x, _x,_x,_x,_T, _T,_T,_T,_x, _x,_x,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_T, _T,_T,_T,_T, _T,_T,_T,_T, _x,_T,_x,_x, _T,_T,_T,_x, _T,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_T,_T,_T, _x,_x,_x},
 		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_T, _x,_x,_T,_T, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_x,_x,_x, _x,_x,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_x,_T,_T, _T,_x,_x,_x, _x,_x,_x,_x, _x,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_T, _T,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x},
@@ -5711,9 +5699,9 @@ public class Errors {
 			case 234: s = "this symbol not expected in TacticStmt"; break;
 			case 235: s = "invalid TacticStmt"; break;
 			case 236: s = "invalid TacticStmt"; break;
-			case 237: s = "this symbol not expected in TacticVarDeclStmt"; break;
-			case 238: s = "invalid TacticCasesBlockStmt"; break;
-			case 239: s = "this symbol not expected in InlineTacticBlockStmt"; break;
+			case 237: s = "this symbol not expected in InlineTacticBlockStmt"; break;
+			case 238: s = "this symbol not expected in TacticVarDeclStmt"; break;
+			case 239: s = "invalid TacticCasesBlockStmt"; break;
 			case 240: s = "invalid Rhs"; break;
 			case 241: s = "invalid AlternativeBlock"; break;
 			case 242: s = "invalid Guard"; break;

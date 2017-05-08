@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.Tacny.Language{
             }
           }
 
-          frameCtrl.InitBasicFrameCtrl(body, true, tacApsStmt.Rhss[0].Attributes, null, tactic);
+          frameCtrl.InitBasicFrameCtrl(body, true, tacApsStmt.Rhss[0].Attributes, null, tactic.Attributes);
           state.AddNewFrame(frameCtrl);
 
           if(aps != null && aps.Args.Count != tactic.Ins.Count)

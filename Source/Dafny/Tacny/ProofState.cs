@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.Tacny{
     public bool NeedVerify { set; get; } = false;
 
     public bool InAsserstion { set; get; } = false;
-    public UpdateStmt TopLevelTacApp;
+    public Statement TopLevelTacApp;
     private Stack<Frame> _scope;
 
     public ProofState(Program program){
@@ -43,15 +43,51 @@ namespace Microsoft.Dafny.Tacny{
     /// </summary>
     /// <param name="tacAps">Tactic application</param>
     /// <param name="variables">Dafny variables</param>
-    public void InitState(UpdateStmt tacAps, Dictionary<IVariable, Dfy.Type> variables){
+    public void InitState(Statement tacAps, Dictionary<IVariable, Dfy.Type> variables){
       // clear the scope  
       _scope = new Stack<Frame>();
 
-      var tactic = GetTactic(tacAps) as Tactic;
+      List<Statement> body = new List<Statement>();
+      Attributes attrs, tacticAttrs; // attrs from tactic call, and the attrs from tactic definitions.
+      ApplySuffix aps = null;
+      Tactic tactic = null;
 
-      var aps = ((ExprRhs) tacAps.Rhss[0]).Expr as ApplySuffix;
+      if (tacAps is UpdateStmt) {
+        tactic = GetTactic(tacAps as UpdateStmt) as Tactic;
+        aps  = ((ExprRhs)((UpdateStmt)tacAps).Rhss[0]).Expr as ApplySuffix;
+        tacticAttrs = tactic.Attributes;
+        attrs = (tacAps as UpdateStmt).Rhss[0].Attributes;
+        if (tactic.Req != null) {
+          foreach (var expr in tactic.Req) {
+            body.Add(
+              new TacticAssertStmt(
+                new Token(Interpreter.TacticCodeTokLine, 0) { val = "tassert" },
+                new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
+                expr.E,
+                null, false));
+          }
+        }
+        body.AddRange(tactic.Body.Body);
+        if (tactic.Ens != null) {
+          foreach (var expr in tactic.Ens) {
+            body.Add(
+              new TacticAssertStmt(
+                new Token(Interpreter.TacticCodeTokLine, 0) { val = "tassert" },
+                new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
+                expr.E,
+                null, false));
+          }
+        }
+      } else if (tacAps is InlineTacticBlockStmt) {
+        body = (tacAps as InlineTacticBlockStmt).Body.Body;
+        attrs = (tacAps as InlineTacticBlockStmt).Attributes;
+        tacticAttrs = null;
+      } else {
+        throw new Exception("Unexpceted tactic applciation statement.");
+      }
 
-      var frame = new Frame(tactic, tacAps.Rhss[0].Attributes);
+
+      var frame = new Frame(body, attrs, tacticAttrs);
 
       foreach (var item in variables){
         if (!frame.ContainDafnyVar(item.Key.Name))
@@ -59,11 +95,11 @@ namespace Microsoft.Dafny.Tacny{
         else
           throw new ArgumentException($"Dafny variable {item.Key.Name} is already declared in the current context");
       }
-
-      for (int index = 0; index < aps.Args.Count; index++)
-      {
-        var arg = aps.Args[index];
-        if (tactic != null) frame.AddTVar(tactic.Ins[index].Name, arg);
+      if (aps != null) {
+        for (int index = 0; index < aps.Args.Count; index++) {
+          var arg = aps.Args[index];
+          if (tactic != null) frame.AddTVar(tactic.Ins[index].Name, arg);
+        }
       }
       _scope.Push(frame);
 
@@ -646,42 +682,10 @@ namespace Microsoft.Dafny.Tacny{
       /// <summary>
       /// Initialize the top level frame
       /// </summary>
-      /// <param name="tactic"></param>
-      /// <param name="attr"></param>
-      public Frame(ITactic tactic, Attributes attr){
-        Contract.Requires<ArgumentNullException>(tactic != null, "tactic");
+      public Frame( List<Statement> body , Attributes attr, Attributes tacticDefAttrs){
         Parent = null;
-        var o = tactic as Tactic;
-        if (o == null){
-          throw new NotSupportedException("tactic functions are not yet supported");
-        }
-        List<Statement> body = new List<Statement>();
-        if (o.Req != null)
-        {
-          foreach (var expr in o.Req)
-          {
-            body.Add(
-              new TacticAssertStmt(
-                new Token(Interpreter.TacticCodeTokLine, 0) { val = "tassert" },
-                new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
-                expr.E,
-                null, false));
-          }
-        }
-        body.AddRange(o.Body.Body);
-        if (o.Ens != null) {
-          foreach (var expr in o.Ens) {
-            body.Add(
-              new TacticAssertStmt(
-                new Token(Interpreter.TacticCodeTokLine, 0) { val = "tassert" },
-                new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
-                expr.E,
-                null, false));
-          }
-        }
-
         FrameCtrl = new DefaultTacticFrameCtrl();
-        FrameCtrl.InitBasicFrameCtrl(body, false, attr, null, o);
+        FrameCtrl.InitBasicFrameCtrl(body, false, attr, null, tacticDefAttrs);
 
         _declaredVariables = new Dictionary<string, Expression>();
         _dafnyVariables = new Dictionary<string, VariableData>();

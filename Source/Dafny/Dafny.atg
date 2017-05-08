@@ -1906,6 +1906,8 @@ OneStmt<out Statement/*!*/ s>
   | ReturnStmt<out s>
   | SkeletonStmt<out s>
   | TacticStmt<out s>
+  | InlineTacticBlockStmt<out s>
+
   )
   .
 
@@ -1924,7 +1926,6 @@ TacticStmt<out Statement/*!*/ s>
     | "tmatch"      (.x = t;.)    TacticCasesBlockStmt<out s, x>
     | "tassert"     (.x = t;.)    TacticAssertStmt<out s, x>
 	| TacticTryBlockStmt<out s>
-	| InlineTacticBlockStmt<out s>
 
   )  
 . 
@@ -2069,18 +2070,19 @@ TacticTryBlockStmt<out Statement/*!*/ tacticTryStatement>
      inlineTacticStatement = dummyStmt; 
   .)
   "inline" "tactic"                       (. x = t; .)
-  { Attribute<ref attrs> }
-  [ NoUSIdent<out id>					  (. hasName = true; .)
-  ]
+  { NoUSIdent<out id>					  (. hasName = true; .)
+  }
   (. if (!hasName) {
-       SemErr(la, "an inline tactic must be given a name (expecting identifier)");
+	  id = x;
+      // SemErr(la, "an inline tactic must be given a name (expecting identifier)");
      }
   .)
   (
     BlockStmt<out body, out bodyStart, out bodyEnd>    (. endTok = body.EndTok; .)
-    (. inlineTacticStatement = new InlineTacticBlockStmt(id, endTok, attrs, body); .)
   )
-  SYNC ";"                         (. endTok = t; .)
+  { Attribute<ref attrs> }
+  SYNC ";"                         
+  (. inlineTacticStatement = new InlineTacticBlockStmt(id, endTok, attrs, body); endTok = t;.)
   .
 
 SkeletonStmt<out Statement s>

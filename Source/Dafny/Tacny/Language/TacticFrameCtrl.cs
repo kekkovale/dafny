@@ -99,10 +99,10 @@ namespace Microsoft.Dafny.Tacny.Language{
     }
 
     public void InitBasicFrameCtrl(List<Statement> body, bool parentPartial, Attributes attrs,
-      Func<ProofState, IEnumerable<ProofState>> patch = null, Tactic tactic = null){
+      Func<ProofState, IEnumerable<ProofState>> patch = null, Attributes tacticDefAttrs = null){
       IsPartial = parentPartial;
-      if (tactic != null)
-        ParseTacticAttributes(tactic.Attributes);
+      if (tacticDefAttrs != null)
+        ParseTacticAttributes(tacticDefAttrs);
       Body = body;
       ParseTacticAttributes(attrs);
       OriginalBk = Backtrack;

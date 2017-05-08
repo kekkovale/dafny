@@ -1942,11 +1942,6 @@ namespace Microsoft.Dafny {
         if (mem.CallsTactic){
           mem = Interpreter.ResolveMethod(program, (Method) mem, _tacticErrDelegate, r) as Method;
         }
-     /*   else{
-          var printer = new Printer(Console.Out);
-          printer.PrintMethod(mem as Method, 1,false);
-        }*/
-
         AddMethod_Top((Method)mem);
       }
 
