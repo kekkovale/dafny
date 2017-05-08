@@ -242,20 +242,23 @@ namespace DafnyLanguage.Refactoring
     private readonly DefaultClassDecl _tld;
     private readonly IEnumerator<MemberDecl> _tldMembers;
     private MemberDecl _member;
-    private Tuple<UpdateStmt, int, int> _tacticCall;
-    private IEnumerator<Tuple<UpdateStmt, int, int>> _tacticCalls;
+    private Tuple<Statement, int, int> _tacticCall;
+    private IEnumerator<Tuple<Statement, int, int>> _tacticCalls;
 
     public int MemberBodyStart => _member.BodyStartTok.pos;
     public int MemberNameStart => _member.tok.pos;
     public string MemberName => _member.CompileName;
     public bool MemberReady => _member!=null && _member.CallsTactic;
 
-    public string GetActiveTacticName() {
+    public string GetActiveTacticName()
+    {
       if (_tacticCall == null) return null;
-      var rightHandSide = _tacticCall.Item1.Rhss[0] as ExprRhs;
-      var suffix = rightHandSide?.Expr as ApplySuffix;
-      var nameseg = suffix?.Lhs as NameSegment;
-      return nameseg?.Name;
+      if (_tacticCall.Item1 is UpdateStmt) {
+        var rightHandSide = (_tacticCall.Item1 as UpdateStmt).Rhss[0] as ExprRhs;
+        var suffix = rightHandSide?.Expr as ApplySuffix;
+        var nameseg = suffix?.Lhs as NameSegment;
+        return nameseg?.Name;
+      } else return "inline tactic";
     }
 
     public readonly TacticReplaceStatus LoadStatus;
@@ -321,12 +324,12 @@ namespace DafnyLanguage.Refactoring
     public TacticReplaceStatus ExpandSingleTacticCall(int tacticCallPos, out string expanded)
     {
       expanded = "";
-      Tuple<UpdateStmt, int, int> us;
+      Tuple<Statement, int, int> us;
       var status = RefactoringUtil.GetTacticCallAtPosition(_member as Method, tacticCallPos, out us);
       return status==TacticReplaceStatus.Success ? ExpandSingleTacticCall(us.Item1, out expanded) : status;
     }
 
-    private TacticReplaceStatus ExpandSingleTacticCall(UpdateStmt us, out string expanded) {
+    private TacticReplaceStatus ExpandSingleTacticCall(Statement us, out string expanded) {
       expanded = "";
       var l = Interpreter.GetTacticResultList();
       var result = l.FirstOrDefault(pair => RefactoringUtil.TokenEquals(pair.Key,us.Tok));

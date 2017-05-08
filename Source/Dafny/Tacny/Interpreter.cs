@@ -37,10 +37,9 @@ namespace Microsoft.Dafny.Tacny {
 
       EAtomic.EAtomic.InitEAtomicSigList();
     }
-
+    
     public static Dictionary<IToken, List<Statement>> GetTacticResultList() {
       Dictionary<IToken, List<Statement>> bufferList = new Dictionary<IToken, List<Statement>>();
-
       foreach(var e in _resultList) {
         bufferList.Add(e.Key.Tok, e.Value);
       }

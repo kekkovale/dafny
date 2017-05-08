@@ -3366,8 +3366,8 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		inlineTacticStatement = dummyStmt; 
 		
 		Expect(66);
-		Expect(65);
 		x = t; 
+		Expect(65);
 		while (la.kind == 1) {
 			NoUSIdent(out id);
 			hasName = true; 
@@ -3378,13 +3378,12 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		}
 		
 		BlockStmt(out body, out bodyStart, out bodyEnd);
-		endTok = body.EndTok; 
 		while (la.kind == 50) {
 			Attribute(ref attrs);
 		}
 		while (!(la.kind == 0 || la.kind == 30)) {SynErr(237); Get();}
 		Expect(30);
-		inlineTacticStatement = new InlineTacticBlockStmt(id, endTok, attrs, body); endTok = t;
+		endTok = t; inlineTacticStatement = new InlineTacticBlockStmt(id, endTok, attrs, body);
 	}
 
 	void TacticVarDeclStmt(out Statement/*!*/ s, IToken x) {

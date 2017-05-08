@@ -2069,7 +2069,8 @@ TacticTryBlockStmt<out Statement/*!*/ tacticTryStatement>
 	 Attributes attrs = null;
      inlineTacticStatement = dummyStmt; 
   .)
-  "inline" "tactic"                       (. x = t; .)
+  "inline"								  (. x = t; .)
+  "tactic"                      
   { NoUSIdent<out id>					  (. hasName = true; .)
   }
   (. if (!hasName) {
@@ -2078,11 +2079,11 @@ TacticTryBlockStmt<out Statement/*!*/ tacticTryStatement>
      }
   .)
   (
-    BlockStmt<out body, out bodyStart, out bodyEnd>    (. endTok = body.EndTok; .)
+    BlockStmt<out body, out bodyStart, out bodyEnd>    
   )
   { Attribute<ref attrs> }
   SYNC ";"                         
-  (. inlineTacticStatement = new InlineTacticBlockStmt(id, endTok, attrs, body); endTok = t;.)
+  (.  endTok = t; inlineTacticStatement = new InlineTacticBlockStmt(id, endTok, attrs, body);.)
   .
 
 SkeletonStmt<out Statement s>

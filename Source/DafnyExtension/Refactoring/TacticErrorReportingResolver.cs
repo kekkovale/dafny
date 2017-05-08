@@ -17,7 +17,7 @@ namespace DafnyLanguage.Refactoring
   internal class TacticErrorReportingResolver
   {
     private readonly Bpl.Token _errTok;
-    private readonly UpdateStmt _tacticCall;
+    private readonly Statement _tacticCall;
     private readonly Tactic _activeTactic;
     private readonly MemberDecl _callingMember;
     private readonly MemberDecl _tmpFailingMember;
@@ -33,7 +33,6 @@ namespace DafnyLanguage.Refactoring
       Contract.Ensures(_errTok != null);
       Contract.Ensures(_errMessage != null);
       Contract.Ensures(_tacticCall != null);
-      Contract.Ensures(_activeTactic != null);
       Contract.Ensures(_callingMember != null);
       Contract.Ensures(_tmpFailingMember != null);
       Contract.Ensures(!string.IsNullOrEmpty(_implTargetName));
@@ -48,7 +47,8 @@ namespace DafnyLanguage.Refactoring
 
       _implTargetName = MethodNameFromImpl(innerError.ImplementationName);
       _tacticCall = proofState.TopLevelTacApp;
-      _activeTactic = proofState.GetTactic(_tacticCall) as Tactic;
+      if (_tacticCall is UpdateStmt)
+        _activeTactic = proofState.GetTactic(_tacticCall as UpdateStmt) as Tactic;
 
       _callingMember = proofState.TargetMethod;
       _tmpFailingMember = tmpModule?.Members.FirstOrDefault(x => x.Name == _implTargetName);

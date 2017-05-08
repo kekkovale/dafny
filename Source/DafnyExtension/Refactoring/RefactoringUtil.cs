@@ -92,30 +92,45 @@ namespace DafnyLanguage.Refactoring
              && t.kind == u.kind && t.line == u.line && t.pos == u.pos && t.val == u.val;
     }
     
-    public static TacticReplaceStatus GetTacticCallAtPosition(Method m, int p, out Tuple<UpdateStmt, int, int> us) {
+    public static TacticReplaceStatus GetTacticCallAtPosition(Method m, int p, out Tuple<Statement, int, int> us) {
       try {
         us = (from stmt in m?.Body?.Body
-              let u = stmt as UpdateStmt
-              let rhs = u?.Rhss[0] as ExprRhs
-              let expr = rhs?.Expr as ApplySuffix
-              let name = expr?.Lhs as NameSegment
-              where name != null
-              let start = expr.tok.pos - name.Name.Length
+            let u = stmt as UpdateStmt
+            let rhs = u?.Rhss[0] as ExprRhs
+            let expr = rhs?.Expr as ApplySuffix
+            let name = expr?.Lhs as NameSegment
+            where name != null
+            let start = expr.tok.pos - name.Name.Length
+            let end = stmt.EndTok.pos + 1
+            where start <= p && p <= end
+            select new Tuple<Statement, int, int>(stmt, start, end))
+          .FirstOrDefault();
+      } catch (ArgumentNullException) {
+        us = null;
+        return TacticReplaceStatus.NoTactic;
+      }
+
+      if (us == null) {
+        us = (from stmt in m?.Body?.Body
+              where stmt is InlineTacticBlockStmt
+              let start = stmt.Tok.pos
               let end = stmt.EndTok.pos + 1
               where start <= p && p <= end
-              select new Tuple<UpdateStmt, int, int>(stmt as UpdateStmt, start, end))
+              select new Tuple<Statement, int, int>(stmt, start, end))
           .FirstOrDefault();
-      } catch (ArgumentNullException) { us = null; }
+      } 
+
       return us != null ? TacticReplaceStatus.Success : TacticReplaceStatus.NoTactic;
     }
 
-    public static IEnumerator<Tuple<UpdateStmt, int, int>> GetTacticCallsInMember(Method m) {
+    public static IEnumerator<Tuple<Statement, int, int>> GetTacticCallsInMember(Method m) {
       if (m?.Body.Body == null) yield break;
       foreach (var stmt in m.Body.Body) {
-        var us = stmt as UpdateStmt;
-        if (us == null || us.Lhss.Count != 0 || !us.IsGhost) continue;
-        Tuple<UpdateStmt, int, int> current;
-        if (GetTacticCallAtPosition(m, us.Tok.pos, out current) != TacticReplaceStatus.Success) continue;
+        if (!(stmt is InlineTacticBlockStmt) &&
+          ((stmt as UpdateStmt) == null || (stmt as UpdateStmt).Lhss.Count != 0 || !(stmt as UpdateStmt).IsGhost))
+          continue;
+        Tuple<Statement, int, int> current;
+        if (GetTacticCallAtPosition(m, stmt.Tok.pos, out current) != TacticReplaceStatus.Success) continue;
         yield return current;
       }
     }
