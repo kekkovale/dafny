@@ -21,9 +21,9 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
           foreach(var post in member.Ens) {
             posts.Add(post.E);
           }
-        return GenerateEATomExpr(posts);
+        return GenerateEAtomExpr(posts);
       }
-      return GenerateEATomExpr(new List<Expression>());
+      return GenerateEAtomExpr(new List<Expression>());
     }
   }
 }

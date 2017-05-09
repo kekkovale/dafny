@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
         ret.Add(new TacticLiteralExpr(x.Name));
       }
 
-      return GenerateEATomExpr(ret);
+      return GenerateEAtomExpr(ret);
     }
   }
 }

@@ -31,9 +31,9 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
       }
     }
 
-    public static Expression GenerateEATomExpr(List<Expression> es)
+    public static Expression GenerateEAtomExpr(List<Expression> es)
     {
-      return new SetDisplayExpr(new Token(Interpreter.TacticCodeTokLine, 0), true, es );
+      return new SeqDisplayExpr(new Token(Interpreter.TacticCodeTokLine, 0), es );
     }
 
     public abstract override string Signature { get; }

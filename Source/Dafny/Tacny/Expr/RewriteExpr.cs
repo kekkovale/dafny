@@ -35,6 +35,17 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return false;
     }
 
+    internal List<Expression> SetSubstract(List<Expression> l, List<Expression> r) {
+      var ret = new List<Expression>();
+      var newL = NormaliseSet(l);
+
+      foreach(var item in newL) {
+        if(r.Find(y => EqExpr(item, y)) == null)
+          ret.Add(item);
+      }
+      return ret;
+    }
+
     internal List<Expression> NormaliseSet(List<Expression> l){
       var newL = new List<Expression>();
       foreach (var item in l){
@@ -44,7 +55,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return newL;
     }
 
-    internal List<Expression> SetRemoveDup(List<Expression> l) {
+    internal List<Expression> RemoveDup(List<Expression> l) {
       var newL = new List<Expression>();
       foreach (var item in l) {
         if (l.FindAll(y => EqExpr(item, y)).Count == 1)
@@ -53,19 +64,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return newL;
     }
 
-    internal List<Expression> SetSubstract(List<Expression> l, List<Expression> r)
-    {
-      var ret = new List<Expression>();
-      var newL = NormaliseSet(l);
-
-      foreach (var item in newL) {
-        if (r.Find(y => EqExpr(item, y)) == null)
-          ret.Add(item);
-      }
-      return ret;
-    }
-  
-
+ 
     public override Expression CloneExpr(Expression expr){
       if (expr is UnaryOpExpr){
         var unaryExpr = expr as UnaryOpExpr;
@@ -159,14 +158,13 @@ namespace Microsoft.Dafny.Tacny.Expr {
                 (BigInteger) (e1 as LiteralExpr).Value
                 );
               return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine,0), value);
-            } else if (e0 is SetDisplayExpr && e1 is SetDisplayExpr){
+            } else if (e0 is SeqDisplayExpr && e1 is SeqDisplayExpr) {
 
               var newEles = new List<Expression>();
-              newEles.AddRange((e0 as SetDisplayExpr).Elements);
-              newEles.AddRange((e1 as SetDisplayExpr).Elements);
+              newEles.AddRange((e0 as SeqDisplayExpr).Elements);
+              newEles.AddRange((e1 as SeqDisplayExpr).Elements);
                
-              return new SetDisplayExpr(new Token(Interpreter.TacticCodeTokLine,0), 
-                (e0 as SetDisplayExpr).Finite, NormaliseSet(newEles));
+              return new SeqDisplayExpr(new Token(Interpreter.TacticCodeTokLine,0), newEles);
             }
             break;
           case BinaryExpr.Opcode.Sub:
@@ -178,15 +176,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
                 (BigInteger)(e1 as LiteralExpr).Value
                 );
               return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
-            } else if (e0 is SetDisplayExpr && e1 is SetDisplayExpr) {
-
-              var newEles = SetSubstract(
-                (e0 as SetDisplayExpr).Elements,              
-                (e1 as SetDisplayExpr).Elements);
-
-              return new SetDisplayExpr(new Token(Interpreter.TacticCodeTokLine, 0),
-                (e0 as SetDisplayExpr).Finite, newEles);
-            }
+            } 
             break;
           default:
             break;

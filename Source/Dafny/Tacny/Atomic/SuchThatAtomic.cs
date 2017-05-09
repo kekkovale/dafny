@@ -53,9 +53,9 @@ namespace Microsoft.Dafny.Tacny.Atomic {
         {
           Expression  l = SimpExpr.SimpTacticExpr(state, destExpr.E1);
           
-          if (l is SetDisplayExpr){
-            var setDisplayExpr = l as SetDisplayExpr;
-            foreach (var item in setDisplayExpr.Elements)
+          if (l is SeqDisplayExpr){
+            var seqDisplayExpr = l as SeqDisplayExpr;
+            foreach (var item in seqDisplayExpr.Elements)
             {
               var copy = state.Copy();
               copy.UpdateTacticVar(local, item);
