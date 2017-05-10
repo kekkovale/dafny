@@ -6,9 +6,10 @@ namespace Microsoft.Dafny.Tacny.Atomic
   /// <summary>
   ///   Abstract class for Atomic Statement
   /// </summary>
-  public abstract class Atomic : BaseTactic
+  public abstract class Atomic 
   {
-    public abstract override string Signature { get; }
+    public abstract string Signature { get; }
+    public abstract int ArgsCount { get; }
 
     /// <summary>
     /// </summary>

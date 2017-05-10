@@ -10,7 +10,7 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
   /// <summary>
   ///   Abstact class for Atomic Expressions
   /// </summary>
-  public abstract class EAtomic : BaseTactic {
+  public abstract class EAtomic  {
     public static List<string> EATomicSigList;
 
     public static bool IsEAtomicSig(string sig){
@@ -36,7 +36,9 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
       return new SeqDisplayExpr(new Token(Interpreter.TacticCodeTokLine, 0), es );
     }
 
-    public abstract override string Signature { get; }
+    public abstract string Signature { get; }
+    public abstract int ArgsCount { get; }
+
 
     // TypeOf (Expression expression, ProofState proofState); 
     // next step will be to implement proer typing, perhaps in F#
