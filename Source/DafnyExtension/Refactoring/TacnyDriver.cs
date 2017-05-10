@@ -14,8 +14,8 @@ namespace DafnyLanguage.Refactoring
     public TacnyDriver(ITextBuffer buffer, string filename) : base(buffer, filename){}
     
     public static bool ToggleTacticEvaluation(){
-      Interpreter.IfEvalTac = !Interpreter.IfEvalTac;
-      return Interpreter.IfEvalTac;
+      Microsoft.Dafny.Tacny.TacnyDriver.IfEvalTac = !Microsoft.Dafny.Tacny.TacnyDriver.IfEvalTac;
+      return Microsoft.Dafny.Tacny.TacnyDriver.IfEvalTac;
     }
     
     public Program ReParse(bool runResolver)

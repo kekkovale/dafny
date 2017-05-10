@@ -179,6 +179,8 @@ namespace Microsoft.Dafny.Tacny
         foreach (var tinv in stmt.TInvariants) {
           if (tinv is UpdateStmt) {
             var list = StackToDict(_frame);
+
+
             // this is a top level tactic call
             ProofState result = null;
             if (IfEvalTac) {
