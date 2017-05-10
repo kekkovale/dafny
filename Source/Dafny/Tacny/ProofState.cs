@@ -61,8 +61,8 @@ namespace Microsoft.Dafny.Tacny{
           foreach (var expr in tactic.Req) {
             body.Add(
               new TacticAssertStmt(
-                new Token(Interpreter.TacticCodeTokLine, 0) { val = "tassert" },
-                new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
+                new Token(TacnyDriver.TacticCodeTokLine, 0) { val = "tassert" },
+                new Token(TacnyDriver.TacticCodeTokLine, 0) { val = ";" },
                 expr.E,
                 null, false));
           }
@@ -72,8 +72,8 @@ namespace Microsoft.Dafny.Tacny{
           foreach (var expr in tactic.Ens) {
             body.Add(
               new TacticAssertStmt(
-                new Token(Interpreter.TacticCodeTokLine, 0) { val = "tassert" },
-                new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
+                new Token(TacnyDriver.TacticCodeTokLine, 0) { val = "tassert" },
+                new Token(TacnyDriver.TacticCodeTokLine, 0) { val = ";" },
                 expr.E,
                 null, false));
           }
@@ -168,7 +168,7 @@ namespace Microsoft.Dafny.Tacny{
 
     public bool IsTimeOut(){
       var top = _scope.Peek();
-      if(top.FrameCtrl.TimeStamp != 0 && top.FrameCtrl.TimeStamp <= Interpreter.Timer.Elapsed.Seconds) 
+      if(top.FrameCtrl.TimeStamp != 0 && top.FrameCtrl.TimeStamp <= TacnyDriver.Timer.Elapsed.Seconds) 
         return true;
 
       return false;
@@ -219,11 +219,6 @@ namespace Microsoft.Dafny.Tacny{
       var stmt =  _scope.Peek().FrameCtrl.GetLastStmt();
       return stmt ?? TopLevelTacApp;
      
-    }
-
-
-    public Strategy GetSearchStrategy(){
-      return _scope.Peek().FrameCtrl.SearchStrategy;
     }
 
     public bool IsCurFramePartial(){

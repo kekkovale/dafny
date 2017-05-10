@@ -194,13 +194,13 @@
     <Compile Include="Tacny\Language\WhileCtrlStmt.cs" />
     <Compile Include="Tacny\Language\TacticAppStmt.cs" />
     <Compile Include="Tacny\Language\TacticFrameCtrl.cs" />
-    <Compile Include="Tacny\Interpreter.cs" />
+    <Compile Include="Tacny\TacnyDriver.cs" />
     <Compile Include="Tacny\Language\ForallStmt.cs" />
     <Compile Include="Tacny\Language\IfChoiceStmt.cs" />
     <Compile Include="Tacny\Language\TMatchStmt.cs" />
     <Compile Include="Tacny\Language\OrChoiceStmt.cs" />
     <Compile Include="Tacny\ProofState.cs" />
-    <Compile Include="Tacny\SearchFramework.cs" />
+    <Compile Include="Tacny\TacnyInterpreter.cs" />
     <Compile Include="Tacny\tcce.cs" />
     <Compile Include="Tacny\TokenGenerator.cs" />
     <Compile Include="Tacny\TokenTracer.cs" />

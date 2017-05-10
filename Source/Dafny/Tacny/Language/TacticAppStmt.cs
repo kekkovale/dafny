@@ -29,8 +29,8 @@ namespace Microsoft.Dafny.Tacny.Language{
             foreach (var expr in tactic.Req) {
               body.Add(
                 new TacticAssertStmt(
-                  new Token(Interpreter.TacticCodeTokLine, 0) { val = "tassert" },
-                  new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
+                  new Token(TacnyDriver.TacticCodeTokLine, 0) { val = "tassert" },
+                  new Token(TacnyDriver.TacticCodeTokLine, 0) { val = ";" },
                   expr.E,
                   null, false));
             }
@@ -41,8 +41,8 @@ namespace Microsoft.Dafny.Tacny.Language{
             foreach (var expr in tactic.Ens) {
               body.Add(
                 new TacticAssertStmt(
-                  new Token(Interpreter.TacticCodeTokLine, 0) { val = "tassert" },
-                  new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
+                  new Token(TacnyDriver.TacticCodeTokLine, 0) { val = "tassert" },
+                  new Token(TacnyDriver.TacticCodeTokLine, 0) { val = ";" },
                   expr.E,
                   null, false));
             }

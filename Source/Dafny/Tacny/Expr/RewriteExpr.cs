@@ -73,13 +73,13 @@ namespace Microsoft.Dafny.Tacny.Expr {
           case UnaryOpExpr.Opcode.Not:
             if(e is LiteralExpr && (e as LiteralExpr).Value is bool ) {
               var value = !(bool)(e as LiteralExpr).Value;
-              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+              return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
             }
             break;
           default:
             break;
         }
-        return new UnaryOpExpr(new Token(Interpreter.TacticCodeTokLine,0),
+        return new UnaryOpExpr(new Token(TacnyDriver.TacticCodeTokLine,0),
           unaryExpr.Op, e);
       } else if (expr is BinaryExpr){
         var binExpr = expr as BinaryExpr;
@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
                 (e1 as LiteralExpr).Value is bool){
               var value =
                 (bool)(e0 as LiteralExpr).Value && (bool)(e1 as LiteralExpr).Value;
-              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+              return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
             }
             break;
           case BinaryExpr.Opcode.Or:
@@ -102,7 +102,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
                 (e1 as LiteralExpr).Value is bool) {
               var value =
                 (bool)(e0 as LiteralExpr).Value || (bool)(e1 as LiteralExpr).Value;
-              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+              return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
             }
             break;
           case BinaryExpr.Opcode.Le:
@@ -113,7 +113,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
                 (BigInteger) (e0 as LiteralExpr).Value <
                 (BigInteger) (e1 as LiteralExpr).Value;
                 
-              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+              return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
             }
             break;
           case BinaryExpr.Opcode.Lt:
@@ -124,7 +124,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
                 (BigInteger)(e0 as LiteralExpr).Value <=
                 (BigInteger)(e1 as LiteralExpr).Value;
 
-              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+              return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
             }
             break;
           case BinaryExpr.Opcode.Ge:
@@ -135,7 +135,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
                 (BigInteger)(e0 as LiteralExpr).Value >
                 (BigInteger)(e1 as LiteralExpr).Value;
 
-              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+              return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
             }
             break;
           case BinaryExpr.Opcode.Gt:
@@ -146,7 +146,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
                 (BigInteger)(e0 as LiteralExpr).Value >=
                 (BigInteger)(e1 as LiteralExpr).Value;
 
-              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+              return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
             }
             break;
           case BinaryExpr.Opcode.Add:
@@ -157,14 +157,14 @@ namespace Microsoft.Dafny.Tacny.Expr {
                 (BigInteger) (e0 as LiteralExpr).Value,
                 (BigInteger) (e1 as LiteralExpr).Value
                 );
-              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine,0), value);
+              return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine,0), value);
             } else if (e0 is SeqDisplayExpr && e1 is SeqDisplayExpr) {
 
               var newEles = new List<Expression>();
               newEles.AddRange((e0 as SeqDisplayExpr).Elements);
               newEles.AddRange((e1 as SeqDisplayExpr).Elements);
                
-              return new SeqDisplayExpr(new Token(Interpreter.TacticCodeTokLine,0), newEles);
+              return new SeqDisplayExpr(new Token(TacnyDriver.TacticCodeTokLine,0), newEles);
             }
             break;
           case BinaryExpr.Opcode.Sub:
@@ -175,13 +175,13 @@ namespace Microsoft.Dafny.Tacny.Expr {
                 (BigInteger)(e0 as LiteralExpr).Value,
                 (BigInteger)(e1 as LiteralExpr).Value
                 );
-              return new LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0), value);
+              return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
             } 
             break;
           default:
             break;
         }
-        return new BinaryExpr(new Token(Interpreter.TacticCodeTokLine, 0),
+        return new BinaryExpr(new Token(TacnyDriver.TacticCodeTokLine, 0),
                binExpr.Op, e0, e1);
       } else if (expr is TernaryExpr) { }
 

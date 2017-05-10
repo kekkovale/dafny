@@ -102,7 +102,7 @@ namespace Microsoft.Dafny.Tacny
     }
 
     private CompoundErrorInformation(string msg, ProofState state)
-      : base(new Token(Interpreter.TacticCodeTokLine, Interpreter.TacticCodeTokLine),
+      : base(new Token(TacnyDriver.TacticCodeTokLine, TacnyDriver.TacticCodeTokLine),
           msg == "" ? " Exception in: " + StringOfStmt(state) : msg) {
 
       ImplementationName = "Impl$$" + state.TargetMethod.FullName;

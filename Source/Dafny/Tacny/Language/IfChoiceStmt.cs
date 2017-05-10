@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.Tacny.Language{
 
     public override IEnumerable<ProofState> EvalStep(ProofState state0){
       var statement = GetStmt();
-      return Interpreter.EvalStmt(statement, state0);
+      return TacnyInterpreter.EvalStmt(statement, state0);
     }
 
     private List<Tuple<Expression, List<Statement>>> GetGuadBodyList(Statement stmt,

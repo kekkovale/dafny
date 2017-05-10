@@ -1940,7 +1940,7 @@ namespace Microsoft.Dafny {
 
       if (mem is Method) {
         if (mem.CallsTactic){
-          mem = Interpreter.ResolveMethod(program, (Method) mem, _tacticErrDelegate, r) as Method;
+          mem = TacnyDriver.ApplyTacticInMethod(program, (Method) mem, _tacticErrDelegate, r) as Method;
         }
         AddMethod_Top((Method)mem);
       }

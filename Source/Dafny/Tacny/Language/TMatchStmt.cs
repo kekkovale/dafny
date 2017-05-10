@@ -145,7 +145,7 @@ namespace Microsoft.Dafny.Tacny.Language {
         }
 
         //var matchStmt = GenerateMatchStmt(state.TacticApplication.Tok.line, srcVar.Copy(), datatype, fList);
-        var matchStmt = GenerateMatchStmt(Interpreter.TacticCodeTokLine, srcVar.Copy(), datatype, fList);
+        var matchStmt = GenerateMatchStmt(TacnyDriver.TacticCodeTokLine, srcVar.Copy(), datatype, fList);
 
         //use a dummystmt to creat a frame for match, note that this stmts is never be evaluated
         var dummystmt = new List<Statement>();
@@ -182,13 +182,13 @@ namespace Microsoft.Dafny.Tacny.Language {
 
       foreach (var stmt in stmts){
         if (stmt is TacticVarDeclStmt){
-          enumerable = Interpreter.RegisterVariable(stmt as TacticVarDeclStmt, ret);
+          enumerable = TacnyDriver.RegisterVariable(stmt as TacticVarDeclStmt, ret);
           var e = enumerable.GetEnumerator();
           e.MoveNext();
           ret = e.Current;
         }
         else if (stmt is PredicateStmt){
-          enumerable = Interpreter.EvalPredicateStmt((PredicateStmt) stmt, ret);
+          enumerable = TacnyDriver.EvalPredicateStmt((PredicateStmt) stmt, ret);
           var e = enumerable.GetEnumerator();
           e.MoveNext();
           ret = e.Current;
@@ -220,7 +220,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       Contract.Requires(datatype != null);
       Contract.Ensures(Contract.Result<MatchStmt>() != null);
       List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
-      int index = Interpreter.TacticCodeTokLine;//line + 1;
+      int index = TacnyDriver.TacticCodeTokLine;//line + 1;
 
 
       for (int j = 0; j < datatype.Ctors.Count; j++){

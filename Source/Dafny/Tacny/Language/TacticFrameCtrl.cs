@@ -13,7 +13,6 @@ namespace Microsoft.Dafny.Tacny.Language{
     public Statement LastStmt => _bodyCounter == 0 ? null: Body[_bodyCounter - 1];
     public bool IsEvaluated => _bodyCounter >= Body.Count;
 
-    public Strategy SearchStrategy { get; set; } = Strategy.Dfs;
     public bool IsPartial;
     public int OriginalBk = -1;
     public int Backtrack;
@@ -37,16 +36,6 @@ namespace Microsoft.Dafny.Tacny.Language{
       Expression arg;
       LiteralExpr literalExpr;
       switch(attr.Name) {
-        case "search":
-          var expr = attr.Args.FirstOrDefault();
-          string stratName = (expr as NameSegment)?.Name;
-          Contract.Assert(stratName != null);
-          try {
-            SearchStrategy = (Strategy)Enum.Parse(typeof(Strategy), stratName, true); // TODO: change to ENUM
-          } catch {
-            SearchStrategy = Strategy.Dfs;
-          }
-          break;
         case "partial":
           IsPartial = true;
           break;
@@ -86,7 +75,7 @@ namespace Microsoft.Dafny.Tacny.Language{
             }
           }
           if (timeout != 0){
-            TimeStamp = Interpreter.Timer.Elapsed.Seconds + timeout;
+            TimeStamp = TacnyDriver.Timer.Elapsed.Seconds + timeout;
           }
           break;
         default:
@@ -169,7 +158,7 @@ namespace Microsoft.Dafny.Tacny.Language{
     public virtual IEnumerable<ProofState> EvalStep(ProofState state0)
     {
       var statement = GetStmt();
-      return Interpreter.EvalStmt(statement, state0);
+      return TacnyInterpreter.EvalStmt(statement, state0);
     }
 
     public virtual bool EvalTerminated(bool childFrameRes, ProofState state)

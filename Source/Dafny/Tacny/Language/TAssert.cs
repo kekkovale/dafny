@@ -62,12 +62,12 @@ namespace Microsoft.Dafny.Tacny.Language
 
       var asserts = new List<Statement>();
       asserts.Add(
-       new AssertStmt(new Token(Interpreter.TacticCodeTokLine, 0) { val = "assert" },
-         new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" }, st, null, null));
+       new AssertStmt(new Token(TacnyDriver.TacticCodeTokLine, 0) { val = "assert" },
+         new Token(TacnyDriver.TacticCodeTokLine, 0) { val = ";" }, st, null, null));
       asserts.Add(
-      new AssumeStmt(new Token(Interpreter.TacticCodeTokLine, 0) { val = "assume" },
-       new Token(Interpreter.TacticCodeTokLine, 0) { val = ";" },
-       new Microsoft.Dafny.LiteralExpr(new Token(Interpreter.TacticCodeTokLine, 0) { val = "false" }, false),
+      new AssumeStmt(new Token(TacnyDriver.TacticCodeTokLine, 0) { val = "assume" },
+       new Token(TacnyDriver.TacticCodeTokLine, 0) { val = ";" },
+       new Microsoft.Dafny.LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0) { val = "false" }, false),
        null));
 
       state0.AddStatements(asserts);

@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
 
     public static Expression GenerateEAtomExpr(List<Expression> es)
     {
-      return new SeqDisplayExpr(new Token(Interpreter.TacticCodeTokLine, 0), es );
+      return new SeqDisplayExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), es );
     }
 
     public abstract string Signature { get; }
