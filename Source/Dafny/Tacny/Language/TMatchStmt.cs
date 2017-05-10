@@ -9,79 +9,40 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny.Tacny.Language {
   class TMatchStmt : TacticFrameCtrl {
 
-
-    /*
-    private List<string> _names;
-    private string PopCaseName(){
-
-      if (_names.Count > 0){
-        var ret = _names[0];
-        _names.Remove(ret);
-        return ret;
-      }
-      else
-        return null;
-    }
-
-    public static List<string> ParseDefaultCasesNames(Statement stmt) {
-
-      List<string> n = new List<string>();
-      if (stmt.Attributes != null) { 
-      if (stmt.Attributes.Name == "vars"){
-        foreach (Expression x in stmt.Attributes.Args){
-          if (x is NameSegment){
-            var y = x as NameSegment;
-            n.Add(y.Name);
-          }
-        }
-      }
-    }
-      return n;
-    }
-    
-    public Match(){
-      _names = new List<string>();
-    }
-    
-    public Match(Statement stmt) {
-      _names = ParseDefaultCasesNames(stmt);
-    }
-    */
     public new bool IsEvaluated => false;
+    //the match case stmt with assume false for each case
+    private MatchStmt _matchStmt;
+
+
     public override bool MatchStmt(Statement stmt, ProofState state){
       return stmt is TacticCasesBlockStmt;
     }
 
     public override bool EvalTerminated(bool childFrameRes, ProofState ps)
     {
-      //raw[0] is the match case stmt with assume false for each case
-      //raw[1..] the actual code to bt inserted in the case statement
+      //_matchStmt is the match case stmt with assume false for each case
+      //raw the actual code to be inserted in the case statement
 
-      var matchStmt = RawCodeList[0][0] as MatchStmt;
-      return matchStmt != null && matchStmt.Cases.Count + 1== RawCodeList.Count;
+      return _matchStmt != null && _matchStmt.Cases.Count== RawCodeList.Count;
     }
 
      public override List<Statement> AssembleStmts(List<List<Statement>> raw){
       //Contract.Requires(IsTerminated(raw));
 
-      var matchStmt = raw[0][0] as MatchStmt;
-
-      for (int i = 1; i < raw.Count; i++){
-        if (matchStmt != null)
+      for (int i = 0; i < raw.Count; i++){
+        if (_matchStmt != null)
         {
-          matchStmt.Cases[i-1].Body.Clear();
-          matchStmt.Cases[i - 1].Body.AddRange(raw[i]);
+          _matchStmt.Cases[i].Body.Clear();
+          _matchStmt.Cases[i].Body.AddRange(raw[i]);
         }
       }
-       var ret = new List<Statement> {matchStmt};
+       var ret = new List<Statement> {_matchStmt};
        return ret;
     }
 
     internal int GetNthCaseIdx(List<List<Statement>> raw) {
       Contract.Requires(raw != null);
-      Contract.Requires(raw.Count > 0);
-      Contract.Requires(raw[0] != null && raw[0].Count == 1 && raw[0][0] is MatchStmt);
-      return raw.Count - 1;
+      return raw.Count;
 
     }
     public override IEnumerable<ProofState> EvalStep(ProofState state0){
@@ -92,11 +53,9 @@ namespace Microsoft.Dafny.Tacny.Language {
       if (stmt != null) framectrl.InitBasicFrameCtrl(stmt.Body.Body, state0.IsCurFramePartial(), null);
       state.AddNewFrame(framectrl);
 
-      var matchStmt = RawCodeList[0][0] as MatchStmt;
-
       var idx = GetNthCaseIdx(RawCodeList);
-      if (matchStmt != null)
-        foreach(var tmp in matchStmt.Cases[idx].CasePatterns) {
+      if (_matchStmt != null)
+        foreach(var tmp in _matchStmt.Cases[idx].CasePatterns) {
           state.AddDafnyVar(tmp.Var.Name, new ProofState.VariableData { Variable = tmp.Var, Type = tmp.Var.Type });
         }
       //with this flag set to true, dafny will check the case branch before evaluates any tacny code
@@ -108,7 +67,6 @@ namespace Microsoft.Dafny.Tacny.Language {
     public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
       Contract.Assume(statement != null);
       Contract.Assume(statement is TacticCasesBlockStmt);
-      var partial = false || state0.IsCurFramePartial();
 
       var state = state0.Copy();
 
@@ -124,7 +82,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       else
         caseVar = guard.E as NameSegment;
 
-      //TODO: need to check the datatype pf caseGuard, 
+      //TODO: need to check the datatype of caseGuard, 
       // also need to consider the case that caseVar is a tac var
       var srcVar = state.GetTVarValue(caseVar) as NameSegment;
       //var srcVarData = state.GetDafnyVar(srcVar.Name);
@@ -146,25 +104,22 @@ namespace Microsoft.Dafny.Tacny.Language {
 
         //var matchStmt = GenerateMatchStmt(state.TacticApplication.Tok.line, srcVar.Copy(), datatype, fList);
         var matchStmt = GenerateMatchStmt(TacnyDriver.TacticCodeTokLine, srcVar.Copy(), datatype, fList);
+        _matchStmt = matchStmt;
+        var matchCtrl = this;
 
         //use a dummystmt to creat a frame for match, note that this stmts is never be evaluated
         var dummystmt = new List<Statement>();
-        for(i = 0; i < datatype.Ctors.Count; i++) {
-          dummystmt.Add(stmt);
-        }
+        dummystmt.Add(stmt);
+        dummystmt.Add(stmt);
 
-        var matchCtrl = this;
-
-        matchCtrl.InitBasicFrameCtrl(dummystmt, partial, null);
+        _matchStmt = matchStmt;
+        matchCtrl.InitBasicFrameCtrl(dummystmt, state0.IsCurFramePartial(), null);
         state.AddNewFrame(matchCtrl);
-
-        //add raw[0]
-        state.AddStatement(matchStmt);
 
         //push a frame for the first case
         //TODO: add case variable to frame, so that variable () can refer to it
         var caseCtrl = new DefaultTacticFrameCtrl();
-        caseCtrl.InitBasicFrameCtrl(stmt.Body.Body, partial, null);
+        caseCtrl.InitBasicFrameCtrl(stmt.Body.Body, state0.IsCurFramePartial(), null);
         state.AddNewFrame(caseCtrl);
 
         foreach(var tmp in matchStmt.Cases[0].CasePatterns) {
@@ -175,30 +130,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       state.NeedVerify = true;
       yield return state;
     }
-    /*
-    private IEnumerable<ProofState> StmtHandler(List<Statement> stmts, ProofState state){
-      IEnumerable<ProofState> enumerable = null;
-      ProofState ret = state;
-
-      foreach (var stmt in stmts){
-        if (stmt is TacticVarDeclStmt){
-          enumerable = TacnyDriver.RegisterVariable(stmt as TacticVarDeclStmt, ret);
-          var e = enumerable.GetEnumerator();
-          e.MoveNext();
-          ret = e.Current;
-        }
-        else if (stmt is PredicateStmt){
-          enumerable = TacnyDriver.EvalPredicateStmt((PredicateStmt) stmt, ret);
-          var e = enumerable.GetEnumerator();
-          e.MoveNext();
-          ret = e.Current;
-        }
-      }
-
-      foreach(var item in enumerable)
-        yield return item.Copy();
-    }
-    */
+  
 
     private static void InitCtorFlags(DatatypeDecl datatype, out bool[] flags, bool value = false) {
       flags = new bool[datatype.Ctors.Count];
@@ -287,6 +219,5 @@ namespace Microsoft.Dafny.Tacny.Language {
         new BoundVar(new Token(line, 0) { val = formal.Name }, formal.Name, new InferredTypeProxy()));
       return cp;
     }
-
   }
 }
