@@ -1,15 +1,21 @@
 ﻿using Microsoft.Boogie;
 using System;
-using System.CodeDom;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
-using System.Security.Claims;
-using Microsoft.Basetypes;
+
+
 
 namespace Microsoft.Dafny.Tacny.Expr {
+
+  public class IllFormedExpr : Exception
+  {
+    public IllFormedExpr(string message) : base(message) {
+    }
+  }
+
+
   class EvalExpr : SimpExpr{
     protected EvalExpr(ProofState state) : base(state){}
 
@@ -37,7 +43,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
 
     internal List<Expression> SetSubstract(List<Expression> l, List<Expression> r) {
       var ret = new List<Expression>();
-      var newL = NormaliseSet(l);
+      var newL = SetNormalise(l);
 
       foreach(var item in newL) {
         if(r.Find(y => EqExpr(item, y)) == null)
@@ -46,13 +52,19 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return ret;
     }
 
-    internal List<Expression> NormaliseSet(List<Expression> l){
+    internal List<Expression> SetNormalise(List<Expression> l){
       var newL = new List<Expression>();
       foreach (var item in l){
         if(newL.Find(y => EqExpr(item, y)) == null)
           newL.Add(item);
       }
       return newL;
+    }
+
+    internal bool ContainsExprList(List<Expression> l, Expression e)
+    {
+      var ret = l.Find(x => EqExpr(e, x));
+      return ret != null;
     }
 
     internal List<Expression> RemoveDup(List<Expression> l) {
@@ -73,6 +85,12 @@ namespace Microsoft.Dafny.Tacny.Expr {
           case UnaryOpExpr.Opcode.Not:
             if(e is LiteralExpr && (e as LiteralExpr).Value is bool ) {
               var value = !(bool)(e as LiteralExpr).Value;
+              return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
+            }
+            break;
+          case UnaryOpExpr.Opcode.Cardinality:
+            if (e is SeqDisplayExpr) {
+              var value = (e as SeqDisplayExpr).Elements.Count;
               return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
             }
             break;
@@ -178,12 +196,56 @@ namespace Microsoft.Dafny.Tacny.Expr {
               return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
             } 
             break;
+          case BinaryExpr.Opcode.In:
+            if (e0 is LiteralExpr && e1 is SeqDisplayExpr) {
+             var value = ContainsExprList((e1 as SeqDisplayExpr).Elements, e0);
+              return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
+            }
+            break;
+          case BinaryExpr.Opcode.NotIn:
+            if (e0 is LiteralExpr && e1 is SeqDisplayExpr) {
+              var value = ContainsExprList((e1 as SeqDisplayExpr).Elements, e0);
+              return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), !value);
+            }
+            break;
           default:
             break;
         }
         return new BinaryExpr(new Token(TacnyDriver.TacticCodeTokLine, 0),
                binExpr.Op, e0, e1);
-      } else if (expr is TernaryExpr) { }
+      } else if (expr is SeqSelectExpr) {
+        var selExpr = expr as SeqSelectExpr;
+        var seq = CloneExpr(selExpr.Seq);
+        var e0 = CloneExpr(selExpr.E0);
+        var e1 = CloneExpr(selExpr.E1);
+
+        if (seq is LiteralExpr)
+          throw new IllFormedExpr("Syntax Error: Expect sequence in sequence selector.");
+        if (e0 is LiteralExpr) {
+          if (!((e0 as LiteralExpr).Value is BigInteger))
+            throw new IllFormedExpr("Syntax Error: Expect lower bound to be int.");
+          if (seq is SeqDisplayExpr) {
+            if ((BigInteger)(e0 as LiteralExpr).Value >= (seq as SeqDisplayExpr).Elements.Count)
+              throw new IllFormedExpr("Syntax Error: lower bound is out of scope.");
+
+            if (e1 == null) {
+              var value = (seq as SeqDisplayExpr).Elements[(int)((BigInteger)(e0 as LiteralExpr).Value)];
+              return value;
+            } else if (e1 is LiteralExpr) {
+              if (!((e1 as LiteralExpr).Value is BigInteger))
+                throw new IllFormedExpr("Syntax Error: Expect upper bound to be int.");
+              if ((BigInteger)(e1 as LiteralExpr).Value > (seq as SeqDisplayExpr).Elements.Count ||
+                (BigInteger)(e1 as LiteralExpr).Value < (BigInteger)(e0 as LiteralExpr).Value)
+                throw new IllFormedExpr("Syntax Error: upper bound is out of scope.");
+               var cnt = (BigInteger) (e1 as LiteralExpr).Value - (BigInteger) (e0 as LiteralExpr).Value;
+               var value = (seq as SeqDisplayExpr).Elements.GetRange((int)((BigInteger)(e1 as LiteralExpr).Value), (int)cnt);
+              return new SeqDisplayExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
+            }
+
+          }
+        }
+        //if(e1 is LiteralExpr && e1.Type.)
+      }
 
       return base.CloneExpr(expr);
     }
