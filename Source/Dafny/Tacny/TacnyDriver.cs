@@ -112,7 +112,7 @@ namespace Microsoft.Dafny.Tacny
 
 
         // use the original resolver of the resoved program, as it contains all the necessary type info
-        method.CallsTactic = false; // set the tactic call lable to be false, no actual consequence
+        method.CallsTactic--; 
         // set the current class in the resolver, so that it can refer to the memberdecl correctly
         r.SetCurClass(method.EnclosingClass as ClassDecl);
         //asssume the defualt module is the current module, this needs to be improved.

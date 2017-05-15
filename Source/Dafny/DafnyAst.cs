@@ -3703,7 +3703,7 @@ namespace Microsoft.Dafny {
   public abstract class MemberDecl : Declaration {
     public abstract string WhatKind { get; }
     public readonly bool HasStaticKeyword;
-    public bool CallsTactic = false; // filled in during resolution
+    public int CallsTactic = 0; // filled in during resolution
     public virtual bool IsStatic {
       get {
         return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);

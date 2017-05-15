@@ -8056,7 +8056,7 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is InlineTacticBlockStmt) {
         if (codeContext is Method) {
-          ((Method)codeContext).CallsTactic = true;
+          ((Method)codeContext).CallsTactic++;
         }
         return;
       } else {
@@ -8655,7 +8655,10 @@ namespace Microsoft.Dafny
       if (IsTacticCall(update)) {
         // ignore tactic application
         if (codeContext is Method) {
-          ((Method)codeContext).CallsTactic = true;
+          if (Tacny.Util.CheckTacticArgs(currentClass, update)){
+            ((Method) codeContext).CallsTactic++;
+          } else
+            reporter.Error(MessageSource.Resolver, update, "The number of args doesn't match the tactic definition", update.Lhss.Count, update.Rhss.Count);
         }
         return;
       }
@@ -8825,7 +8828,8 @@ namespace Microsoft.Dafny
        // ignore tactic application
       if (callee is ITactic) {
         if (codeContext is Method) {
-          ((Method)codeContext).CallsTactic = true;
+          //((Method)codeContext).CallsTactic++;
+          throw new Exception("Do not expect callStmt for tactic");
         }
         return;
       }

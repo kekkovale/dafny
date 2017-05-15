@@ -1939,7 +1939,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(mem is Method);
 
       if (mem is Method) {
-        if (mem.CallsTactic){
+        if (mem.CallsTactic != 0){
           mem = TacnyDriver.ApplyTacticInMethod(program, (Method) mem, _tacticErrDelegate, r) as Method;
         }
         AddMethod_Top((Method)mem);

@@ -33,7 +33,7 @@ namespace Microsoft.Dafny
       if (m is Tactic)
         return true;
       if (m is Method){
-        return (m as Method).CallsTactic;
+        return (m as Method).CallsTactic != 0;
       }
       return false;
     }

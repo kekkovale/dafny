@@ -13,6 +13,18 @@ namespace Microsoft.Dafny.Tacny {
 
   public static class Util {
 
+    public static bool CheckTacticArgs(ClassDecl curDecl, UpdateStmt stmt) {
+      if(curDecl != null) {
+        foreach(var member in curDecl.Members) {
+          var tac = member as ITactic;
+          if(tac != null && tac.Name == GetSignature(stmt)) {
+            var aps = ((ExprRhs)stmt.Rhss[0]).Expr as ApplySuffix;
+            return aps.Args.Count == tac.Ins.Count;
+          }
+        }
+      }
+      return false;
+    }
     public static Expression VariableToExpression(IVariable variable) {
       Contract.Requires(variable != null);
       return new NameSegment(variable.Tok, variable.Name, null);
@@ -28,7 +40,8 @@ namespace Microsoft.Dafny.Tacny {
     public static NameSegment GetNameSegment(ApplySuffix aps) {
       Contract.Requires<ArgumentNullException>(aps != null, "aps");
       var lhs = aps.Lhs as ExprDotName;
-      if (lhs == null) return aps?.Lhs as NameSegment;
+      if(lhs == null)
+        return aps?.Lhs as NameSegment;
       var edn = lhs;
       return edn.Lhs as NameSegment;
     }
@@ -75,7 +88,7 @@ namespace Microsoft.Dafny.Tacny {
       var member = tld.Members.FirstOrDefault(x => x.Name == state.TargetMethod.Name) as Method;
       var body = member?.Body;
 
-      foreach (var kvp in code) {
+      foreach(var kvp in code) {
         body = InsertCodeInternal(body, kvp.Value, kvp.Key);
       }
 
@@ -88,24 +101,24 @@ namespace Microsoft.Dafny.Tacny {
       Contract.Requires<ArgumentNullException>(body != null, "body ");
       Contract.Requires<ArgumentNullException>(tacticCall != null, "'tacticCall");
 
-      for (var i = 0; i < body.Body.Count; i++) {
+      for(var i = 0; i < body.Body.Count; i++) {
         var stmt = body.Body[i];
-        if (stmt is UpdateStmt || stmt is InlineTacticBlockStmt) {
+        if(stmt is UpdateStmt || stmt is InlineTacticBlockStmt) {
           // compare tokens
-          if (Compare(tacticCall.Tok, stmt.Tok)) {
+          if(Compare(tacticCall.Tok, stmt.Tok)) {
             body.Body.RemoveAt(i);
             body.Body.InsertRange(i, code);
             return body;
           }
-        } else if (stmt is WhileStmt) {
+        } else if(stmt is WhileStmt) {
           var whileStmt = stmt as WhileStmt;
-          for (var j = 0; j < whileStmt.TInvariants.Count; j++) {
+          for(var j = 0; j < whileStmt.TInvariants.Count; j++) {
             var item = whileStmt.TInvariants[j];
-            if (Compare(tacticCall.Tok, item.Tok)) {
-              foreach (var genCode in code) {
+            if(Compare(tacticCall.Tok, item.Tok)) {
+              foreach(var genCode in code) {
                 //each inviariant are assmebled as assume statement
                 var assumeStmt = genCode as AssumeStmt;
-                if (assumeStmt != null) {
+                if(assumeStmt != null) {
                   var expr = assumeStmt.Expr;
                   whileStmt.Invariants.Insert(0, (new MaybeFreeExpression(expr)));
                 }
@@ -113,31 +126,31 @@ namespace Microsoft.Dafny.Tacny {
               }
             }
           }
-          ((WhileStmt) stmt).Body = InsertCodeInternal(((WhileStmt) stmt).Body, code, tacticCall);
-        } else if (stmt is IfStmt) { //InsertCodeIfStmt
-        } else if (stmt is MatchStmt) {
+          ((WhileStmt)stmt).Body = InsertCodeInternal(((WhileStmt)stmt).Body, code, tacticCall);
+        } else if(stmt is IfStmt) { //InsertCodeIfStmt
+        } else if(stmt is MatchStmt) {
           //TODO:
-        } else if (stmt is CalcStmt) {
+        } else if(stmt is CalcStmt) {
           //TODO:
         }
       }
       return body;
     }
-/*
-    private static IfStmt InsertCodeIfStmt(IfStmt stmt, List<Statement> code, UpdateStmt tacticCall) {
-      Contract.Requires<ArgumentNullException>(stmt != null, "stmt");
-      Contract.Requires<ArgumentNullException>(code != null, "code");
-      Contract.Requires<ArgumentNullException>(tacticCall != null, "tacticCall");
+    /*
+        private static IfStmt InsertCodeIfStmt(IfStmt stmt, List<Statement> code, UpdateStmt tacticCall) {
+          Contract.Requires<ArgumentNullException>(stmt != null, "stmt");
+          Contract.Requires<ArgumentNullException>(code != null, "code");
+          Contract.Requires<ArgumentNullException>(tacticCall != null, "tacticCall");
 
-      stmt.Thn = InsertCodeInternal(stmt.Thn, code, tacticCall);
-      if (stmt.Els is BlockStmt) {
-        stmt.Els = InsertCodeInternal((BlockStmt)stmt.Els, code, tacticCall);
-      } else if (stmt.Els is IfStmt) {
-        stmt.Els = InsertCodeIfStmt((IfStmt)stmt.Els, code, tacticCall);
-      }
-      return stmt;
-    }
-*/
+          stmt.Thn = InsertCodeInternal(stmt.Thn, code, tacticCall);
+          if (stmt.Els is BlockStmt) {
+            stmt.Els = InsertCodeInternal((BlockStmt)stmt.Els, code, tacticCall);
+          } else if (stmt.Els is IfStmt) {
+            stmt.Els = InsertCodeIfStmt((IfStmt)stmt.Els, code, tacticCall);
+          }
+          return stmt;
+        }
+    */
     public static bool Compare(IToken a, IToken b) {
       Contract.Requires<ArgumentNullException>(a != null, "a");
       Contract.Requires<ArgumentNullException>(b != null, "b");
@@ -153,11 +166,10 @@ namespace Microsoft.Dafny.Tacny {
       var cl = new Cloner();
       foreach(var body in bodies) {
         var md = cl.CloneMember(state.TargetMethod) as Method;
-        if (md != null)
-        {
+        if(md != null) {
           md.Body.Body.Clear();
           md.Body.Body.AddRange(body.Value.Body);
-          if (result.Values.All(x => x.Name != md.Name))
+          if(result.Values.All(x => x.Name != md.Name))
             result.Add(body.Key, md);
           else {
             md = new Method(md.tok, FreshMemberName(md, result.Values.ToList()), md.HasStaticKeyword, md.IsGhost, md.TypeArgs, md.Ins,
@@ -168,35 +180,35 @@ namespace Microsoft.Dafny.Tacny {
       }
       return result;
     }
- /*
-    public static Program GenerateDafnyProgram(ProofState state, List<MemberDecl> newMembers) {
-      var prog = state.GetDafnyProgram();
-      var tld = prog.DefaultModuleDef.TopLevelDecls.FirstOrDefault(x => x.Name == state.TargetMethod.EnclosingClass.Name) as ClassDecl;
-      Contract.Assert(tld != null);
-      var member = tld.Members.FirstOrDefault(x => x.Name == state.TargetMethod.Name);
-      Contract.Assert(member != null);
-      // we can safely remove the tactics
-      tld.Members.RemoveAll(x => x is Tactic); //remove before else index will be wrong
-      int index = tld.Members.IndexOf(member);
-      tld.Members.RemoveAt(index);
-      tld.Members.InsertRange(index, newMembers);
-      var filePath = Path.Combine(Path.GetTempPath(), Path.GetTempFileName());
-      var tw = new StreamWriter(filePath);
-      var printer = new Printer(tw);
-      printer.PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0, filePath);
-      tw.Close();
-      string err = Parse(files, programName, prog.reporter, out program);
+    /*
+       public static Program GenerateDafnyProgram(ProofState state, List<MemberDecl> newMembers) {
+         var prog = state.GetDafnyProgram();
+         var tld = prog.DefaultModuleDef.TopLevelDecls.FirstOrDefault(x => x.Name == state.TargetMethod.EnclosingClass.Name) as ClassDecl;
+         Contract.Assert(tld != null);
+         var member = tld.Members.FirstOrDefault(x => x.Name == state.TargetMethod.Name);
+         Contract.Assert(member != null);
+         // we can safely remove the tactics
+         tld.Members.RemoveAll(x => x is Tactic); //remove before else index will be wrong
+         int index = tld.Members.IndexOf(member);
+         tld.Members.RemoveAt(index);
+         tld.Members.InsertRange(index, newMembers);
+         var filePath = Path.Combine(Path.GetTempPath(), Path.GetTempFileName());
+         var tw = new StreamWriter(filePath);
+         var printer = new Printer(tw);
+         printer.PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0, filePath);
+         tw.Close();
+         string err = Parse(files, programName, prog.reporter, out program);
 
-      Parser.ParseOnly(new List<string>() { filePath}, prog.Name, out prog);
-      return prog;
-    }
-*/
+         Parser.ParseOnly(new List<string>() { filePath}, prog.Name, out prog);
+         return prog;
+       }
+   */
     public static string FreshMemberName(MemberDecl original, List<MemberDecl> context) {
       Contract.Requires<ArgumentNullException>(original != null, "original");
       Contract.Requires<ArgumentNullException>(context != null, "context");
       int count = context.Count(m => m.Name == original.Name);
       string name = $"{original.Name}_{count}";
-      while (count != 0) {
+      while(count != 0) {
         name = $"{original.Name}_{count}";
         count = context.Count(m => m.Name == name);
       }
@@ -228,21 +240,19 @@ namespace Microsoft.Dafny.Tacny {
       // find the membcl in the resoved prog
       Method destMd = null;
       foreach(var m in prog.DefaultModuleDef.TopLevelDecls) {
-        if(m.WhatKind == "class")
-        {
+        if(m.WhatKind == "class") {
           var defaultClassDecl = m as DefaultClassDecl;
-          if (defaultClassDecl != null)
+          if(defaultClassDecl != null)
             foreach(var method in defaultClassDecl.Members) {
-              if (method.FullName == state.TargetMethod.FullName){
+              if(method.FullName == state.TargetMethod.FullName) {
                 destMd = (method as Method);
-                if (destMd != null)
-                {
+                if(destMd != null) {
                   destMd.Body.Body.Clear();
                   destMd.Body.Body.AddRange(body.Body);
                 }
               }// if some other method has tactic call, then empty the body
-              else if(method.CallsTactic){
-                method.CallsTactic = false;
+              else if(method.CallsTactic != 0) {
+                method.CallsTactic = 0;
                 var o = method as Method;
                 o?.Body.Body.Clear();
                 SetVerifyFalseAttr(method);
@@ -255,57 +265,54 @@ namespace Microsoft.Dafny.Tacny {
         }
       }
       //
-      #if _TACTIC_DEBUG
-            Console.WriteLine("********************* Tactic in : " + destMd + " *****************");
-            var printer = new Printer(Console.Out);
-            //printer.PrintProgram(prog, false);
-            foreach(var stmt in state.GetGeneratedCode()) {
-              printer.PrintStatement(stmt, 0);
-              Console.WriteLine("");
-            }
-            Console.WriteLine("********************* Stmts END *****************");
-      #endif
+#if _TACTIC_DEBUG
+      Console.WriteLine("********************* Tactic in : " + destMd + " *****************");
+      var printer = new Printer(Console.Out);
+      //printer.PrintProgram(prog, false);
+      foreach(var stmt in state.GetGeneratedCode()) {
+        printer.PrintStatement(stmt, 0);
+        Console.WriteLine("");
+      }
+      Console.WriteLine("********************* Stmts END *****************");
+#endif
       //
 
-      if (destMd != null)
-      {
-        destMd.CallsTactic = false;
+      if(destMd != null) {
+        destMd.CallsTactic = 0;
         r.SetCurClass(destMd.EnclosingClass as ClassDecl);
         r.ResolveMethodBody(destMd, state.GetDafnyProgram().DefaultModuleDef.Name);
       }
 
 
-      if (prog.reporter.Count(ErrorLevel.Error) != 0) {
+      if(prog.reporter.Count(ErrorLevel.Error) != 0) {
         state.GetErrHandler().Reporter = prog.reporter;
 #if _TACTIC_DEBUG
         Console.Write("Fail to resolve prog, skip verifier ! \n");
 #endif
         return null;
-      }
-      else
+      } else
         return prog;
     }
 
     public static bool VerifyResolvedProg(ProofState state, Program program, ErrorReporterDelegate er) {
       Contract.Requires<ArgumentNullException>(program != null);
-/*
-#if _TACTIC_DEBUG
-      var printer = new Printer(Console.Out);
-      Console.WriteLine("*********************Verifying Tactic Generated Prog*****************");
-      printer.PrintProgram(program, true);
-      Console.WriteLine("\n*********************Prog END*****************");
-#endif
-*/
+      /*
+      #if _TACTIC_DEBUG
+            var printer = new Printer(Console.Out);
+            Console.WriteLine("*********************Verifying Tactic Generated Prog*****************");
+            printer.PrintProgram(program, true);
+            Console.WriteLine("\n*********************Prog END*****************");
+      #endif
+      */
       var boogieProg = Translator.Translate(program, program.reporter, null);
 
-      foreach (var prog in boogieProg){
+      foreach(var prog in boogieProg) {
         PipelineStatistics stats;
         List<ErrorInformation> errorList;
         PipelineOutcome tmp = BoogiePipeline(prog.Item2,
           new List<string> { program.Name }, program.Name, er,
           out stats, out errorList, program);
-        if (errorList.Count != 0)
-        {
+        if(errorList.Count != 0) {
           state.GetErrHandler().ErrorList = errorList;
           return false;
         }
@@ -313,7 +320,7 @@ namespace Microsoft.Dafny.Tacny {
 
       return true;
     }
-   
+
     /// <summary>
     /// Pipeline the boogie program to Dafny where it is valid
     /// </summary>
@@ -331,10 +338,10 @@ namespace Microsoft.Dafny.Tacny {
       errorList = new List<ErrorInformation>();
       stats = new PipelineStatistics();
 
-    
+
 
       PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName, out ltc, out ctc);
-      switch (oc) {
+      switch(oc) {
         case PipelineOutcome.ResolvedAndTypeChecked:
           ExecutionEngine.EliminateDeadVariables(program);
           ExecutionEngine.CollectModSets(program);
@@ -342,16 +349,16 @@ namespace Microsoft.Dafny.Tacny {
           ExecutionEngine.Inline(program);
           errorList = new List<ErrorInformation>();
           var tmp = new List<ErrorInformation>();
-          
-          oc = ExecutionEngine.InferAndVerify(program, stats, programId, errorInfo =>
-          {
+
+          oc = ExecutionEngine.InferAndVerify(program, stats, programId, errorInfo => {
             tmp.Add(errorInfo);
           });
           errorList.AddRange(tmp);
-          
+
           return oc;
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected outcome
+          Contract.Assert(false);
+          throw new cce.UnreachableException();  // unexpected outcome
       }
     }
 
@@ -359,9 +366,10 @@ namespace Microsoft.Dafny.Tacny {
 
   public static class ObjectExtensions {
     private static readonly MethodInfo CloneMethod = typeof(Object).GetMethod("MemberwiseClone", BindingFlags.NonPublic | BindingFlags.Instance);
-    
+
     public static bool IsPrimitive(this System.Type type) {
-      if (type == typeof(String)) return true;
+      if(type == typeof(String))
+        return true;
       return (type.IsValueType & type.IsPrimitive);
     }
 
@@ -369,15 +377,19 @@ namespace Microsoft.Dafny.Tacny {
       return InternalCopy(originalObject, new Dictionary<Object, Object>(new ReferenceEqualityComparer()));
     }
     private static object InternalCopy(Object originalObject, IDictionary<Object, Object> visited) {
-      if (originalObject == null) return null;
+      if(originalObject == null)
+        return null;
       System.Type typeToReflect = originalObject.GetType();
-      if (IsPrimitive(typeToReflect)) return originalObject;
-      if (visited.ContainsKey(originalObject)) return visited[originalObject];
-      if (typeof(Delegate).IsAssignableFrom(typeToReflect)) return null;
+      if(IsPrimitive(typeToReflect))
+        return originalObject;
+      if(visited.ContainsKey(originalObject))
+        return visited[originalObject];
+      if(typeof(Delegate).IsAssignableFrom(typeToReflect))
+        return null;
       var cloneObject = CloneMethod.Invoke(originalObject, null);
-      if (typeToReflect.IsArray) {
+      if(typeToReflect.IsArray) {
         var arrayType = typeToReflect.GetElementType();
-        if (IsPrimitive(arrayType) == false) {
+        if(IsPrimitive(arrayType) == false) {
           Array clonedArray = (Array)cloneObject;
           clonedArray.ForEach((array, indices) => array.SetValue(InternalCopy(clonedArray.GetValue(indices), visited), indices));
         }
@@ -390,16 +402,18 @@ namespace Microsoft.Dafny.Tacny {
     }
 
     private static void RecursiveCopyBaseTypePrivateFields(object originalObject, IDictionary<object, object> visited, object cloneObject, System.Type typeToReflect) {
-      if (typeToReflect.BaseType != null) {
+      if(typeToReflect.BaseType != null) {
         RecursiveCopyBaseTypePrivateFields(originalObject, visited, cloneObject, typeToReflect.BaseType);
         CopyFields(originalObject, visited, cloneObject, typeToReflect.BaseType, BindingFlags.Instance | BindingFlags.NonPublic, info => info.IsPrivate);
       }
     }
 
     private static void CopyFields(object originalObject, IDictionary<object, object> visited, object cloneObject, System.Type typeToReflect, BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy, Func<FieldInfo, bool> filter = null) {
-      foreach (FieldInfo fieldInfo in typeToReflect.GetFields(bindingFlags)) {
-        if (filter != null && filter(fieldInfo) == false) continue;
-        if (IsPrimitive(fieldInfo.FieldType)) continue;
+      foreach(FieldInfo fieldInfo in typeToReflect.GetFields(bindingFlags)) {
+        if(filter != null && filter(fieldInfo) == false)
+          continue;
+        if(IsPrimitive(fieldInfo.FieldType))
+          continue;
         var originalFieldValue = fieldInfo.GetValue(originalObject);
         var clonedFieldValue = InternalCopy(originalFieldValue, visited);
         fieldInfo.SetValue(cloneObject, clonedFieldValue);
@@ -415,7 +429,8 @@ namespace Microsoft.Dafny.Tacny {
       return ReferenceEquals(x, y);
     }
     public override int GetHashCode(object obj) {
-      if (obj == null) return 0;
+      if(obj == null)
+        return 0;
       return obj.GetHashCode();
     }
   }
@@ -423,10 +438,12 @@ namespace Microsoft.Dafny.Tacny {
   namespace ArrayExtensions {
     public static class ArrayExtensions {
       public static void ForEach(this Array array, Action<Array, int[]> action) {
-        if (array.LongLength == 0) return;
+        if(array.LongLength == 0)
+          return;
         ArrayTraverse walker = new ArrayTraverse(array);
-        do action(array, walker.Position);
-        while (walker.Step());
+        do
+          action(array, walker.Position);
+        while(walker.Step());
       }
     }
 
@@ -436,17 +453,17 @@ namespace Microsoft.Dafny.Tacny {
 
       public ArrayTraverse(Array array) {
         _maxLengths = new int[array.Rank];
-        for (int i = 0; i < array.Rank; ++i) {
+        for(int i = 0; i < array.Rank; ++i) {
           _maxLengths[i] = array.GetLength(i) - 1;
         }
         Position = new int[array.Rank];
       }
 
       public bool Step() {
-        for (int i = 0; i < Position.Length; ++i) {
-          if (Position[i] < _maxLengths[i]) {
+        for(int i = 0; i < Position.Length; ++i) {
+          if(Position[i] < _maxLengths[i]) {
             Position[i]++;
-            for (int j = 0; j < i; j++) {
+            for(int j = 0; j < i; j++) {
               Position[j] = 0;
             }
             return true;

@@ -100,8 +100,6 @@ namespace Microsoft.Dafny.Tacny.Atomic
         foreach (var result in PermuteArguments(args, 0, new List<NameSegment>())) {
           // create new fresh list of items to remove multiple references to the same object
           List<Expression> newList = result.Cast<Expression>().ToList().Copy();
-          //TODO: need to double check wirh Vito, why can't use copy ?
-          //Util.Copy.CopyExpressionList(result.Cast<Expression>().ToList());
           ApplySuffix aps = new ApplySuffix(callArguments[0].tok, new NameSegment(callArguments[0].tok, md.Name, null),
             newList);
           if (lv != null) {
