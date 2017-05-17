@@ -248,7 +248,7 @@ namespace DafnyLanguage.Refactoring
     public int MemberBodyStart => _member.BodyStartTok.pos;
     public int MemberNameStart => _member.tok.pos;
     public string MemberName => _member.CompileName;
-    public bool MemberReady => _member!=null && _member.CallsTactic;
+    public bool MemberReady => _member!=null && _member.CallsTactic != 0;
 
     public string GetActiveTacticName()
     {
