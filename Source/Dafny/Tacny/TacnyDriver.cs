@@ -76,7 +76,6 @@ namespace Microsoft.Dafny.Tacny
 
       watch.Stop();
       Console.WriteLine("Time Used: " + watch.Elapsed.TotalSeconds);
-
       _errorReporterDelegate = null;
       return result;
     }
@@ -112,7 +111,7 @@ namespace Microsoft.Dafny.Tacny
 
 
         // use the original resolver of the resoved program, as it contains all the necessary type info
-        method.CallsTactic--; 
+        method.CallsTactic = 0; 
         // set the current class in the resolver, so that it can refer to the memberdecl correctly
         r.SetCurClass(method.EnclosingClass as ClassDecl);
         //asssume the defualt module is the current module, this needs to be improved.
