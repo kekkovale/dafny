@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
   class EvalExpr : SimpExpr{
     protected EvalExpr(ProofState state) : base(state){}
 
-    internal bool EqLiteralExprs(LiteralExpr e0, LiteralExpr e1){
+    internal static bool EqLiteralExprs(LiteralExpr e0, LiteralExpr e1){
       if (e0.Value is bool && e1.Value is bool){
         return ((bool)e0.Value) == ((bool)e1.Value);
       } else if (e0.Value is int && e1.Value is int){
@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return false;
     }
 
-    internal bool EqExpr(Expression e0, Expression e1){
+    internal static bool EqExpr(Expression e0, Expression e1){
       if (e0 is LiteralExpr && e1 is LiteralExpr){
         return EqLiteralExprs((LiteralExpr) e0, (LiteralExpr) e1);
       }
@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return ret != null;
     }
 
-    internal List<Expression> RemoveDup(List<Expression> l) {
+    public static List<Expression> RemoveDup(List<Expression> l) {
       var newL = new List<Expression>();
       foreach (var item in l) {
         if (l.FindAll(y => EqExpr(item, y)).Count == 1)

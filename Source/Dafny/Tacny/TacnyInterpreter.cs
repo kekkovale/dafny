@@ -282,7 +282,7 @@ namespace Microsoft.Dafny.Tacny
           if (enumerator == null || !enumerator.MoveNext()) {
             // check if current is valid. a enumerator is empty when current is invalid and MoveNext is null
             if (enumerator != null && wasNull) {
-              Console.WriteLine("Null eval result is detected !");
+              //Console.WriteLine("Null eval result is detected !");
               discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Unresolved));
             }
 
@@ -331,7 +331,7 @@ namespace Microsoft.Dafny.Tacny
                 }
                 break;
               case VerifyResult.Unresolved:
-                Console.WriteLine("in unresolved");
+                //Console.WriteLine("in unresolved");
                 discarded.Add(new Tuple<ProofState, VerifyResult>(proofState, VerifyResult.Unresolved));
                 //discard current branch if fails to resolve
                 continue;

@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.Tacny.Language
           state.AddNewFrame(frameCtrl);
           yield return state;
         } else {
-          state.GetErrHandler().Reporter.Error(MessageSource.Tactic, statement.Tok, "Duplicated inline tactic name.");
+          state.ReportTacticError(statement.Tok, "Duplicated inline tactic name.");
         }
       } else if (statement is UpdateStmt) {
         var aps = ((ExprRhs) ((UpdateStmt) statement).Rhss[0]).Expr as ApplySuffix;
@@ -47,8 +47,7 @@ namespace Microsoft.Dafny.Tacny.Language
           state.AddNewFrame(frameCtrl);
           yield return state;
         } else {
-          state.GetErrHandler().Reporter.Error
-            (MessageSource.Tactic, statement.Tok, "No argument is allowed in inline tactics.");
+          state.ReportTacticError(statement.Tok, "No argument is allowed in inline tactics.");
         }
       }
     }

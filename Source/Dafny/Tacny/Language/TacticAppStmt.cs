@@ -11,8 +11,7 @@ namespace Microsoft.Dafny.Tacny.Language{
       return (us != null && state.IsTacticCall(us));
     }
 
-    public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0){
-      var state = state0.Copy();
+    public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state){
       var tacApsStmt = statement as UpdateStmt;
       if (tacApsStmt != null)
       {
@@ -48,12 +47,11 @@ namespace Microsoft.Dafny.Tacny.Language{
             }
           }
 
-          frameCtrl.InitBasicFrameCtrl(body, true, tacApsStmt.Rhss[0].Attributes, null, tactic.Attributes);
-          state.AddNewFrame(frameCtrl);
-
-          if(aps != null && aps.Args.Count != tactic.Ins.Count)
-            state.GetErrHandler().Reporter.Error(MessageSource.Tactic, tacApsStmt.Tok,
+          if (aps != null && aps.Args.Count != tactic.Ins.Count) {
+            state.ReportTacticError(tacApsStmt.Tok,
               $"Wrong number of method arguments (got {aps.Args.Count}, expected {tactic.Ins.Count})");
+            yield break;
+          }
 
           for (var index = 0; index < aps.Args.Count; index++){
             var arg = aps.Args[index];
@@ -65,15 +63,19 @@ namespace Microsoft.Dafny.Tacny.Language{
                 // in the case that referring to an exisiting tvar, dereference it
                 arg = state.GetTVarValue(name) as Expression;
               else{
-                state.GetErrHandler().Reporter.Error(MessageSource.Tactic, tacApsStmt.Tok,
+                state.ReportTacticError(tacApsStmt.Tok,
                   $"Fail to dereferenen argument({name})");
+                yield break;
               }
             }
             state.AddTacnyVar(tactic.Ins[index].Name, arg);
           }
+          frameCtrl.InitBasicFrameCtrl(body, true, tacApsStmt.Rhss[0].Attributes, null, tactic.Attributes);
+          state.AddNewFrame(frameCtrl);
+
+          yield return state;
         }
       }
-      yield return state;
     }
   }
 }

@@ -106,9 +106,14 @@ namespace Microsoft.Dafny.Tacny{
       TopLevelTacApp = tacAps.Copy();
 
       if (tactic != null && (aps != null && aps.Args.Count != tactic.Ins.Count))
-        GetErrHandler().Reporter.Error(MessageSource.Tactic, tacAps.Tok,
+        ReportTacticError(tacAps.Tok,
           $"Wrong number of method arguments (got {aps.Args.Count}, expected {tactic.Ins.Count})");
 
+    }
+
+    public void ReportTacticError(IToken t, string msg)
+    {
+      GetErrHandler().Reporter.Error(MessageSource.Tactic, t, msg);
     }
 
     // Permanent state information
