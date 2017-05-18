@@ -60,7 +60,11 @@ namespace Microsoft.Dafny.Tacny.Atomic {
           yield break;
         }
         var eles = EvalExpr.RemoveDup((pos as SeqDisplayExpr).Elements);
-        
+        if(eles.Count == 0) {
+          state.ReportTacticError(statement.Tok, "The expression is evaluated as an empty set.");
+          yield break;
+        }
+      
         foreach (var item in eles) {
 
           if (neg != null) {
@@ -75,7 +79,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
           } 
           var copy = state.Copy();
           copy.UpdateTacticVar(name, item);
-          Console.WriteLine(Printer.ExprToString(item));
+         // Console.WriteLine(Printer.ExprToString(item));
           yield return copy;
         }
       } else {
@@ -84,7 +88,17 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       }  
     }
 
-    internal void MergeExpr(Expression e1, Expression e2, out Expression expr)
+    internal void IntersectSetExpr(Expression e1, Expression e2, out Expression expr) {
+      if (e1 != null && e2 != null)
+        expr = new BinaryExpr(new Token(TacnyDriver.TacticCodeTokLine, 0),
+              BinaryExpr.Opcode.Mul, e1, e2);
+      else if (e1 == null && e2 == null)
+        expr = null;
+      else {
+        expr = e1 ?? e2;
+      }
+    }
+    internal void UnionSetExpr(Expression e1, Expression e2, out Expression expr)
     {
       if (e1 != null && e2 != null)
         expr = new BinaryExpr(new Token(TacnyDriver.TacticCodeTokLine, 0),
@@ -107,9 +121,8 @@ namespace Microsoft.Dafny.Tacny.Atomic {
           Expression posExpr1, posExpr2, negExpr1, negExpr2;
           RewriteExpr(destExpr.E0 as BinaryExpr, out posExpr1, out negExpr1);
           RewriteExpr(destExpr.E1 as BinaryExpr, out posExpr2, out negExpr2);
-          MergeExpr(posExpr1, posExpr2, out posExpr);
-          MergeExpr(negExpr1,negExpr2, out negExpr);
-          MergeExpr(negExpr1,negExpr2, out negExpr);
+          IntersectSetExpr(posExpr1, posExpr2, out posExpr);
+          UnionSetExpr(negExpr1,negExpr2, out negExpr);
           break;
         case BinaryExpr.Opcode.In:
           posExpr = destExpr.E1;

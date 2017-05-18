@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
-
+using System.Security.Policy;
 
 
 namespace Microsoft.Dafny.Tacny.Expr {
@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return false;
     }
 
-    internal List<Expression> SetSubstract(List<Expression> l, List<Expression> r) {
+    public static List<Expression> SetSubstract(List<Expression> l, List<Expression> r) {
       var ret = new List<Expression>();
       var newL = SetNormalise(l);
 
@@ -52,7 +52,18 @@ namespace Microsoft.Dafny.Tacny.Expr {
       return ret;
     }
 
-    internal List<Expression> SetNormalise(List<Expression> l){
+    public static List<Expression> SetIntersect(List<Expression> l, List<Expression> r) {
+      var ret = new List<Expression>();
+      var newL = SetNormalise(l);
+
+      foreach (var item in newL) {
+        if (r.Find(y => EqExpr(item, y)) != null)
+          ret.Add(item);
+      }
+      return ret;
+    }
+
+    public static List<Expression> SetNormalise(List<Expression> l){
       var newL = new List<Expression>();
       foreach (var item in l){
         if(newL.Find(y => EqExpr(item, y)) == null)
@@ -195,6 +206,12 @@ namespace Microsoft.Dafny.Tacny.Expr {
                 );
               return new LiteralExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), value);
             } 
+            break;
+          case BinaryExpr.Opcode.Mul:
+             if (e0 is SeqDisplayExpr && e1 is SeqDisplayExpr) {
+              var newEles = SetIntersect((e0 as SeqDisplayExpr).Elements, (e1 as SeqDisplayExpr).Elements);
+              return new SeqDisplayExpr(new Token(TacnyDriver.TacticCodeTokLine, 0), newEles);
+            }
             break;
           case BinaryExpr.Opcode.In:
             if (e0 is LiteralExpr && e1 is SeqDisplayExpr) {
