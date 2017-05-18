@@ -66,6 +66,8 @@ namespace Microsoft.Dafny.Tacny.Atomic
         if (mdIns.Count == 0) {
           args.Add(new List<IVariable>());
         }
+        //if any of the arguements is not valid, set it to false.
+        bool flag = true;
         for (int i = 0; i < mdIns.Count; i++) {
           var item = mdIns[i];
           args.Add(new List<IVariable>());
@@ -91,33 +93,31 @@ namespace Microsoft.Dafny.Tacny.Atomic
            * because we won't be able to generate valid calls
            */
           if (args[i].Count == 0) {
-            Debug.WriteLine("No type matching variables were found");
-            yield break;
+            flag = false;
           }
         }
 
-        var count = 0;
-        foreach (var result in PermuteArguments(args, 0, new List<NameSegment>())) {
-          // create new fresh list of items to remove multiple references to the same object
-          List<Expression> newList = result.Cast<Expression>().ToList().Copy();
-          ApplySuffix aps = new ApplySuffix(callArguments[0].tok, new NameSegment(callArguments[0].tok, md.Name, null),
-            newList);
-          if (lv != null) {
-            var newState = state.Copy();
-            newState.AddTacnyVar(lv, aps);
-            yield return newState;
-          } else {
-            var newState = state.Copy();
-            UpdateStmt us = new UpdateStmt(aps.tok, aps.tok, new List<Expression>(),
-              new List<AssignmentRhs> { new ExprRhs(aps) });
-            //Printer p = new Printer(Console.Out);
-            //p.PrintStatement(us,0);
-            newState.AddStatement(us);
-            count++;
-            yield return newState;
+        if (flag) {
+          foreach (var result in PermuteArguments(args, 0, new List<NameSegment>())) {
+            // create new fresh list of items to remove multiple references to the same object
+            List<Expression> newList = result.Cast<Expression>().ToList().Copy();
+            ApplySuffix aps = new ApplySuffix(callArguments[0].tok, new NameSegment(callArguments[0].tok, md.Name, null),
+              newList);
+            if (lv != null) {
+              var newState = state.Copy();
+              newState.AddTacnyVar(lv, aps);
+              yield return newState;
+            } else {
+              var newState = state.Copy();
+              UpdateStmt us = new UpdateStmt(aps.tok, aps.tok, new List<Expression>(),
+                new List<AssignmentRhs> {new ExprRhs(aps)});
+              //Printer p = new Printer(Console.Out);
+              //p.PrintStatement(us,0);
+              newState.AddStatement(us);
+              yield return newState;
+            }
           }
         }
-
       }
     }
 
