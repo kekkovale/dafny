@@ -47,8 +47,17 @@ namespace Microsoft.Dafny.Tacny.Atomic {
       Expression pos, neg;
       RewriteExpr(suchThat.Expr as BinaryExpr, out pos, out neg);
 
-      pos = pos == null ? null : EvalExpr.EvalTacticExpression(state, pos);
-      neg = neg == null ? null : EvalExpr.EvalTacticExpression(state, neg);
+      if (pos != null) {
+        pos = EvalExpr.EvalTacticExpression(state, pos);
+        if (pos == null)
+          yield break;
+      }
+
+      if (neg != null) {
+        neg = EvalExpr.EvalTacticExpression(state, neg);
+        if (neg == null)
+          yield break;
+      }
 
       if (pos == null) {
         state.ReportTacticError(statement.Tok, "Suchthat expression is evaluated as an empty sequence.");

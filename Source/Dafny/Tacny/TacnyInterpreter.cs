@@ -183,7 +183,10 @@ namespace Microsoft.Dafny.Tacny
               // in the case that referring to an exisiting tvar, dereference it
               state.AddTacnyVar(declaration.Locals[index], state.GetTVarValue(name));
           } else {
-            state.AddTacnyVar(declaration.Locals[index], EvalExpr.EvalTacticExpression(state, exprRhs?.Expr));
+            var res = EvalExpr.EvalTacticExpression(state, exprRhs?.Expr);
+            if(res == null)
+              yield break;
+            state.AddTacnyVar(declaration.Locals[index], res);
           }
         }
       }

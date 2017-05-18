@@ -71,6 +71,8 @@ namespace Microsoft.Dafny.Tacny.Language{
       Contract.Assert(guardBodyList.Count > 0);
 
       var tryEval = EvalExpr.EvalTacticExpression(state0, guardBodyList[0].Item1);
+      if (tryEval == null)
+        yield break;
       //check whether the top level of the first guard is tactic level or object level
       if (!(tryEval is LiteralExpr && (tryEval as LiteralExpr).Value is bool)) {
         var state = state0.Copy();
@@ -94,6 +96,8 @@ namespace Microsoft.Dafny.Tacny.Language{
           }
           else{
             var res = EvalExpr.EvalTacticExpression(state0, item.Item1);
+            if (res == null)
+              yield break;
             if (res is LiteralExpr && 
               (res as LiteralExpr).Value is bool && 
               (bool)(res as LiteralExpr).Value){

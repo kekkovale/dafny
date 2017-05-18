@@ -25,6 +25,8 @@ namespace Microsoft.Dafny.Tacny.Language {
       if (whileStmt != null)
       {
         var tryEval = EvalExpr.EvalTacticExpression(state0, whileStmt.Guard);
+        if (tryEval == null)
+          yield break;
 
         if (!(tryEval is LiteralExpr && (tryEval as LiteralExpr).Value is bool)) {
           var state = state0.Copy();
@@ -58,10 +60,13 @@ namespace Microsoft.Dafny.Tacny.Language {
     }
 
     public override IEnumerable<ProofState> EvalStep(ProofState state0){
+      
+
+      var tryEval = EvalExpr.EvalTacticExpression(state0, _guard);
+      if (tryEval == null)
+        yield break;
+
       var state = state0.Copy();
-
-      var tryEval = EvalExpr.EvalTacticExpression(state, _guard);
-
       var literalExpr = tryEval as LiteralExpr;
       if(literalExpr != null && (bool)literalExpr.Value){
         //insert the body frame

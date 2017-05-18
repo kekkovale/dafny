@@ -268,8 +268,13 @@ namespace Microsoft.Dafny.Tacny.Expr {
     }
 
     public static Expression EvalTacticExpression(ProofState state, Expression expr){
-      var rewriter = new EvalExpr(state);
-      return rewriter.CloneExpr(expr);
+      try {
+        var rewriter = new EvalExpr(state);
+        return rewriter.CloneExpr(expr);
+      } catch (IllFormedExpr e) {
+        state.ReportTacticError(expr.tok, e.Message);
+        return null;
+      }
     }
   }
 
