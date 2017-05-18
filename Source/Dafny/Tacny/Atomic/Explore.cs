@@ -53,7 +53,7 @@ namespace Microsoft.Dafny.Tacny.Atomic
           Contract.Assert(false, "In Explore Atomic call," + callArguments[0] + "is neither a Method or a Function");
 
         //evaluate the arguemnts for the lemma to be called
-        var ovars = SimpExpr.UnfoldTacticProjection(state, callArguments[1]) as SeqDisplayExpr;
+        var ovars = EvalExpr.EvalTacticExpression(state, callArguments[1]) as SeqDisplayExpr;
         List<IVariable> vars = new List<IVariable>();
 
         foreach (var var in ovars.Elements) {
