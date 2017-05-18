@@ -1906,7 +1906,6 @@ OneStmt<out Statement/*!*/ s>
   | ReturnStmt<out s>
   | SkeletonStmt<out s>
   | TacticStmt<out s>
-  | InlineTacticBlockStmt<out s>
 
   )
   .
@@ -1921,6 +1920,7 @@ TacticStmt<out Statement/*!*/ s>
     | "match"       (.x = t;.)    TacticCasesBlockStmt<out s, x> 
     | "assert"      (.x = t;.)    TacticAssertStmt<out s, x> 
 	| "forall" (.x = t;.) TacticForallStmt<out s,x>
+	| InlineTacticBlockStmt<out s, x>
     )
     | "tvar"        (.x = t;.)    TacticVarDeclStmt<out s, x>        
     | "tmatch"      (.x = t;.)    TacticCasesBlockStmt<out s, x>
@@ -2059,9 +2059,8 @@ TacticTryBlockStmt<out Statement/*!*/ tacticTryStatement>
   (. tacticTryStatement = new TacticTryBlockStmt(x, endTok, body, catchBlock); .)
   .
 
-  InlineTacticBlockStmt<out Statement/*!*/ inlineTacticStatement>
+  InlineTacticBlockStmt<out Statement/*!*/ inlineTacticStatement, IToken x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out inlineTacticStatement) != null); 
-	 IToken/*!*/ x;
 	 IToken/*!*/ id = Token.NoToken;
      BlockStmt/*!*/ body;
      IToken bodyStart, bodyEnd, endTok;
@@ -2069,8 +2068,6 @@ TacticTryBlockStmt<out Statement/*!*/ tacticTryStatement>
 	 Attributes attrs = null;
      inlineTacticStatement = dummyStmt; 
   .)
-  "inline"								  (. x = t; .)
-  "tactic"                      
   { NoUSIdent<out id>					  (. hasName = true; .)
   }
   (. if (!hasName) {
@@ -2082,7 +2079,6 @@ TacticTryBlockStmt<out Statement/*!*/ tacticTryStatement>
     BlockStmt<out body, out bodyStart, out bodyEnd>    
   )
   { Attribute<ref attrs> }
-  SYNC ";"                         
   (.  endTok = t; inlineTacticStatement = new InlineTacticBlockStmt(id, endTok, attrs, body);.)
   .
 
@@ -3138,8 +3134,6 @@ TacticProjectionExpression <out Expression e>
    ("tactic"
     "."
 	TacticProjectionOp <out e>
-	"("
-	")"
    )
    .
 TacticProjectionOp<out Expression e>
