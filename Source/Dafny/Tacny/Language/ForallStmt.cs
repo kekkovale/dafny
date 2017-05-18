@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.Tacny.Language {
 
  
       
-      if (_stmt.Attributes.Name.Equals("vars")) {
+      if (_stmt.Attributes!= null&&_stmt.Attributes.Name.Equals("vars")) {
         var attrs = _stmt.Attributes.Args;
         for (int i = 0; i < attrs.Count; i++) {
           // todo: should really report an errors if first condition does not hold
