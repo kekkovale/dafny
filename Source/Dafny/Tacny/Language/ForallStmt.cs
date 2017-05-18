@@ -203,23 +203,6 @@ namespace Microsoft.Dafny.Tacny.Language {
       return 0;
     }
 
-    private void BoundVars(ProofState state,Expression e) {
-      var varDict = state.GetAllDafnyVars();
-      Zipper zip = new Zipper(e);
-
-      Func<Expression, ISet<string>, ISet<string>> fv = (expr, set) => {
-        var segment = expr as NameSegment;
-        if (segment != null) {
-          var en = segment;
-          set.Add(en.Name);
-        }
-       return set;
-      };
-      HashSet<string> hs = new HashSet<string>();
-      var els = zip.Fold(fv, hs);
-
-
-    }
 
     public override bool MatchStmt(Statement stmt, ProofState state) {
       Contract.Assume(stmt != null);
