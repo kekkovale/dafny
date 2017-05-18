@@ -80,9 +80,16 @@ namespace Microsoft.Dafny.Tacny.Expr {
 
     public static List<Expression> RemoveDup(List<Expression> l) {
       var newL = new List<Expression>();
+      var dupL = new List<Expression>();
       foreach (var item in l) {
-        if (l.FindAll(y => EqExpr(item, y)).Count == 1)
+        if (l.FindAll(y => EqExpr(item, y)).Count <= 1)
           newL.Add(item);
+        else {
+          if (dupL.Find(y => EqExpr(item, y)) == null) {
+            newL.Add(item);
+            dupL.Add(item);
+          }
+        }
       }
       return newL;
     }

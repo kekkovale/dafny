@@ -88,7 +88,7 @@ namespace Microsoft.Dafny.Tacny.Atomic {
           } 
           var copy = state.Copy();
           copy.UpdateTacticVar(name, item);
-         // Console.WriteLine(Printer.ExprToString(item));
+          Console.WriteLine(Printer.ExprToString(item));
           yield return copy;
         }
       } else {

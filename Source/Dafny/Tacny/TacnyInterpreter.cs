@@ -190,7 +190,7 @@ namespace Microsoft.Dafny.Tacny
           }
         }
       }
-      yield return state.Copy();
+      yield return state;
     }
 
     [Pure]
