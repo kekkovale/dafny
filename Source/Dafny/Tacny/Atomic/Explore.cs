@@ -22,10 +22,9 @@ namespace Microsoft.Dafny.Tacny.Atomic
 
       state.NeedVerify = true;
 
-      //TODO: implement this properly
       //var members = state.GetLocalValue(callArguments[0] as NameSegment) as IEnumerable<MemberDecl>;
       //evaluate the argument (methods/lemma)
-      var members0 = SimpExpr.UnfoldTacticProjection(state, callArguments[0]) as SeqDisplayExpr;
+      var members0 = EvalExpr.EvalTacticExpression(state, callArguments[0]) as SeqDisplayExpr;
       List<MemberDecl> members = new List<MemberDecl>();
 
       foreach (var mem in members0.Elements) {
