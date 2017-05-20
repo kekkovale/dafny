@@ -792,6 +792,8 @@ namespace Microsoft.Dafny {
     public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program p, ErrorReporter reporter, Resolver r, TranslatorFlags flags = null, ErrorReporterDelegate er = null) {
       Contract.Requires(p != null);
       Contract.Requires(p.ModuleSigs.Count > 0);
+//      Dafny.Tacny.TacnyDriver.ResetTacticResultList();
+
       Type.ResetScopes();
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {

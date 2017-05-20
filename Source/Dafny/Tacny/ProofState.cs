@@ -32,8 +32,8 @@ namespace Microsoft.Dafny.Tacny{
       Datatypes = new Dictionary<string, DatatypeDecl>();
       _topLevelClasses = new List<TopLevelClassDeclaration>();
       var files = new List<DafnyFile> {new DafnyFile(program.FullName)};
-      Main.Parse(files, program.Name, new ConsoleErrorReporter(), out _original);
-
+      _original =  new Program(program.Name, program.DefaultModule, program.BuiltIns, new ConsoleErrorReporter());
+      //Main.Parse(files, program.Name, new ConsoleErrorReporter(), out _original);
       // fill state
       FillStaticState(program);
     }
@@ -173,7 +173,7 @@ namespace Microsoft.Dafny.Tacny{
 
     public bool IsTimeOut(){
       var top = _scope.Peek();
-      if(top.FrameCtrl.TimeStamp != 0 && top.FrameCtrl.TimeStamp <= TacnyDriver.Timer.Elapsed.Seconds) 
+      if(top.FrameCtrl.TimeStamp != 0 && top.FrameCtrl.TimeStamp <= TacnyDriver.GetTimer().Elapsed.Seconds) 
         return true;
 
       return false;

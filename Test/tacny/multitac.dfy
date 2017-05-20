@@ -11,18 +11,20 @@ ensures false
 lemma ltest(d : Dummy)
  ensures false
 {
-   tac(d);
+   assert true;assert true;assume false;
 }
 
 lemma ltest2(d : Dummy)
- ensures false
+ ensures true
 {
-   tac(d);
+   assert true;
 }
 
 tactic tac(b: Element)
 {
 
+	//     assert true;
+	assert true;
 	assert true;
 	dummyTac(b);
 
@@ -31,9 +33,5 @@ tactic tac(b: Element)
 
 tactic dummyTac (c: Element)
 {
-	tmatch c {
-    tvar vs := variables();
-    tvar ls := lemmas();	
-    explore(ls, vs);
-	}
+	assume false;
 }

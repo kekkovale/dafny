@@ -20,28 +20,38 @@ namespace Microsoft.Dafny.Tacny
     private static ErrorReporterDelegate _errorReporterDelegate;
     private static Dictionary<Statement, List<Statement>> _resultList;
 
+    private static Dictionary<Statement, List<Statement>> GetResultList(){
+      if (_resultList == null)
+        _resultList = new Dictionary<Statement, List<Statement>>();
+      return _resultList;
+    }
+
+    private static void SetResultList(Dictionary<Statement, List<Statement>> rl){
+      _resultList = rl;
+    }
+
+    private static void UpdateResultList(Statement stmt, List<Statement> result) {
+      var newrl = GetResultList().Where(kvp => kvp.Key.Tok.pos != stmt.Tok.pos).ToDictionary(i => i.Key, i => i.Value);
+      SetResultList(newrl);
+      GetResultList().Add(stmt.Copy(), result != null ? result : new List<Statement>());
+    }
+
     private Stack<Dictionary<IVariable, Type>> _frame;
     private readonly ProofState _state;
 
-    public static Stopwatch Timer;
+    private static Stopwatch _timer;
 
-    public static void ResetTacticResultList()
-    {
-      if (Timer == null)
-        Timer = new Stopwatch();
-
-      if (_resultList == null)
-        _resultList = new Dictionary<Statement, List<Statement>>();
-      else
-        _resultList.Clear();
-
-      EAtomic.EAtomic.InitEAtomicSigList();
+    public static Stopwatch GetTimer () {
+      if (_timer == null){
+        _timer = new Stopwatch();
+      }
+      return _timer;
     }
 
     public static Dictionary<IToken, List<Statement>> GetTacticResultList()
     {
       Dictionary<IToken, List<Statement>> bufferList = new Dictionary<IToken, List<Statement>>();
-      foreach (var e in _resultList) {
+      foreach (var e in GetResultList()) {
         bufferList.Add(e.Key.Tok, e.Value);
       }
       return bufferList;
@@ -65,7 +75,7 @@ namespace Microsoft.Dafny.Tacny
       Contract.Requires(target != null);
       Stopwatch watch = new Stopwatch();
       watch.Start();
-      Timer.Restart();
+      GetTimer().Restart();
       _driver = new TacnyDriver(program);
       _errorReporterDelegate = erd;
       Type.BackupScopes();
@@ -95,14 +105,16 @@ namespace Microsoft.Dafny.Tacny
           .ToDictionary<IVariable, IVariable, Type>(item => item, item => item.Type);
         _frame.Push(dict);
 
-        var preRes = _resultList.Keys.Copy();
+        var preRes = GetResultList().Keys.Copy();
 
         InterpertBlockStmt(method.Body);
         dict = _frame.Pop();
         // sanity check
         Contract.Assert(_frame.Count == 0);
 
-        var newRets = _resultList.Where(kvp => !preRes.Contains(kvp.Key)).ToDictionary(i => i.Key, i => i.Value);
+        var newRets = 
+          GetResultList().Where(kvp => !preRes.Contains(kvp.Key)).ToDictionary(i => i.Key, i => i.Value);
+
         Contract.Assert(newRets.Count != 0);
         var body = Util.InsertCode(_state, newRets);
         method.Body.Body.Clear();
@@ -169,8 +181,8 @@ namespace Microsoft.Dafny.Tacny
       if (IfEvalTac) {
         result = TacnyInterpreter.EvalTopLevelTactic(_state, list, stmt, _errorReporterDelegate);
       }
-      _resultList.Add(stmt.Copy(), result != null ? result.GetGeneratedCode().Copy() : new List<Statement>());
-    }
+      UpdateResultList(stmt, result != null ? result.GetGeneratedCode().Copy() : new List<Statement>());
+   }
 
     private void InterpretWhileStmt(WhileStmt stmt)
     {
@@ -186,7 +198,8 @@ namespace Microsoft.Dafny.Tacny
               result = TacnyInterpreter.EvalTopLevelTactic(_state, list, tinv as UpdateStmt, _errorReporterDelegate);
             }
             if (result != null)
-              _resultList.Add(tinv as UpdateStmt, result.GetGeneratedCode().Copy());
+              UpdateResultList(tinv as UpdateStmt,
+                result != null ? result.GetGeneratedCode().Copy() : new List<Statement>());
           }
         }
       }

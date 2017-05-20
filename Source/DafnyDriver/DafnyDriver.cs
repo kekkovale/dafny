@@ -210,8 +210,6 @@ namespace Microsoft.Dafny
     public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program dafnyProgram, Resolver r) {
       var nmodules = Translator.VerifiableModules(dafnyProgram).Count();
 
-      TacnyDriver.ResetTacticResultList();
-
       foreach(var prog in Translator.Translate(dafnyProgram, dafnyProgram.reporter, r)) {
 
         if (CommandLineOptions.Clo.PrintFile != null) {

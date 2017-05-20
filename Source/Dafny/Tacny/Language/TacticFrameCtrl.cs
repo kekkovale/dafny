@@ -75,7 +75,7 @@ namespace Microsoft.Dafny.Tacny.Language{
             }
           }
           if (timeout != 0){
-            TimeStamp = TacnyDriver.Timer.Elapsed.Seconds + timeout;
+            TimeStamp = TacnyDriver.GetTimer().Elapsed.Seconds + timeout;
           }
           break;
         default:

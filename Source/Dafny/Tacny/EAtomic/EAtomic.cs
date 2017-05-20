@@ -14,11 +14,13 @@ namespace Microsoft.Dafny.Tacny.EAtomic {
     public static List<string> EATomicSigList;
 
     public static bool IsEAtomicSig(string sig){
-      if (EATomicSigList == null) return false;
+      if (EATomicSigList == null){
+        InitEAtomicSigList();
+      }
       return EATomicSigList.Exists(sig.Equals);
     }
 
-    public static void InitEAtomicSigList() {
+    private static void InitEAtomicSigList() {
       EATomicSigList = new List<string>();
       var types =
             Assembly.GetAssembly(typeof(EAtomic))
