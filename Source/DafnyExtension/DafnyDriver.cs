@@ -149,7 +149,7 @@ namespace DafnyLanguage
       if (!runResolver) {
         return false;
       }
-
+      program.Raw = _snapshot.GetText();
       var r = new Resolver(program);
       r.ResolveProgram(program);
       MostRecentResolver = r;

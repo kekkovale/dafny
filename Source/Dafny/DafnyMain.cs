@@ -10,6 +10,7 @@ using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Reflection;
 using DafnyAssembly;
+using Microsoft.Dafny.Tacny;
 
 namespace Microsoft.Dafny {
 
@@ -93,7 +94,6 @@ namespace Microsoft.Dafny {
         r = null;
         return err;
       }
-
       return Resolve(program, reporter, out r);
     }
 

@@ -12,6 +12,7 @@ using System.Numerics;
 using System.Linq;
 using Microsoft.Boogie;
 using System.Diagnostics;
+using Microsoft.Dafny.Tacny;
 
 namespace Microsoft.Dafny {
   public class Program {
@@ -22,6 +23,7 @@ namespace Microsoft.Dafny {
     }
 
     public readonly string FullName;
+    public string Raw; // source string, for tacny to parse a unresoved program
     public Dictionary<ModuleDefinition,ModuleSignature> ModuleSigs; // filled in during resolution.
                                                      // Resolution essentially flattens the module hierarchy, for
                                                      // purposes of translation and compilation.

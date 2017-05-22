@@ -65,11 +65,8 @@ namespace Microsoft.Dafny.Tacny
       _frame = new Stack<Dictionary<IVariable, Type>>();
     }
 
-
-    /// <param name="r"></param>
-    /// <returns></returns>
     public static MemberDecl ApplyTacticInMethod(Program program, MemberDecl target, ErrorReporterDelegate erd,
-      Resolver r = null)
+      Resolver r = null, Program raw = null)
     {
       Contract.Requires(program != null);
       Contract.Requires(target != null);

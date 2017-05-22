@@ -1,4 +1,4 @@
-﻿//#define TACNY_DEBUG
+﻿#define TACNY_DEBUG
 
 using System;
 using System.Collections.Generic;

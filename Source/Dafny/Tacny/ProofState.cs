@@ -32,8 +32,24 @@ namespace Microsoft.Dafny.Tacny{
       Datatypes = new Dictionary<string, DatatypeDecl>();
       _topLevelClasses = new List<TopLevelClassDeclaration>();
       var files = new List<DafnyFile> {new DafnyFile(program.FullName)};
-      _original =  new Program(program.Name, program.DefaultModule, program.BuiltIns, new ConsoleErrorReporter());
-      //Main.Parse(files, program.Name, new ConsoleErrorReporter(), out _original);
+
+      
+      if (program.Raw == null)
+        Main.Parse(files, program.Name, new ConsoleErrorReporter(), out _original);
+      else {
+        /*
+        System.IO.StreamReader reader = new System.IO.StreamReader(program.FullName);
+         var s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string>());
+        program.Raw = s;
+        */
+          var reporter = new ConsoleErrorReporter();
+        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        BuiltIns builtIns = new BuiltIns();
+        Parser.Parse(program.Raw, program.FullName, program.FullName, module, builtIns, reporter);
+
+        _original = new Program(program.FullName, module, builtIns, reporter);
+      }
+
       // fill state
       FillStaticState(program);
     }

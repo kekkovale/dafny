@@ -1,4 +1,6 @@
-﻿#define _TACTIC_DEBUG
+﻿#define _TACTIC_DEBUG_L1
+//#define _TACTIC_DEBUG_L2
+
 
 using System;
 using System.Collections.Generic;
@@ -265,7 +267,7 @@ namespace Microsoft.Dafny.Tacny {
         }
       }
       //
-#if _TACTIC_DEBUG
+#if _TACTIC_DEBUG_L1
       Console.WriteLine("********************* Tactic in : " + destMd + " *****************");
       var printer = new Printer(Console.Out);
       //printer.PrintProgram(prog, false);
@@ -286,7 +288,7 @@ namespace Microsoft.Dafny.Tacny {
 
       if(prog.reporter.Count(ErrorLevel.Error) != 0) {
         state.GetErrHandler().Reporter = prog.reporter;
-#if _TACTIC_DEBUG
+#if _TACTIC_DEBUG_L1
         Console.Write("Fail to resolve prog, skip verifier ! \n");
 #endif
         return null;
@@ -296,14 +298,14 @@ namespace Microsoft.Dafny.Tacny {
 
     public static bool VerifyResolvedProg(ProofState state, Program program, ErrorReporterDelegate er) {
       Contract.Requires<ArgumentNullException>(program != null);
-      /*
-      #if _TACTIC_DEBUG
+      
+      #if _TACTIC_DEBUG_L2
             var printer = new Printer(Console.Out);
             Console.WriteLine("*********************Verifying Tactic Generated Prog*****************");
             printer.PrintProgram(program, true);
             Console.WriteLine("\n*********************Prog END*****************");
       #endif
-      */
+      
       var boogieProg = Translator.Translate(program, program.reporter, null);
 
       foreach(var prog in boogieProg) {
