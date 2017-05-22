@@ -44,21 +44,45 @@ namespace Microsoft.Dafny.Tacny.Atomic
 
         // take the membed decl parameters
         var method = md as Method;
-        if (method != null)
+        if(method != null)
           mdIns.AddRange(method.Ins);
-        else if (md is Function)
-          mdIns.AddRange(((Function) md).Formals);
-        else
-          Contract.Assert(false, "In Explore Atomic call," + callArguments[0] + "is neither a Method or a Function");
-
+        else if(md is Function)
+          mdIns.AddRange(((Function)md).Formals);
+        else {
+          state.ReportTacticError(statement.Tok, Printer.ExprToString(callArguments[0]) + " is neither a Method or a Function");
+          yield break;
+        }
         //evaluate the arguemnts for the lemma to be called
         var ovars = EvalExpr.EvalTacticExpression(state, callArguments[1]) as SeqDisplayExpr;
+        if(ovars == null) {
+          state.ReportTacticError(statement.Tok, Printer.ExprToString(callArguments[1]) + " is not a sequence.");
+          yield break;
+        }
+
         List<IVariable> vars = new List<IVariable>();
 
         foreach (var var in ovars.Elements) {
-          var key = (string)(var as TacticLiteralExpr).Value;
+          string key;
+          if(var is TacticLiteralExpr)
+            key = (string) (var as TacticLiteralExpr).Value;
+          else if (var is NameSegment) {
+            key = (var as NameSegment).Name;
+              
+          } else {
+            state.ReportTacticError(statement.Tok, 
+              "In " + Printer.ExprToString(callArguments[1]) + ", " + 
+              Printer.ExprToString(var) + " is not a dafny variable.");
+            yield break;
+          }
+
           if (state.GetAllDafnyVars().ContainsKey(key))
             vars.Add(state.GetAllDafnyVars()[key].Variable);
+          else {
+            state.ReportTacticError(statement.Tok,
+              "In " + Printer.ExprToString(callArguments[1]) + ", " + 
+              key + " is not in scope.");
+            yield break;
+          }
         }
 
         //for the case when no args, just add an empty list

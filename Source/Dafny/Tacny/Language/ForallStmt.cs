@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.Tacny.Language {
     private List<MaybeFreeExpression> _ens;
 
 
-    public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state0) {
+    public override IEnumerable<ProofState> EvalInit(Statement statement, ProofState state) {
       Contract.Assume(statement != null);
       Contract.Assume(statement is TacticForallStmt);
 
@@ -28,15 +28,15 @@ namespace Microsoft.Dafny.Tacny.Language {
       // maybe do a check and throw an error instead?  
       // fixme: error returns null!
       //var e = (ForallExpr) SimpTacticExpr.SimpTacExpr(state0, _stmt.Spec);
-      var e = (ForallExpr) SimpExpr.SimpTacticExpr(state0, _stmt.Spec);
+      var e = (ForallExpr) SimpExpr.SimpTacticExpr(state, _stmt.Spec);
 
       // var e = _stmt.Spec as ForallExpr;
       // to rename expressions
       RenameVar rn = new RenameVar();
       // to rename in the body of statement
       RenameVar rnBody = new RenameVar();
-      List<String> usedVars = state0.GetAllDafnyVars().Keys.ToList();
-      usedVars.AddRange(state0.GetAllTVars().Keys.ToList());
+      List<String> usedVars = state.GetAllDafnyVars().Keys.ToList();
+      usedVars.AddRange(state.GetAllTVars().Keys.ToList());
  
       //List<String> tmp = new List<string>();
       AllVars.DeclaredVars(_stmt.Body.Body[0],ref usedVars);
@@ -67,6 +67,10 @@ namespace Microsoft.Dafny.Tacny.Language {
         _vars = e.BoundVars;
       }
 
+      foreach(var tmp in _vars) {
+        state.AddDafnyVar(tmp.Name, new ProofState.VariableData { Variable = tmp, Type = tmp.Type });
+      }
+
 
       // we could even break  _ens into a set of all conjunctions?
       // what about forall x (forall y) x
@@ -85,8 +89,7 @@ namespace Microsoft.Dafny.Tacny.Language {
       }
 
       // Note that we do not need to rename variables in the body (unless the variables in vars is changed)
-      InitBasicFrameCtrl(new List<Statement>(), state0.IsCurFramePartial(), null);
-      var state = state0.Copy();
+      InitBasicFrameCtrl(new List<Statement>(), state.IsCurFramePartial(), null);
 
       state.AddNewFrame(this);
 
