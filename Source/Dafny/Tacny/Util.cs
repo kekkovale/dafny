@@ -299,12 +299,13 @@ namespace Microsoft.Dafny.Tacny {
     public static bool VerifyResolvedProg(ProofState state, Program program, ErrorReporterDelegate er) {
       Contract.Requires<ArgumentNullException>(program != null);
       
-      #if _TACTIC_DEBUG_L2
+     #if _TACTIC_DEBUG_L2
             var printer = new Printer(Console.Out);
             Console.WriteLine("*********************Verifying Tactic Generated Prog*****************");
             printer.PrintProgram(program, true);
             Console.WriteLine("\n*********************Prog END*****************");
-      #endif
+     #endif
+      
       
       var boogieProg = Translator.Translate(program, program.reporter, null);
 

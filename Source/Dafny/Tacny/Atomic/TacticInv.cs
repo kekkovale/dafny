@@ -10,7 +10,7 @@ namespace Microsoft.Dafny.Tacny.Atomic{
 
       List<Expression> callArguments;
       IVariable lv;
-      InitArgs(state, statement, out lv, out callArguments);
+      InitArgs(state, statement, out callArguments);
 
       var expr = SimpExpr.SimpTacticExpr(state, callArguments[0]);
         if (expr != null){

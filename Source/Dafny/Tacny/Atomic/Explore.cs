@@ -17,22 +17,47 @@ namespace Microsoft.Dafny.Tacny.Atomic
       List<List<IVariable>> args = new List<List<IVariable>>();
       List<IVariable> mdIns = new List<IVariable>();
       List<Expression> callArguments;
-      IVariable lv;
-      InitArgs(state, statement, out lv, out callArguments);
-
+      bool branchGenerated = false;
       state.NeedVerify = true;
+      
+      InitArgs(state, statement, out callArguments);
 
-      //var members = state.GetLocalValue(callArguments[0] as NameSegment) as IEnumerable<MemberDecl>;
-      //evaluate the argument (methods/lemma)
+      /**********************
+       * init lemmas
+       **********************/
+      //check the number of arguments
+      if (callArguments == null || callArguments.Count != 2) {
+        state.ReportTacticError(statement.Tok, " The number of arguments for explore is not correct, expect 2.");
+        yield break;
+      }
+      // get the first arg: a sequence of lemmas
       var members0 = EvalExpr.EvalTacticExpression(state, callArguments[0]) as SeqDisplayExpr;
+      if (members0 == null) {
+        state.ReportTacticError(statement.Tok, Printer.ExprToString(callArguments[0]) + " is not a sequence.");
+        yield break;
+      }
       List<MemberDecl> members = new List<MemberDecl>();
 
       foreach (var mem in members0.Elements) {
+        if (!(mem is TacticLiteralExpr)) {
+          state.ReportTacticError(statement.Tok,
+            "In " + Printer.ExprToString(callArguments[0]) + 
+            Printer.ExprToString(mem) + " is not a lemma.");
+          yield break;
+        }
         var key = (string) (mem as TacticLiteralExpr).Value;
         if (state.Members.ContainsKey(key))
           members.Add(state.Members[key]);
+        else {
+          state.ReportTacticError(statement.Tok,  
+            "In " + Printer.ExprToString(callArguments[0]) + ", " +  
+            key + " is not a lemma.");
+          yield break;
+        }
       }
       if (members.Count == 0) {
+        branchGenerated = true;
+        yield return state;
         yield break;
       }
 
@@ -49,10 +74,14 @@ namespace Microsoft.Dafny.Tacny.Atomic
         else if(md is Function)
           mdIns.AddRange(((Function)md).Formals);
         else {
-          state.ReportTacticError(statement.Tok, Printer.ExprToString(callArguments[0]) + " is neither a Method or a Function");
+          state.ReportTacticError(statement.Tok, 
+            Printer.ExprToString(callArguments[0]) + " is neither a Method or a Function");
           yield break;
         }
-        //evaluate the arguemnts for the lemma to be called
+
+        /**********************
+         * init args for lemmas
+         **********************/
         var ovars = EvalExpr.EvalTacticExpression(state, callArguments[1]) as SeqDisplayExpr;
         if(ovars == null) {
           state.ReportTacticError(statement.Tok, Printer.ExprToString(callArguments[1]) + " is not a sequence.");
@@ -66,8 +95,7 @@ namespace Microsoft.Dafny.Tacny.Atomic
           if(var is TacticLiteralExpr)
             key = (string) (var as TacticLiteralExpr).Value;
           else if (var is NameSegment) {
-            key = (var as NameSegment).Name;
-              
+            key = (var as NameSegment).Name;      
           } else {
             state.ReportTacticError(statement.Tok, 
               "In " + Printer.ExprToString(callArguments[1]) + ", " + 
@@ -85,7 +113,7 @@ namespace Microsoft.Dafny.Tacny.Atomic
           }
         }
 
-        //for the case when no args, just add an empty list
+        //for the case of no args, just add an empty list
         if (mdIns.Count == 0) {
           args.Add(new List<IVariable>());
         }
@@ -112,36 +140,34 @@ namespace Microsoft.Dafny.Tacny.Atomic
               args[i].Add(arg);
           }
           /**
-           * if no type correct variables have been added we can safely return
+           * if no type correct variables have been added we can return
            * because we won't be able to generate valid calls
            */
           if (args[i].Count == 0) {
             flag = false;
           }
         }
-
+        // permute lemma call for the current lemma
         if (flag) {
           foreach (var result in PermuteArguments(args, 0, new List<NameSegment>())) {
             // create new fresh list of items to remove multiple references to the same object
             List<Expression> newList = result.Cast<Expression>().ToList().Copy();
-            ApplySuffix aps = new ApplySuffix(callArguments[0].tok, new NameSegment(callArguments[0].tok, md.Name, null),
+            ApplySuffix aps = new ApplySuffix(callArguments[0].tok, 
+              new NameSegment(callArguments[0].tok, md.Name, null),
               newList);
-            if (lv != null) {
-              var newState = state.Copy();
-              newState.AddTacnyVar(lv, aps);
-              yield return newState;
-            } else {
+
               var newState = state.Copy();
               UpdateStmt us = new UpdateStmt(aps.tok, aps.tok, new List<Expression>(),
                 new List<AssignmentRhs> {new ExprRhs(aps)});
-              //Printer p = new Printer(Console.Out);
-              //p.PrintStatement(us,0);
               newState.AddStatement(us);
+              branchGenerated = true;
               yield return newState;
-            }
           }
         }
       }
+      // for the case when no lemma call is generated.
+      if (!branchGenerated)
+        yield return state;
     }
 
 
