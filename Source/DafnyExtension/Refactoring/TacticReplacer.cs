@@ -5,6 +5,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using DafnyLanguage.DafnyMenu;
+using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Editor;
@@ -336,7 +337,10 @@ namespace DafnyLanguage.Refactoring
       if (result.Value == null) return TacticReplaceStatus.NoTactic;
       var sr = new StringWriter();
       var printer = new Printer(sr);
-      result.Value.ForEach(stmt => printer.PrintStatement(stmt, 4));
+      foreach (var stmt in result.Value) {
+        printer.PrintStatement(stmt, 4);
+       sr.Write("\n");
+      }
       expanded = sr.ToString();
       return !string.IsNullOrEmpty(expanded) ? TacticReplaceStatus.Success : TacticReplaceStatus.NoTactic;
     }
