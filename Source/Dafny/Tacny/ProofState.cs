@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.Tacny{
     /// </summary>
     /// <param name="tacAps">Tactic application</param>
     /// <param name="variables">Dafny variables</param>
-    public void InitState(Statement tacAps, Dictionary<IVariable, Dfy.Type> variables){
+    public bool InitState(Statement tacAps, Dictionary<IVariable, Dfy.Type> variables){
       // clear the scope  
       _scope = new Stack<Frame>();
 
@@ -124,6 +124,8 @@ namespace Microsoft.Dafny.Tacny{
       if (tactic != null && (aps != null && aps.Args.Count != tactic.Ins.Count))
         ReportTacticError(tacAps.Tok,
           $"Wrong number of method arguments (got {aps.Args.Count}, expected {tactic.Ins.Count})");
+
+      return _scope.Peek().FrameCtrl.enabled;
 
     }
 

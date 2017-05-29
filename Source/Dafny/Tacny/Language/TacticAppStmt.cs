@@ -71,6 +71,10 @@ namespace Microsoft.Dafny.Tacny.Language{
             state.AddTacnyVar(tactic.Ins[index].Name, arg);
           }
           frameCtrl.InitBasicFrameCtrl(body, true, tacApsStmt.Rhss[0].Attributes, null, tactic.Attributes);
+          if (!frameCtrl.enabled) {
+            yield return state;
+            yield break;
+          }
           state.AddNewFrame(frameCtrl);
 
           yield return state;

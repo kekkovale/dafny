@@ -17,6 +17,7 @@ namespace Microsoft.Dafny.Tacny.Language{
     public int OriginalBk = -1;
     public int Backtrack;
     public int TimeStamp = 0;
+    public bool enabled = true;
 
     //a funtion with the right kind will be able to th generated code to List of statment
     protected List<Statement> GeneratedCode;
@@ -36,6 +37,17 @@ namespace Microsoft.Dafny.Tacny.Language{
       Expression arg;
       LiteralExpr literalExpr;
       switch(attr.Name) {
+        case "enabled":
+          enabled = true;
+          arg = attr.Args.FirstOrDefault();
+          if (arg != null && arg is LiteralExpr &&
+              ((LiteralExpr) arg).Value is bool &&
+              ((bool)(arg as LiteralExpr).Value) == false)
+            enabled = false;
+          break;
+        case "disabled":
+          enabled = false;
+          break;
         case "partial":
           IsPartial = true;
           break;

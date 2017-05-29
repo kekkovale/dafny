@@ -29,7 +29,8 @@ namespace Microsoft.Dafny.Tacny
       Contract.Requires(tacticApplication is UpdateStmt || tacticApplication is InlineTacticBlockStmt);
 
       ProofState ret;
-      state.InitState(tacticApplication, variables);
+      if (state.InitState(tacticApplication, variables) == false)
+        return null;
 
 #if !TACNY_DEBUG
       try {
