@@ -80,7 +80,6 @@ namespace Microsoft.Dafny.refactoring
             }
 
             return lhss;
-
         }
         
         
