@@ -11,6 +11,7 @@ using Bpl = Microsoft.Boogie;
 using System.Reflection;
 using DafnyAssembly;
 using Microsoft.Dafny.Tacny;
+using Microsoft.Dafny.refactoring;
 
 namespace Microsoft.Dafny {
 
@@ -71,6 +72,7 @@ namespace Microsoft.Dafny {
 
       public static void MaybePrintProgram(Program program, string filename, bool afterResolver)
       {
+            
           if (filename != null) {
               TextWriter tw;
               if (filename == "-") {
@@ -78,6 +80,7 @@ namespace Microsoft.Dafny {
               } else {
                   tw = new System.IO.StreamWriter(filename);
               }
+                
               Printer pr = new Printer(tw, DafnyOptions.O.PrintMode);
               pr.PrintProgram(program, afterResolver);
           }
@@ -94,7 +97,15 @@ namespace Microsoft.Dafny {
         r = null;
         return err;
       }
-      return Resolve(program, reporter, out r);
+
+            var printer = new Printer(Console.Out);
+
+            //SomeRefactoring refactoring = new SomeRefactoring();
+            //refactoring.renameMethod(program);
+            Class2 cl = new Class2();
+            cl.rename(program, "lem", "foo");
+            printer.PrintProgram(program ,false);
+            return Resolve(program, reporter, out r);
     }
 
     public static string Parse(IList<DafnyFile> files, string programName, ErrorReporter reporter, out Program program)

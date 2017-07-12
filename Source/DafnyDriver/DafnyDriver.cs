@@ -173,7 +173,9 @@ namespace Microsoft.Dafny
       
       Dafny.Program dafnyProgram;
       Resolver r;
+            
       string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the program";
+            
       string err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram, out r);
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;

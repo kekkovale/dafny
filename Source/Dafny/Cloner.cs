@@ -199,7 +199,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    public Formal CloneFormal(Formal formal) {
+    public virtual Formal CloneFormal(Formal formal) {
       Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost, formal.IsOld);
       //if (f.Type is UserDefinedType && formal.Type is UserDefinedType)
       //    ((UserDefinedType)f.Type).ResolvedClass = ((UserDefinedType)(formal.Type)).ResolvedClass;
@@ -239,7 +239,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    public MaybeFreeExpression CloneMayBeFreeExpr(MaybeFreeExpression expr) {
+    public virtual MaybeFreeExpression CloneMayBeFreeExpr(MaybeFreeExpression expr) {
       var mfe = new MaybeFreeExpression(CloneExpr(expr.E), expr.IsFree);
       mfe.Attributes = CloneAttributes(expr.Attributes);
       return mfe;

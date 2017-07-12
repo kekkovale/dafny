@@ -27,6 +27,7 @@ namespace Microsoft.Dafny.Tacny {
       }
       return false;
     }
+
     public static Expression VariableToExpression(IVariable variable) {
       Contract.Requires(variable != null);
       return new NameSegment(variable.Tok, variable.Name, null);

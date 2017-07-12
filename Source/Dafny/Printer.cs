@@ -213,7 +213,7 @@ Everything) {
       int i = 0;
       foreach (TopLevelDecl d in decls) {
         Contract.Assert(d != null);
-        if (PrintModeSkipGeneral(d.tok, fileBeingPrinted)) { continue; }
+       if (PrintModeSkipGeneral(d.tok, fileBeingPrinted)) { continue; }
         if (d is OpaqueTypeDecl) {
           var at = (OpaqueTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -239,7 +239,8 @@ Everything) {
             PrintExpression(dd.Constraint, true);
           }
           wr.WriteLine();
-        } else if (d is SubsetTypeDecl) {
+        }
+        else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
@@ -748,6 +749,7 @@ Everything) {
             Indent(indent + 2 * IndentAmount);
             wr.Write("returns ");
           }
+                    Console.WriteLine("INS: {0}", method.Ins.Count); //CODICE MIO
           PrintFormals(method.Outs, method);
         }
         wr.WriteLine();

@@ -171,6 +171,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cloner.cs" />
+    <Compile Include="refactoring\Class1.cs" />
+    <Compile Include="refactoring\Class2.cs" />
+    <Compile Include="refactoring\InvisibleErrorReporter.cs" />
     <Compile Include="Reporting.cs" />
     <Compile Include="Tacny\Atomic\Atomic.cs" />
     <Compile Include="Tacny\Atomic\TacticInv.cs" />
