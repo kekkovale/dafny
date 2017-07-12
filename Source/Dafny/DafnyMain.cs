@@ -103,7 +103,7 @@ namespace Microsoft.Dafny {
             //SomeRefactoring refactoring = new SomeRefactoring();
             //refactoring.renameMethod(program);
             Refactoring refactoring = new Refactoring(program);
-            refactoring.renameRefactoring("lem", "foo");
+            refactoring.renameRefactoring("x", "z");
             printer.PrintProgram(program ,false);
             return Resolve(program, reporter, out r);
     }

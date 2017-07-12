@@ -12,15 +12,13 @@ namespace Microsoft.Dafny.refactoring
 
         private String oldValue;
         private String newValue;
-        private List<MemberDecl> newMembers = new List<MemberDecl>();
-        private Dictionary<int, MemberDecl> updates = new Dictionary<int, MemberDecl>();
+        private Dictionary<int, MemberDecl> updates;
         private Program program;
         private ClassDecl classDecl;
 
         public Refactoring(Program program)
         {
             this.program = program;
-            newMembers = new List<MemberDecl>();
             updates = new Dictionary<int, MemberDecl>();
             classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
         }
@@ -40,7 +38,8 @@ namespace Microsoft.Dafny.refactoring
                     
                     int index = classDecl.Members.IndexOf(member);
                     updates.Add(index, newMethod);                                       
-                }           
+                }
+                          
             }
             this.update(classDecl);   
 
@@ -56,12 +55,35 @@ namespace Microsoft.Dafny.refactoring
             }
         }
 
+        public bool isOldValue(String oldValue)
+        {
+            if (this.oldValue == oldValue)
+                return true;
+            else
+                return false;
+        }
+
         public override Statement CloneStmt(Statement stmt)
         {
             if (stmt is VarDeclStmt)
             {
                 var s = (VarDeclStmt)stmt;
-                var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), this.newValue, CloneType(c.OptionalType), c.IsGhost));
+                List<LocalVariable> lhss = new List<LocalVariable>();
+                    
+                foreach (LocalVariable lv in s.Locals)
+                {
+                    if (isOldValue(lv.DisplayName))
+                    {
+                        var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), this.newValue, CloneType(lv.OptionalType), lv.IsGhost);
+                        lhss.Add(newLv);
+                    }
+                    else
+                    {
+                        var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), lv.Name, CloneType(lv.OptionalType), lv.IsGhost);
+                        lhss.Add(newLv);
+                    }
+                }
+                
                 return new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
             }
             else
@@ -71,7 +93,7 @@ namespace Microsoft.Dafny.refactoring
         public override Expression CloneNameSegment(Expression expr)
         {
             var nameSegment = expr as NameSegment;
-            if(nameSegment.Name == this.oldValue)
+            if(isOldValue(nameSegment.Name))
             {
                 return new NameSegment(Tok(nameSegment.tok), this.newValue, nameSegment.OptTypeArguments == null ? null : nameSegment.OptTypeArguments.ConvertAll(CloneType));
             }else
@@ -80,7 +102,7 @@ namespace Microsoft.Dafny.refactoring
 
         public override Formal CloneFormal(Formal formal)
         {
-            if (formal.DisplayName == this.oldValue)
+            if (isOldValue(formal.DisplayName))
                 return new Formal(Tok(formal.tok), this.newValue, CloneType(formal.Type), formal.InParam, formal.IsGhost, formal.IsOld);
             else
                 return base.CloneFormal(formal);
@@ -134,7 +156,7 @@ namespace Microsoft.Dafny.refactoring
                 else
                 {
                     return new Method(Tok(m.tok), this.newValue, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
+                        req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
                 }
             }
             else
