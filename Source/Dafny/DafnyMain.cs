@@ -102,8 +102,8 @@ namespace Microsoft.Dafny {
 
             //SomeRefactoring refactoring = new SomeRefactoring();
             //refactoring.renameMethod(program);
-            Class2 cl = new Class2();
-            cl.rename(program, "lem", "foo");
+            Refactoring refactoring = new Refactoring(program);
+            refactoring.renameRefactoring("lem", "foo");
             printer.PrintProgram(program ,false);
             return Resolve(program, reporter, out r);
     }

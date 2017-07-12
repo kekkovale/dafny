@@ -7,28 +7,31 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.refactoring
 {
-    class Class2 : Cloner
+    class Refactoring : Cloner
     {
 
         private String oldValue;
         private String newValue;
         private List<MemberDecl> newMembers = new List<MemberDecl>();
         private Dictionary<int, MemberDecl> updates = new Dictionary<int, MemberDecl>();
+        private Program program;
+        private ClassDecl classDecl;
 
-        public Program rename(Program program, String newName, String oldName)
+        public Refactoring(Program program)
         {
-            Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
-            this.newValue = newName; this.oldValue = oldName;
-
-            var classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
-
-            renameTopLvlDecl(classDecl);
-
-            return program;
+            this.program = program;
+            newMembers = new List<MemberDecl>();
+            updates = new Dictionary<int, MemberDecl>();
+            classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
         }
 
-        public void renameTopLvlDecl(ClassDecl classDecl)
-        {      
+        public Program renameRefactoring(String oldName, String newName)
+        {
+            Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
+
+            this.newValue = newName;
+            this.oldValue = oldName;
+
             foreach (MemberDecl member in classDecl.Members)
             {       
                 if (member is Method)
@@ -40,6 +43,8 @@ namespace Microsoft.Dafny.refactoring
                 }           
             }
             this.update(classDecl);   
+
+            return program;
         }
 
         public void update(ClassDecl classDecl)
@@ -80,19 +85,7 @@ namespace Microsoft.Dafny.refactoring
             else
                 return base.CloneFormal(formal);
         }
-        /*
-        public override MaybeFreeExpression CloneMayBeFreeExpr(MaybeFreeExpression expr)
-        {
-
-            return base.CloneMayBeFreeExpr(expr);
-        }
-
-        public override Expression CloneExpr(Expression expr)
-        {
-
-            return base.CloneExpr(expr);
-        }
-        */
+        
         public override Method CloneMethod(Method m)
         {
             var tps = m.TypeArgs.ConvertAll(CloneTypeParam);
