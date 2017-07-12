@@ -32,14 +32,12 @@ namespace Microsoft.Dafny.refactoring
 
             foreach (MemberDecl member in classDecl.Members)
             {       
-                if (member is Method)
-                {
-                    Method newMethod = CloneMethod(member as Method);
+                
+                MemberDecl newMember = CloneMember(member);
                     
-                    int index = classDecl.Members.IndexOf(member);
-                    updates.Add(index, newMethod);                                       
-                }
-                          
+                int index = classDecl.Members.IndexOf(member);
+                updates.Add(index, newMember);                                       
+       
             }
             this.update(classDecl);   
 
@@ -63,27 +61,36 @@ namespace Microsoft.Dafny.refactoring
                 return false;
         }
 
+        public List<LocalVariable> cloneLocalVariables(VarDeclStmt s)
+        {
+            List<LocalVariable> lhss = new List<LocalVariable>();
+
+            foreach (LocalVariable lv in s.Locals)
+            {
+                if (isOldValue(lv.DisplayName))
+                {
+                    var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), this.newValue, CloneType(lv.OptionalType), lv.IsGhost);
+                    lhss.Add(newLv);
+                }
+                else
+                {
+                    var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), lv.Name, CloneType(lv.OptionalType), lv.IsGhost);
+                    lhss.Add(newLv);
+                }
+            }
+
+            return lhss;
+
+        }
+        
+        
         public override Statement CloneStmt(Statement stmt)
         {
             if (stmt is VarDeclStmt)
             {
                 var s = (VarDeclStmt)stmt;
-                List<LocalVariable> lhss = new List<LocalVariable>();
-                    
-                foreach (LocalVariable lv in s.Locals)
-                {
-                    if (isOldValue(lv.DisplayName))
-                    {
-                        var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), this.newValue, CloneType(lv.OptionalType), lv.IsGhost);
-                        lhss.Add(newLv);
-                    }
-                    else
-                    {
-                        var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), lv.Name, CloneType(lv.OptionalType), lv.IsGhost);
-                        lhss.Add(newLv);
-                    }
-                }
-                
+                List<LocalVariable> lhss = cloneLocalVariables(s);
+                                  
                 return new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
             }
             else
@@ -107,7 +114,51 @@ namespace Microsoft.Dafny.refactoring
             else
                 return base.CloneFormal(formal);
         }
-        
+
+        public override Expression CloneExpr(Expression expr)
+        {
+            if (expr is ExprDotName)
+            {
+                var e = (ExprDotName)expr;
+
+                if(isOldValue(e.SuffixName))
+                    return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), this.newValue, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+                else
+                    return base.CloneExpr(expr);
+            }
+            else
+                return base.CloneExpr(expr);
+        }
+
+        public override MemberDecl CloneMember(MemberDecl member)
+        {
+            if (member is Field)
+            {
+                if (member is ConstantField)
+                {
+                    var c = (ConstantField)member;
+
+                    if (isOldValue(c.Name))
+                        return new ConstantField(Tok(c.tok), this.newValue, CloneExpr(c.constValue), c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
+                    else
+                        return base.CloneMember(member);
+                }
+                else
+                {
+                    Contract.Assert(!(member is SpecialField));
+                    var f = (Field)member;
+
+                    if(isOldValue(f.Name))
+                        return new Field(Tok(f.tok), this.newValue, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+                    else
+                        return base.CloneMember(member);
+                }
+            }
+            else
+                return base.CloneMember(member);
+
+        }
+
         public override Method CloneMethod(Method m)
         {
             var tps = m.TypeArgs.ConvertAll(CloneTypeParam);
