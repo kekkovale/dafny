@@ -9,8 +9,9 @@ namespace Microsoft.Dafny.refactoring
 {
     class Refactoring : Cloner
     {               
-        private String oldValue;
-        private String newValue;
+        private String oldName;
+        private String newName;
+        private String simpleName;
         private int line;
         private int column;
         private Dictionary<int, MemberDecl> updates;
@@ -32,7 +33,7 @@ namespace Microsoft.Dafny.refactoring
         {
             //Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
 
-            this.newValue = newName;
+            this.newName = newName;
             this.line = line;
             this.column = column;
 
@@ -40,12 +41,22 @@ namespace Microsoft.Dafny.refactoring
             {
                 foreach (MemberDecl member in classDecl.Members)
                 {
-
-                    MemberDecl newMember = CloneMember(member);
-
-                    int index = classDecl.Members.IndexOf(member);
-                    updates.Add(index, newMember);
-
+                    if (refactoringFormals())
+                    {
+                        if (member.Name == currentMethod && member.Name != null && currentMethod != null)
+                        {
+                            MemberDecl newMember = CloneMember(member);
+                            int index = classDecl.Members.IndexOf(member);
+                            updates.Add(index, newMember);
+                            
+                        }
+                    }
+                    else
+                    {
+                        MemberDecl newMember = CloneMember(member);
+                        int index = classDecl.Members.IndexOf(member);
+                        updates.Add(index, newMember);
+                    }
                 }
                 this.update(classDecl);
             }
@@ -53,21 +64,38 @@ namespace Microsoft.Dafny.refactoring
             return program;
         }
 
+        public bool refactoringFormals()
+        {
+            if (currentMethod != null)
+                return true;
+            else
+                return false;
+        }
+
         public bool findExpression()
         {
-            
+            this.currentMethod = null;
             this.finding = true;
+            this.exprFound = false;
+
+            
             foreach (MemberDecl member in classDecl.Members)
             {
                 CloneMember(member);
+
+                if (simpleName == oldName && simpleName != null && oldName != null)
+                {
+                    currentMethod = member.Name;
+                }
+
+                if (exprFound)
+                    break;
             }
+            
 
             this.finding = false;
 
-            if (this.oldValue != null)
-                return this.exprFound = true;
-            else
-                return this.exprFound = false;
+            return this.exprFound;
         }
 
         public String getCompileName<T>(T expr)
@@ -128,7 +156,7 @@ namespace Microsoft.Dafny.refactoring
 
         public bool isOldValue(String oldValue)
         {
-            return this.oldValue == oldValue;
+            return this.oldName == oldValue;
         }
 
         public List<LocalVariable> cloneLocalVariables(VarDeclStmt s)
@@ -141,15 +169,16 @@ namespace Microsoft.Dafny.refactoring
                 {
                     if (lv.Tok.line == this.line && lv.Tok.col == this.column)
                     {
-                        this.oldValue = this.getCompileName(lv);
-                        
+                        this.oldName = this.getCompileName(lv);
+                        this.simpleName = lv.DisplayName;
+                        this.exprFound = true;
                     }
                 }
                 else
                 {
                     if (isOldValue(lv.CompileName))
                     {
-                        var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), this.newValue, CloneType(lv.OptionalType), lv.IsGhost);
+                        var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), this.newName, CloneType(lv.OptionalType), lv.IsGhost);
                         lhss.Add(newLv);
                     }
                     else
@@ -185,7 +214,9 @@ namespace Microsoft.Dafny.refactoring
             {
                 if (nameSegment.tok.line == this.line && nameSegment.tok.col == this.column)
                 {
-                    this.oldValue = this.getCompileName(nameSegment.ResolvedExpression);
+                    this.oldName = this.getCompileName(nameSegment.ResolvedExpression);
+                    this.simpleName = nameSegment.Name;
+                    this.exprFound = true;
                 }                
             }
             else
@@ -193,7 +224,7 @@ namespace Microsoft.Dafny.refactoring
                 
                 if (isOldValue(this.getCompileName(nameSegment.ResolvedExpression)))
                 {
-                    return new NameSegment(Tok(nameSegment.tok), this.newValue, nameSegment.OptTypeArguments == null ? null : nameSegment.OptTypeArguments.ConvertAll(CloneType));
+                    return new NameSegment(Tok(nameSegment.tok), this.newName, nameSegment.OptTypeArguments == null ? null : nameSegment.OptTypeArguments.ConvertAll(CloneType));
                 }               
             }
             return base.CloneNameSegment(expr);
@@ -204,12 +235,15 @@ namespace Microsoft.Dafny.refactoring
             if (finding)
             {
                 if (formal.tok.line == this.line && formal.tok.col == this.column)
-                    this.oldValue = this.getCompileName(formal);
-
+                {
+                    this.oldName = this.getCompileName(formal);
+                    this.simpleName = formal.Name;
+                    this.exprFound = true;
+                }
             } else {
 
                 if (isOldValue(this.getCompileName(formal)))
-                    return new Formal(Tok(formal.tok), this.newValue, CloneType(formal.Type), formal.InParam, formal.IsGhost, formal.IsOld);
+                    return new Formal(Tok(formal.tok), this.newName, CloneType(formal.Type), formal.InParam, formal.IsGhost, formal.IsOld);
             }
 
             return base.CloneFormal(formal);
@@ -225,7 +259,11 @@ namespace Microsoft.Dafny.refactoring
 
 
                     if (e.tok.line == this.line && e.tok.col == this.column)
-                        this.oldValue = this.getCompileName(e.ResolvedExpression);
+                    {
+                        this.oldName = this.getCompileName(e.ResolvedExpression);
+                        this.simpleName = e.SuffixName;
+                        this.exprFound = true;
+                    }
                 }
                 return base.CloneExpr(expr);
             }
@@ -237,7 +275,7 @@ namespace Microsoft.Dafny.refactoring
 
 
                     if (isOldValue(this.getCompileName(e.ResolvedExpression)))
-                        return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), this.newValue, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+                        return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), this.newName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
                     else
                         return base.CloneExpr(expr);
                 }
@@ -245,6 +283,12 @@ namespace Microsoft.Dafny.refactoring
                     return base.CloneExpr(expr);
             }
             
+        }
+
+        public override Specification<Expression> CloneSpecExpr(Specification<Expression> spec)
+        {
+
+            return base.CloneSpecExpr(spec);
         }
 
         public override MemberDecl CloneMember(MemberDecl member)
@@ -258,8 +302,11 @@ namespace Microsoft.Dafny.refactoring
                         var c = (ConstantField)member;
 
                         if (c.tok.line == this.line && c.tok.col == this.column)
-                            this.oldValue = this.getCompileName(c);
-                       
+                        {
+                            this.oldName = this.getCompileName(c);
+                            this.simpleName = c.Name;
+                            this.exprFound = true;
+                        }
                     }
                     else
                     {
@@ -267,7 +314,12 @@ namespace Microsoft.Dafny.refactoring
                         var f = (Field)member;
 
                         if (f.tok.line == this.line && f.tok.col == this.column)
-                            this.oldValue = this.getCompileName(f);
+                        {
+                            this.oldName = this.getCompileName(f);
+                            this.simpleName = f.Name;
+                            this.exprFound = true;
+                        }
+                            
                         
                     }
                 }
@@ -281,7 +333,7 @@ namespace Microsoft.Dafny.refactoring
                         var c = (ConstantField)member;
 
                         if (isOldValue(this.getCompileName(c)))
-                            return new ConstantField(Tok(c.tok), this.newValue, CloneExpr(c.constValue), c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
+                            return new ConstantField(Tok(c.tok), this.newName, CloneExpr(c.constValue), c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
 
                     }
                     else
@@ -290,7 +342,7 @@ namespace Microsoft.Dafny.refactoring
                         var f = (Field)member;
 
                         if (isOldValue(this.getCompileName(f)))
-                            return new Field(Tok(f.tok), this.newValue, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+                            return new Field(Tok(f.tok), this.newName, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
 
                     }
                 }
@@ -303,9 +355,6 @@ namespace Microsoft.Dafny.refactoring
         
         public override Method CloneMethod(Method m)
         {
-            this.currentMethod = this.getCompileName(m);
-
-
             var tps = m.TypeArgs.ConvertAll(CloneTypeParam);
             var ins = m.Ins.ConvertAll(CloneFormal);
             var req = m.Req.ConvertAll(CloneMayBeFreeExpr);
@@ -319,7 +368,10 @@ namespace Microsoft.Dafny.refactoring
             if (finding)
             {
                 if (m.tok.line == this.line && m.tok.col == this.column)
-                    this.oldValue = this.getCompileName(m);
+                {
+                    this.oldName = this.getCompileName(m);
+                    this.exprFound = true;
+                }
             }
             else
             {
@@ -327,38 +379,38 @@ namespace Microsoft.Dafny.refactoring
                 {
                     if (m is Constructor)
                     {
-                        return new Constructor(Tok(m.tok), this.newValue, tps, ins,
+                        return new Constructor(Tok(m.tok), this.newName, tps, ins,
                           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
                     }
                     else if (m is InductiveLemma)
                     {
-                        return new InductiveLemma(Tok(m.tok), this.newValue, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+                        return new InductiveLemma(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
                           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
                     }
                     else if (m is CoLemma)
                     {
-                        return new CoLemma(Tok(m.tok), this.newValue, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+                        return new CoLemma(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
                           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
                     }
                     else if (m is Lemma)
                     {
-                        return new Lemma(Tok(m.tok), this.newValue, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+                        return new Lemma(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
                           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
                     }
                     else if (m is TwoStateLemma)
                     {
                         var two = (TwoStateLemma)m;
-                        return new TwoStateLemma(Tok(m.tok), this.newValue, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+                        return new TwoStateLemma(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
                           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
                     }
                     else if (m is Tactic)
                     {
-                        return new Tactic(Tok(m.tok), this.newValue, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+                        return new Tactic(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
                             req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
                     }
                     else
                     {
-                        return new Method(Tok(m.tok), this.newValue, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
+                        return new Method(Tok(m.tok), this.newName, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
                             req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
                     }
                 }

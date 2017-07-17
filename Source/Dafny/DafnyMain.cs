@@ -106,7 +106,7 @@ namespace Microsoft.Dafny {
             if (resolved == null)
             {
                 Refactoring refactoring = new Refactoring(program);
-                refactoring.renameRefactoring("prova",10,29);
+                refactoring.renameRefactoring("prova",24,9);
                 printer.PrintProgram(program, false);
             }
             

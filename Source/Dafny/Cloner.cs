@@ -212,7 +212,7 @@ namespace Microsoft.Dafny
       return bvNew;
     }
 
-    public Specification<Expression> CloneSpecExpr(Specification<Expression> spec) {
+    public virtual Specification<Expression> CloneSpecExpr(Specification<Expression> spec) {
       var ee = spec.Expressions == null ? null : spec.Expressions.ConvertAll(CloneExpr);
       return new Specification<Expression>(ee, CloneAttributes(spec.Attributes));
     }
