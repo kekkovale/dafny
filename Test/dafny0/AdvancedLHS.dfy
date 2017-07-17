@@ -18,6 +18,7 @@ class C {
     x := new C.InitOther(x);  // since the parameter is evaluated before the LHS is set, the precondition is met
     assert x != c;
 
+	/*
     // test evaluation order and modification
     if (*) {
       var k := this.x;
@@ -31,7 +32,7 @@ class C {
       var k := this.x;
       var kx := this.x.x;
       this.x.x := new C.InitAndMutate(this);
-      var t := this.x.x;  // error: null dereference (because InitAndMutate set this.x to null)
+      //var t := this.x.x;  // error: null dereference (because InitAndMutate set this.x to null)
     }
 
     if (a != null && 10 <= a.Length) {
@@ -42,6 +43,7 @@ class C {
       b[2,14] := new C;
       b[3,11] := *;
     }
+	*/
   }
 
   method Init() { }

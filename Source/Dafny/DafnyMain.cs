@@ -102,10 +102,15 @@ namespace Microsoft.Dafny {
 
             //SomeRefactoring refactoring = new SomeRefactoring();
             //refactoring.renameMethod(program);
-            Refactoring refactoring = new Refactoring(program);
-            refactoring.renameRefactoring("x", "z");
-            printer.PrintProgram(program ,false);
-            return Resolve(program, reporter, out r);
+            String resolved = Resolve(program, reporter, out r);
+            if (resolved == null)
+            {
+                Refactoring refactoring = new Refactoring(program);
+                refactoring.renameRefactoring("prova",10,29);
+                printer.PrintProgram(program, false);
+            }
+            
+            return resolved;
     }
 
     public static string Parse(IList<DafnyFile> files, string programName, ErrorReporter reporter, out Program program)
