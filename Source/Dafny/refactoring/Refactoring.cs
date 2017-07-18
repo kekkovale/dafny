@@ -9,24 +9,16 @@ namespace Microsoft.Dafny.refactoring
 {
     class Refactoring : Cloner
     {               
-        private String oldName;
         private String newName;
-        private String simpleName;
-        private int line;
-        private int column;
         private Dictionary<int, MemberDecl> updates;
         private Program program;
-        private ClassDecl classDecl;
-        private bool finding;
-        private bool exprFound;
-        private String currentMethod;
+        private Finder finder;
 
         public Refactoring(Program program)
         {            
             this.program = program;
             updates = new Dictionary<int, MemberDecl>();
-            classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
-            finding = false;
+            finder = new Finder(program);
         }
 
         public Program renameRefactoring(String newName, int line, int column)
@@ -34,18 +26,15 @@ namespace Microsoft.Dafny.refactoring
             //Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
 
             this.newName = newName;
-            this.line = line;
-            this.column = column;
+            ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
 
-            findExpression();
-
-            if (exprFound)
+            if (finder.findExpression(line, column))
             {
                 foreach (MemberDecl member in classDecl.Members)
                 {
                     if (refactoringFormals())
                     {
-                        if (member.Name == currentMethod && member.Name != null && currentMethod != null)
+                        if (member.Name == finder.CurrentMethodName && member.Name != null && finder.CurrentMethodName != null)
                         {
                             MemberDecl newMember = CloneMember(member);
                             int index = classDecl.Members.IndexOf(member);
@@ -66,86 +55,15 @@ namespace Microsoft.Dafny.refactoring
             return program;
         }
 
-        public bool refactoringFormals()
+        private bool refactoringFormals()
         {
-            if (currentMethod != null)
+            if (finder.CurrentMethodName != null)
                 return true;
             else
                 return false;
-        }
+        }           
 
-        public void findExpression()
-        {
-            this.currentMethod = null;
-            this.finding = true;
-            this.exprFound = false;
-
-            
-            foreach (MemberDecl member in classDecl.Members)
-            {
-                CloneMember(member);
-
-                if (simpleName == oldName && simpleName != null && oldName != null)
-                {
-                    currentMethod = member.Name;
-                }
-
-                if (exprFound)
-                    break;
-            }
-            
-
-            this.finding = false;
-
-        }
-
-        public String getCompileName<T>(T expr)
-        {
-            String compileName = null;
-
-            if(expr is IdentifierExpr)
-            {
-                IdentifierExpr matchExpr = expr as IdentifierExpr;
-                compileName = matchExpr.Var.CompileName;
-                                
-            }
-            else if(expr is Formal)
-            {
-                Formal matchExpr = expr as Formal;
-                compileName = matchExpr.CompileName;
-            }
-            else if (expr is LocalVariable)
-            {
-                LocalVariable matchExpr = expr as LocalVariable;
-                compileName = matchExpr.CompileName;
-            }
-            else if(expr is MemberSelectExpr)
-            {
-                MemberSelectExpr matchExpr = expr as MemberSelectExpr;
-                compileName = matchExpr.Member.FullCompileName;
-            }
-            else if (expr is ConstantField)
-            {
-                ConstantField matchExpr = expr as ConstantField;
-                compileName = matchExpr.FullCompileName;
-            }
-            else if (expr is Field)
-            {
-                Field matchExpr = expr as Field;
-                compileName = matchExpr.FullCompileName;
-            }
-            else if (expr is Method)
-            {
-                Method matchExpr = expr as Method;
-                compileName = matchExpr.FullCompileName;
-            }
-
-             return compileName;
-        }
-
-       
-
-        public void updateProgram(ClassDecl classDecl)
+        private void updateProgram(ClassDecl classDecl)
         {
 
             foreach (KeyValuePair<int, MemberDecl> entry in updates)
@@ -155,9 +73,9 @@ namespace Microsoft.Dafny.refactoring
             }
         }
 
-        public bool isOldValue(String oldValue)
+        private bool isOldValue(String compiledName)
         {
-            return this.oldName == oldValue;
+            return finder.CompiledName == compiledName;
         }
 
         public List<LocalVariable> cloneLocalVariables(VarDeclStmt s)
@@ -165,29 +83,19 @@ namespace Microsoft.Dafny.refactoring
             List<LocalVariable> lhss = new List<LocalVariable>();
             
             foreach (LocalVariable lv in s.Locals)
-            {
-                if (finding)
+            {              
+                
+                if (isOldValue(lv.CompileName))
                 {
-                    if (lv.Tok.line == this.line && lv.Tok.col == this.column)
-                    {
-                        this.oldName = this.getCompileName(lv);
-                        this.simpleName = lv.DisplayName;
-                        this.exprFound = true;
-                    }
+                    var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), this.newName, CloneType(lv.OptionalType), lv.IsGhost);
+                    lhss.Add(newLv);
                 }
                 else
                 {
-                    if (isOldValue(lv.CompileName))
-                    {
-                        var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), this.newName, CloneType(lv.OptionalType), lv.IsGhost);
-                        lhss.Add(newLv);
-                    }
-                    else
-                    {
-                        var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), lv.Name, CloneType(lv.OptionalType), lv.IsGhost);
-                        lhss.Add(newLv);
-                    }
+                    var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), lv.Name, CloneType(lv.OptionalType), lv.IsGhost);
+                    lhss.Add(newLv);
                 }
+                
             }
 
             return lhss;
@@ -209,146 +117,67 @@ namespace Microsoft.Dafny.refactoring
 
         public override Expression CloneNameSegment(Expression expr)
         {
-            var nameSegment = expr as NameSegment;
+            var nameSegment = expr as NameSegment;        
+
+            if (isOldValue(finder.getCompileName(nameSegment.ResolvedExpression)))
+            {
+                return new NameSegment(Tok(nameSegment.tok), this.newName, nameSegment.OptTypeArguments == null ? null : nameSegment.OptTypeArguments.ConvertAll(CloneType));
+            }               
             
-            if (finding)
-            {
-                if (nameSegment.tok.line == this.line && nameSegment.tok.col == this.column)
-                {
-                    this.oldName = this.getCompileName(nameSegment.ResolvedExpression);
-                    this.simpleName = nameSegment.Name;
-                    this.exprFound = true;
-                }                
-            }
-            else
-            {
-                
-                if (isOldValue(this.getCompileName(nameSegment.ResolvedExpression)))
-                {
-                    return new NameSegment(Tok(nameSegment.tok), this.newName, nameSegment.OptTypeArguments == null ? null : nameSegment.OptTypeArguments.ConvertAll(CloneType));
-                }               
-            }
             return base.CloneNameSegment(expr);
         }
 
         public override Formal CloneFormal(Formal formal)
-        {
-            if (finding)
-            {
-                if (formal.tok.line == this.line && formal.tok.col == this.column)
-                {
-                    this.oldName = this.getCompileName(formal);
-                    this.simpleName = formal.Name;
-                    this.exprFound = true;
-                }
-            } else {
+        {            
 
-                if (isOldValue(this.getCompileName(formal)))
-                    return new Formal(Tok(formal.tok), this.newName, CloneType(formal.Type), formal.InParam, formal.IsGhost, formal.IsOld);
-            }
-
+            if (isOldValue(finder.getCompileName(formal)))
+                return new Formal(Tok(formal.tok), this.newName, CloneType(formal.Type), formal.InParam, formal.IsGhost, formal.IsOld);
+            
             return base.CloneFormal(formal);
         }
 
         public override Expression CloneExpr(Expression expr)
-        {
-            if (finding)
+        {         
+          
+            if (expr is ExprDotName)
             {
-                if (expr is ExprDotName)
-                {
-                    var e = (ExprDotName)expr;
+                var e = (ExprDotName)expr;
 
 
-                    if (e.tok.line == this.line && e.tok.col == this.column)
-                    {
-                        this.oldName = this.getCompileName(e.ResolvedExpression);
-                        this.simpleName = e.SuffixName;
-                        this.exprFound = true;
-                    }
-                }
-                return base.CloneExpr(expr);
-            }
-            else
-            {
-                if (expr is ExprDotName)
-                {
-                    var e = (ExprDotName)expr;
-
-
-                    if (isOldValue(this.getCompileName(e.ResolvedExpression)))
-                        return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), this.newName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
-                    else
-                        return base.CloneExpr(expr);
-                }
+                if (isOldValue(finder.getCompileName(e.ResolvedExpression)))
+                    return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), this.newName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
                 else
                     return base.CloneExpr(expr);
             }
-            
-        }
-
-        public override Specification<Expression> CloneSpecExpr(Specification<Expression> spec)
-        {
-
-            return base.CloneSpecExpr(spec);
+            else
+                return base.CloneExpr(expr);
+               
         }
 
         public override MemberDecl CloneMember(MemberDecl member)
         {
-            if (finding)
+
+            if (member is Field)
             {
-                if (member is Field)
+                if (member is ConstantField)
                 {
-                    if (member is ConstantField)
-                    {
-                        var c = (ConstantField)member;
+                    var c = (ConstantField)member;
 
-                        if (c.tok.line == this.line && c.tok.col == this.column)
-                        {
-                            this.oldName = this.getCompileName(c);
-                            this.simpleName = c.Name;
-                            this.exprFound = true;
-                        }
-                    }
-                    else
-                    {
-                        Contract.Assert(!(member is SpecialField));
-                        var f = (Field)member;
+                    if (isOldValue(finder.getCompileName(c)))
+                        return new ConstantField(Tok(c.tok), this.newName, CloneExpr(c.constValue), c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
 
-                        if (f.tok.line == this.line && f.tok.col == this.column)
-                        {
-                            this.oldName = this.getCompileName(f);
-                            this.simpleName = f.Name;
-                            this.exprFound = true;
-                        }
-                            
-                        
-                    }
+                }
+                else
+                {
+                    Contract.Assert(!(member is SpecialField));
+                    var f = (Field)member;
+
+                    if (isOldValue(finder.getCompileName(f)))
+                        return new Field(Tok(f.tok), this.newName, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+
                 }
             }
-            else
-            {
-                if (member is Field)
-                {
-                    if (member is ConstantField)
-                    {
-                        var c = (ConstantField)member;
 
-                        if (isOldValue(this.getCompileName(c)))
-                            return new ConstantField(Tok(c.tok), this.newName, CloneExpr(c.constValue), c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
-
-                    }
-                    else
-                    {
-                        Contract.Assert(!(member is SpecialField));
-                        var f = (Field)member;
-
-                        if (isOldValue(this.getCompileName(f)))
-                            return new Field(Tok(f.tok), this.newName, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
-
-                    }
-                }
-            }
-           
             return base.CloneMember(member);
 
         }
@@ -365,58 +194,47 @@ namespace Microsoft.Dafny.refactoring
             var ens = m.Ens.ConvertAll(CloneMayBeFreeExpr);
 
             BlockStmt body = CloneMethodBody(m);
-
-            if (finding)
+                        
+            if (isOldValue(finder.getCompileName(m)))
             {
-                if (m.tok.line == this.line && m.tok.col == this.column)
+                if (m is Constructor)
                 {
-                    this.oldName = this.getCompileName(m);
-                    this.exprFound = true;
+                    return new Constructor(Tok(m.tok), this.newName, tps, ins,
+                        req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
+                }
+                else if (m is InductiveLemma)
+                {
+                    return new InductiveLemma(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+                        req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
+                }
+                else if (m is CoLemma)
+                {
+                    return new CoLemma(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+                        req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
+                }
+                else if (m is Lemma)
+                {
+                    return new Lemma(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+                        req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
+                }
+                else if (m is TwoStateLemma)
+                {
+                    var two = (TwoStateLemma)m;
+                    return new TwoStateLemma(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+                        req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
+                }
+                else if (m is Tactic)
+                {
+                    return new Tactic(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+                        req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
+                }
+                else
+                {
+                    return new Method(Tok(m.tok), this.newName, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
+                        req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
                 }
             }
-            else
-            {
-                if (isOldValue(this.getCompileName(m)))
-                {
-                    if (m is Constructor)
-                    {
-                        return new Constructor(Tok(m.tok), this.newName, tps, ins,
-                          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
-                    }
-                    else if (m is InductiveLemma)
-                    {
-                        return new InductiveLemma(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
-                          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
-                    }
-                    else if (m is CoLemma)
-                    {
-                        return new CoLemma(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
-                          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
-                    }
-                    else if (m is Lemma)
-                    {
-                        return new Lemma(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
-                          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
-                    }
-                    else if (m is TwoStateLemma)
-                    {
-                        var two = (TwoStateLemma)m;
-                        return new TwoStateLemma(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
-                          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
-                    }
-                    else if (m is Tactic)
-                    {
-                        return new Tactic(Tok(m.tok), this.newName, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
-                            req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
-                    }
-                    else
-                    {
-                        return new Method(Tok(m.tok), this.newName, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
-                            req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
-                    }
-                }
-            }
-                    
+     
              return base.CloneMethod(m);
         }
 
