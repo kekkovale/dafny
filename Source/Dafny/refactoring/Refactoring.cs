@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.refactoring
         private String currentMethod;
 
         public Refactoring(Program program)
-        {
+        {            
             this.program = program;
             updates = new Dictionary<int, MemberDecl>();
             classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
@@ -37,7 +37,9 @@ namespace Microsoft.Dafny.refactoring
             this.line = line;
             this.column = column;
 
-            if (findExpression())
+            findExpression();
+
+            if (exprFound)
             {
                 foreach (MemberDecl member in classDecl.Members)
                 {
@@ -58,7 +60,7 @@ namespace Microsoft.Dafny.refactoring
                         updates.Add(index, newMember);
                     }
                 }
-                this.update(classDecl);
+                this.updateProgram(classDecl);
             }
 
             return program;
@@ -72,7 +74,7 @@ namespace Microsoft.Dafny.refactoring
                 return false;
         }
 
-        public bool findExpression()
+        public void findExpression()
         {
             this.currentMethod = null;
             this.finding = true;
@@ -95,7 +97,6 @@ namespace Microsoft.Dafny.refactoring
 
             this.finding = false;
 
-            return this.exprFound;
         }
 
         public String getCompileName<T>(T expr)
@@ -144,7 +145,7 @@ namespace Microsoft.Dafny.refactoring
 
        
 
-        public void update(ClassDecl classDecl)
+        public void updateProgram(ClassDecl classDecl)
         {
 
             foreach (KeyValuePair<int, MemberDecl> entry in updates)
