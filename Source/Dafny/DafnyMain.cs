@@ -86,10 +86,16 @@ namespace Microsoft.Dafny {
           }
       }
 
-    /// <summary>
-    /// Returns null on success, or an error string otherwise.
-    /// </summary>
-    public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, ErrorReporter reporter, out Program program, out Resolver r)
+        public static Program cloneProgram(Program program)
+        {
+            var moduleDecl = new LiteralModuleDecl(program.DefaultModuleDef.Copy(), null);
+            return new Program(program.FullName, moduleDecl, program.BuiltIns, new InvisibleErrorReporter());
+        }
+
+        /// <summary>
+        /// Returns null on success, or an error string otherwise.
+        /// </summary>
+        public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, ErrorReporter reporter, out Program program, out Resolver r)
       //modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
     {
       string err = Parse(files, programName, reporter, out program);
@@ -102,16 +108,26 @@ namespace Microsoft.Dafny {
 
             //SomeRefactoring refactoring = new SomeRefactoring();
             //refactoring.renameMethod(program);
-            String resolved = Resolve(program, reporter, out r);
+            
+            Program resolvedProgram = Main.cloneProgram(program);
+
+            String resolved = Resolve(resolvedProgram, reporter, out r);
+            Program newProgram=null;
+
             if (resolved == null)
             {
-                Refactoring refactoring = new Refactoring(program);
-                refactoring.renameRefactoring("prova",13,14);
-                printer.PrintProgram(program, false);
+                Refactoring refactoring = new Refactoring(program,resolvedProgram);
+                newProgram = refactoring.renameRefactoring("lin",47,8);
+                printer.PrintProgram(newProgram, false);
             }
-            
+
+            if(newProgram != null)
+                resolved = Resolve(newProgram, reporter, out r);
+
             return resolved;
     }
+
+    
 
     public static string Parse(IList<DafnyFile> files, string programName, ErrorReporter reporter, out Program program)
     {

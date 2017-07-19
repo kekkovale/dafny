@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Dafny.Tacny;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -8,17 +9,18 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.refactoring
 {
     class Refactoring : Cloner
-    {               
+    {
+        HashSet<int> tokMap;               
         private String newName;
         private Dictionary<int, MemberDecl> updates;
         private Program program;
-        private Finder finder;
+        private Program resolvedProgram;
 
-        public Refactoring(Program program)
+        public Refactoring(Program program, Program resolvedProgram)
         {            
             this.program = program;
             updates = new Dictionary<int, MemberDecl>();
-            finder = new Finder(program);
+            this.resolvedProgram = resolvedProgram;
         }
 
         public Program renameRefactoring(String newName, int line, int column)
@@ -26,42 +28,25 @@ namespace Microsoft.Dafny.refactoring
             //Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
 
             this.newName = newName;
+            
             ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
 
-            if (finder.findExpression(line, column))
+            Collector collector = new Collector(resolvedProgram);
+            String compiledName = collector.Finder.findExpression(line, column);
+
+            tokMap = collector.collectVariables(compiledName);
+
+            foreach (MemberDecl member in classDecl.Members)
             {
-                foreach (MemberDecl member in classDecl.Members)
-                {
-                    if (refactoringFormals())
-                    {
-                        if (member.Name == finder.CurrentMethodName && member.Name != null && finder.CurrentMethodName != null)
-                        {
-                            MemberDecl newMember = CloneMember(member);
-                            int index = classDecl.Members.IndexOf(member);
-                            updates.Add(index, newMember);
-                            
-                        }
-                    }
-                    else
-                    {
-                        MemberDecl newMember = CloneMember(member);
-                        int index = classDecl.Members.IndexOf(member);
-                        updates.Add(index, newMember);
-                    }
-                }
-                this.updateProgram(classDecl);
+                MemberDecl newMember = CloneMember(member);
+                int index = classDecl.Members.IndexOf(member);
+                updates.Add(index, newMember);
             }
 
-            return program;
-        }
+            this.updateProgram(classDecl);
 
-        private bool refactoringFormals()
-        {
-            if (finder.CurrentMethodName != null)
-                return true;
-            else
-                return false;
-        }           
+            return program;
+        }      
 
         private void updateProgram(ClassDecl classDecl)
         {
@@ -73,11 +58,6 @@ namespace Microsoft.Dafny.refactoring
             }
         }
 
-        private bool isOldValue(String compiledName)
-        {
-            return finder.CompiledName == compiledName;
-        }
-
         public List<LocalVariable> cloneLocalVariables(VarDeclStmt s)
         {
             List<LocalVariable> lhss = new List<LocalVariable>();
@@ -85,7 +65,7 @@ namespace Microsoft.Dafny.refactoring
             foreach (LocalVariable lv in s.Locals)
             {              
                 
-                if (isOldValue(lv.CompileName))
+                if (tokMap.Contains(lv.Tok.pos))
                 {
                     var newLv = new LocalVariable(Tok(lv.Tok), Tok(lv.EndTok), this.newName, CloneType(lv.OptionalType), lv.IsGhost);
                     lhss.Add(newLv);
@@ -119,7 +99,7 @@ namespace Microsoft.Dafny.refactoring
         {
             var nameSegment = expr as NameSegment;        
 
-            if (isOldValue(finder.getCompileName(nameSegment.ResolvedExpression)))
+            if (tokMap.Contains(nameSegment.tok.pos))
             {
                 return new NameSegment(Tok(nameSegment.tok), this.newName, nameSegment.OptTypeArguments == null ? null : nameSegment.OptTypeArguments.ConvertAll(CloneType));
             }               
@@ -130,7 +110,7 @@ namespace Microsoft.Dafny.refactoring
         public override Formal CloneFormal(Formal formal)
         {            
 
-            if (isOldValue(finder.getCompileName(formal)))
+            if (tokMap.Contains(formal.tok.pos))
                 return new Formal(Tok(formal.tok), this.newName, CloneType(formal.Type), formal.InParam, formal.IsGhost, formal.IsOld);
             
             return base.CloneFormal(formal);
@@ -144,7 +124,7 @@ namespace Microsoft.Dafny.refactoring
                 var e = (ExprDotName)expr;
 
 
-                if (isOldValue(finder.getCompileName(e.ResolvedExpression)))
+                if (tokMap.Contains(e.tok.pos))
                     return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), this.newName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
                 else
                     return base.CloneExpr(expr);
@@ -163,7 +143,7 @@ namespace Microsoft.Dafny.refactoring
                 {
                     var c = (ConstantField)member;
 
-                    if (isOldValue(finder.getCompileName(c)))
+                    if (tokMap.Contains(c.tok.pos))
                         return new ConstantField(Tok(c.tok), this.newName, CloneExpr(c.constValue), c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
 
                 }
@@ -172,7 +152,7 @@ namespace Microsoft.Dafny.refactoring
                     Contract.Assert(!(member is SpecialField));
                     var f = (Field)member;
 
-                    if (isOldValue(finder.getCompileName(f)))
+                    if (tokMap.Contains(f.tok.pos))
                         return new Field(Tok(f.tok), this.newName, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
 
                 }
@@ -195,7 +175,7 @@ namespace Microsoft.Dafny.refactoring
 
             BlockStmt body = CloneMethodBody(m);
                         
-            if (isOldValue(finder.getCompileName(m)))
+            if (tokMap.Contains(m.tok.pos))
             {
                 if (m is Constructor)
                 {

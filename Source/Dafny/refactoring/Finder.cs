@@ -7,45 +7,50 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.refactoring
 {
-    class FindExpression : Cloner
+    class Finder : Cloner
     {
-
-        private String oldName;
-        private String newName;
-        private String simpleName;
-        private bool finding;
+        
+        private String compiledName;
+        private String displayedName;
+        private String currentMemberName;
         private bool exprFound;
-        private String currentMethod;
+        private Program resolvedProgram;  
         private int line;
         private int column;
         private ClassDecl classDecl;
 
-
-               
-        public void findExpression(String newName, int line, int column)
+        public Finder(Program program)
         {
-            currentMethod = null;
-            finding = true;
+
+            this.resolvedProgram = program;
+            this.classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
+            currentMemberName = null;
             exprFound = false;
+        }
 
-
+        public String findExpression(int line, int column)
+        {
+            currentMemberName = null;
+            this.line = line;
+            this.column = column;
+            
             foreach (MemberDecl member in classDecl.Members)
             {
                 CloneMember(member);
 
-                if (simpleName == oldName && simpleName != null && oldName != null)
+                if (displayedName == compiledName && displayedName != null && compiledName != null)
                 {
-                    currentMethod = member.Name;
+                    currentMemberName = member.Name;
                 }
 
                 if (exprFound)
                     break;
             }
 
-
-            this.finding = false;
+            return this.compiledName;
 
         }
+        
 
         public String getCompileName<T>(T expr)
         {
@@ -97,14 +102,14 @@ namespace Microsoft.Dafny.refactoring
 
             foreach (LocalVariable lv in s.Locals)
             {
-                
+
                 if (lv.Tok.line == this.line && lv.Tok.col == this.column)
-                {
-                    this.oldName = this.getCompileName(lv);
-                    this.simpleName = lv.DisplayName;
+                { 
+                    this.compiledName = this.getCompileName(lv);
+                    this.displayedName = lv.DisplayName;
                     this.exprFound = true;
                 }
-                
+
             }
 
             return lhss;
@@ -128,35 +133,33 @@ namespace Microsoft.Dafny.refactoring
         {
             var nameSegment = expr as NameSegment;
 
-            
+
             if (nameSegment.tok.line == this.line && nameSegment.tok.col == this.column)
             {
-                this.oldName = this.getCompileName(nameSegment.ResolvedExpression);
-                this.simpleName = nameSegment.Name;
+                this.compiledName = this.getCompileName(nameSegment.ResolvedExpression);
+                this.displayedName = nameSegment.Name;
                 this.exprFound = true;
             }
-            
+
             return base.CloneNameSegment(expr);
         }
 
         public override Formal CloneFormal(Formal formal)
         {
-            
+
             if (formal.tok.line == this.line && formal.tok.col == this.column)
             {
-                this.oldName = this.getCompileName(formal);
-                this.simpleName = formal.Name;
+                this.compiledName = this.getCompileName(formal);
+                this.displayedName = formal.Name;
                 this.exprFound = true;
             }
-            
-            
 
             return base.CloneFormal(formal);
         }
 
         public override Expression CloneExpr(Expression expr)
         {
-            
+
             if (expr is ExprDotName)
             {
                 var e = (ExprDotName)expr;
@@ -164,20 +167,16 @@ namespace Microsoft.Dafny.refactoring
 
                 if (e.tok.line == this.line && e.tok.col == this.column)
                 {
-                    this.oldName = this.getCompileName(e.ResolvedExpression);
-                    this.simpleName = e.SuffixName;
+                    this.compiledName = this.getCompileName(e.ResolvedExpression);
+                    this.displayedName = e.SuffixName;
                     this.exprFound = true;
                 }
             }
             return base.CloneExpr(expr);
-            
-            
-            
-
         }
 
-        
-        public static override MemberDecl CloneMember(MemberDecl member)
+
+        public override MemberDecl CloneMember(MemberDecl member)
         {
 
             if (member is Field)
@@ -188,8 +187,8 @@ namespace Microsoft.Dafny.refactoring
 
                     if (c.tok.line == this.line && c.tok.col == this.column)
                     {
-                        this.oldName = this.getCompileName(c);
-                        this.simpleName = c.Name;
+                        this.compiledName = this.getCompileName(c);
+                        this.displayedName = c.Name;
                         this.exprFound = true;
                     }
                 }
@@ -200,8 +199,8 @@ namespace Microsoft.Dafny.refactoring
 
                     if (f.tok.line == this.line && f.tok.col == this.column)
                     {
-                        this.oldName = this.getCompileName(f);
-                        this.simpleName = f.Name;
+                        this.compiledName = this.getCompileName(f);
+                        this.displayedName = f.Name;
                         this.exprFound = true;
                     }
 
@@ -226,14 +225,43 @@ namespace Microsoft.Dafny.refactoring
 
             BlockStmt body = CloneMethodBody(m);
 
-            
+
             if (m.tok.line == this.line && m.tok.col == this.column)
             {
-                this.oldName = this.getCompileName(m);
+                this.compiledName = this.getCompileName(m);
                 this.exprFound = true;
             }
-            
+
             return base.CloneMethod(m);
         }
+
+        public string CompiledName
+        {
+            get
+            {
+                return compiledName;
+            }
+
+        }
+
+        public string DisplayedName
+        {
+            get
+            {
+                return displayedName;
+            }
+
+        }
+
+        public string CurrentMemberName
+        {
+            get
+            {
+                return currentMemberName;
+            }
+
+        }
+
+
     }
 }

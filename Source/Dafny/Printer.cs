@@ -749,7 +749,7 @@ Everything) {
             Indent(indent + 2 * IndentAmount);
             wr.Write("returns ");
           }
-                    Console.WriteLine("INS: {0}", method.Ins.Count); //CODICE MIO
+          
           PrintFormals(method.Outs, method);
         }
         wr.WriteLine();

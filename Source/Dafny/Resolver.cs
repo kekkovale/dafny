@@ -298,6 +298,7 @@ namespace Microsoft.Dafny
       Type.ResetScopes();
 
       Type.EnableScopes();
+
       var origErrorCount = reporter.Count(ErrorLevel.Error); //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
       var bindings = new ModuleBindings(null);
       var b = BindModuleNames(prog.DefaultModuleDef, bindings);
@@ -320,7 +321,7 @@ namespace Microsoft.Dafny
         md.Height = h;
         if (md is LiteralModuleDecl) {
           var mdef = ((LiteralModuleDecl)md).ModuleDef;
-          mdef.Height = h;
+          mdef.Height = h;          
           prog.ModuleSigs.Add(mdef, null);
         }
         h++;
