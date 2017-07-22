@@ -23,6 +23,19 @@ namespace Microsoft.Dafny.refactoring
             this.resolvedProgram = resolvedProgram;
         }
 
+        public Program FoldPredicate(int line)
+        {
+            ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
+
+            Collector collector = new Collector(program);
+            Predicate predicate = collector.collectPredicate(line);
+
+
+            classDecl.Members.Add(predicate);
+
+            return program;
+        }
+
         public Program renameRefactoring(String newName, int line, int column)
         {
             //Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
@@ -32,9 +45,7 @@ namespace Microsoft.Dafny.refactoring
             ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
 
             Collector collector = new Collector(resolvedProgram);
-            String compiledName = collector.Finder.findExpression(line, column);
-
-            tokMap = collector.collectVariables(compiledName);
+            tokMap = collector.collectVariables(line, column);
 
             foreach (MemberDecl member in classDecl.Members)
             {
@@ -57,6 +68,8 @@ namespace Microsoft.Dafny.refactoring
                 //classDecl.Members.Insert(entry.Key,entry.Value);
             }
         }
+
+
 
         public List<LocalVariable> cloneLocalVariables(VarDeclStmt s)
         {
@@ -162,7 +175,59 @@ namespace Microsoft.Dafny.refactoring
 
         }
 
-        
+        public override Function CloneFunction(Function f, string newName = null)
+        {
+            var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
+            var formals = f.Formals.ConvertAll(CloneFormal);
+            var req = f.Req.ConvertAll(CloneExpr);
+            var reads = f.Reads.ConvertAll(CloneFrameExpr);
+            var decreases = CloneSpecExpr(f.Decreases);
+            var ens = f.Ens.ConvertAll(CloneExpr);
+            Expression body;
+            body = CloneExpr(f.Body);
+
+            if (tokMap.Contains(f.tok.pos))
+            {
+                if (f is Predicate)
+                {
+                    return new Predicate(Tok(f.tok), this.newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals,
+                      req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, CloneAttributes(f.Attributes), null, f);
+                }
+                else if (f is InductivePredicate)
+                {
+                    return new InductivePredicate(Tok(f.tok), this.newName, f.HasStaticKeyword, f.IsProtected, tps, formals,
+                      req, reads, ens, body, CloneAttributes(f.Attributes), null, f);
+                }
+                else if (f is CoPredicate)
+                {
+                    return new CoPredicate(Tok(f.tok), this.newName, f.HasStaticKeyword, f.IsProtected, tps, formals,
+                      req, reads, ens, body, CloneAttributes(f.Attributes), null, f);
+                }
+                else if (f is TwoStatePredicate)
+                {
+                    return new TwoStatePredicate(Tok(f.tok), this.newName, f.HasStaticKeyword, tps, formals,
+                      req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null, f);
+                }
+                else if (f is TwoStateFunction)
+                {
+                    return new TwoStateFunction(Tok(f.tok), this.newName, f.HasStaticKeyword, tps, formals, f.Result == null ? null : CloneFormal(f.Result), CloneType(f.ResultType),
+                      req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null, f);
+                }
+                else if (f is TacticFunction)
+                {
+                    return new TacticFunction(Tok(f.tok), this.newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals, CloneType(f.ResultType),
+                        req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
+                }
+                else
+                {
+                    return new Function(Tok(f.tok), this.newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals, f.Result == null ? null : CloneFormal(f.Result), CloneType(f.ResultType),
+                      req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null, f);
+                }
+            }
+
+            return base.CloneFunction(f);
+        }
+
         public override Method CloneMethod(Method m)
         {
             var tps = m.TypeArgs.ConvertAll(CloneTypeParam);

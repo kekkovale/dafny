@@ -15,6 +15,8 @@ namespace Microsoft.Dafny.refactoring
         private Dictionary<int, MemberDecl> updates;
         private Program resolvedProgram;
         private Finder finder;
+        private Predicate predicate = null;
+        private myPredicate myPredicate;
 
         internal Finder Finder
         {
@@ -32,11 +34,11 @@ namespace Microsoft.Dafny.refactoring
             finder = new Finder(program);
         }
 
-        public HashSet<int> collectVariables(String compiledName)
+        public HashSet<int> collectVariables(int line, int column)
         {
             //Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
-
-            this.compiledName = compiledName;
+            compiledName = finder.findExpression(line, column);
+           
             ClassDecl classDecl = resolvedProgram.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
 
             foreach (MemberDecl member in classDecl.Members)
@@ -58,6 +60,49 @@ namespace Microsoft.Dafny.refactoring
 
             return this.tokMap;
         }
+
+        public Predicate collectPredicate(int line)
+        {
+            //Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
+            MemberDecl member = finder.findFoldPredicate(line);
+
+            Predicate newPredicate = createNewPredicate(member,line);
+            createPredicateCaller(member, line);
+
+            return newPredicate;
+        }
+
+        private void createPredicateCaller(MemberDecl member,int line)
+        {
+            int index = -1;
+            MaybeFreeExpression mfe =null;
+            if(member is Method)
+            {
+                Method m = member as Method;
+
+                foreach(MaybeFreeExpression e in m.Ens)
+                {
+                    if (e.E.tok.line == line && predicate != null)
+                    {
+                        index = m.Ens.IndexOf(e);
+                        NameSegment lhs = new NameSegment(Tok(predicate.tok), predicate.Name, null);
+                        ApplySuffix a = new ApplySuffix(Tok(predicate.tok), lhs, myPredicate.Args.ConvertAll(CloneExpr));
+
+                        mfe = new MaybeFreeExpression(CloneExpr(a), e.IsFree);
+                    }
+                    
+                }
+
+                if (mfe != null && index != -1)
+                {
+                    m.Ens[index] = mfe;
+                }
+
+            }
+            
+        }
+
+
 
         private bool refactoringFormals()
         {            
@@ -169,6 +214,94 @@ namespace Microsoft.Dafny.refactoring
 
         }
 
+        public override Function CloneFunction(Function f, string newName = null)
+        {
+            var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
+            var formals = f.Formals.ConvertAll(CloneFormal);
+            var req = f.Req.ConvertAll(CloneExpr);
+            var reads = f.Reads.ConvertAll(CloneFrameExpr);
+            var decreases = CloneSpecExpr(f.Decreases);
+            var ens = f.Ens.ConvertAll(CloneExpr);
+            Expression body;
+            body = CloneExpr(f.Body);
+
+            if (matchName(finder.getCompileName(f)))
+            {
+                tokMap.Add(f.tok.pos);
+            }
+
+            return base.CloneFunction(f);
+        }
+
+        public Predicate createNewPredicate(MemberDecl member, int line)
+        {
+            myPredicate = new myPredicate();
+ 
+            Boogie.IToken start = TokenGenerator.NextToken(member.BodyStartTok, member.BodyStartTok);
+            Boogie.IToken end = TokenGenerator.NextToken(member.BodyEndTok, member.BodyEndTok);
+
+            if (member is Method)
+            {
+                Method m = member as Method;
+
+                foreach (MaybeFreeExpression e in m.Ens)
+                {
+                    if (e.E.tok.line == line)
+                    {
+                        Expression prova = CloneExpr(e.E);
+                        myPredicate.Body = prova;
+                    }
+                }
+
+                foreach (MaybeFreeExpression e1 in m.Req)
+                {
+                    myPredicate.Req.Add(CloneExpr(e1.E));
+                }
+
+                foreach (Formal e2 in m.Ins)
+                {
+                    myPredicate.Formals.Add(CloneFormal(e2));
+                }
+
+                foreach (Formal e3 in m.Outs)
+                {
+                    myPredicate.Formals.Add(CloneFormal(e3));
+                }
+
+                foreach(Formal e4 in myPredicate.Formals)
+                {
+                    NameSegment nmsegm = new NameSegment(Tok(e4.tok), e4.DisplayName, null);
+                    myPredicate.Args.Add(nmsegm);
+                }
+
+                myPredicate.TypeArgs = m.TypeArgs;
+                myPredicate.Attributes = m.Attributes;
+                myPredicate.Decreases = m.Decreases;
+                //FrameExpression reads = new FrameExpression(null, CloneExpr(frame.E), frame.FieldName);
+                myPredicate.Reads = getReads(m.Ins);
+
+            }
+            return predicate = new Predicate(Tok(end), "nuovo", false, false, true,myPredicate.TypeArgs, myPredicate.Formals,
+                      myPredicate.Req, myPredicate.Reads, myPredicate.Ens, myPredicate.Decreases, myPredicate.Body, Predicate.BodyOriginKind.OriginalOrInherited, myPredicate.Attributes, null, null);
+
+        }
+
+        private List<FrameExpression> getReads(List<Formal> formals)
+        {
+            List<FrameExpression> reads = new List<FrameExpression>();
+            foreach (Formal e2 in formals)
+            {
+                if (e2.Type is UserDefinedType)
+                {
+                    Boogie.IToken tok = TokenGenerator.NextToken(e2.tok, e2.tok);
+                    NameSegment nmsegm  = new NameSegment(Tok(tok), e2.DisplayName, null);
+                    FrameExpression expr = new FrameExpression(Tok(nmsegm.tok), nmsegm, null);
+                    reads.Add(expr);
+                }
+            }
+
+            return reads;
+        }
 
         public override Method CloneMethod(Method m)
         {

@@ -14,15 +14,14 @@ namespace Microsoft.Dafny.refactoring
         private String displayedName;
         private String currentMemberName;
         private bool exprFound;
-        private Program resolvedProgram;  
+        private Program program;  
         private int line;
         private int column;
         private ClassDecl classDecl;
 
         public Finder(Program program)
         {
-
-            this.resolvedProgram = program;
+            this.program = program;
             this.classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
             currentMemberName = null;
             exprFound = false;
@@ -50,7 +49,39 @@ namespace Microsoft.Dafny.refactoring
             return this.compiledName;
 
         }
-        
+
+        public MemberDecl findFoldPredicate(int line)
+        {
+            
+            this.classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
+
+            currentMemberName = null;
+            this.line = line;
+
+            foreach (MemberDecl member in classDecl.Members)
+            {
+                if (member is Method)
+                {
+                    Method m = member as Method;
+
+                    foreach (MaybeFreeExpression e in m.Ens)
+                    {
+                        if (e.E.tok.line == this.line)
+                        {
+                            exprFound = true;
+                        }
+                    }
+                    
+                }
+
+                if (exprFound)
+                    return member;
+            }
+
+            return null;
+
+        }
+
 
         public String getCompileName<T>(T expr)
         {
@@ -90,6 +121,11 @@ namespace Microsoft.Dafny.refactoring
             else if (expr is Method)
             {
                 Method matchExpr = expr as Method;
+                compileName = matchExpr.FullCompileName;
+            }
+            else if (expr is Predicate)
+            {
+                Predicate matchExpr = expr as Predicate;
                 compileName = matchExpr.FullCompileName;
             }
 
@@ -210,6 +246,26 @@ namespace Microsoft.Dafny.refactoring
 
             return base.CloneMember(member);
 
+        }
+
+        public override Function CloneFunction(Function f, string newName = null)
+        {
+            var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
+            var formals = f.Formals.ConvertAll(CloneFormal);
+            var req = f.Req.ConvertAll(CloneExpr);
+            var reads = f.Reads.ConvertAll(CloneFrameExpr);
+            var decreases = CloneSpecExpr(f.Decreases);
+            var ens = f.Ens.ConvertAll(CloneExpr);
+            Expression body;
+            body = CloneExpr(f.Body);
+
+            if (f.tok.line == this.line && f.tok.col == this.column)
+            {
+                this.compiledName = this.getCompileName(f);
+                this.exprFound = true;
+            }
+            
+            return base.CloneFunction(f);
         }
 
 
