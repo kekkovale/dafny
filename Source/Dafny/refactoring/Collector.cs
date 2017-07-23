@@ -41,29 +41,32 @@ namespace Microsoft.Dafny.refactoring
             //Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
             compiledName = finder.findExpression(line, column);
            
-            ClassDecl classDecl = resolvedProgram.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
-
-            foreach (MemberDecl member in classDecl.Members)
+            //ClassDecl classDecl = resolvedProgram.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
+            foreach (TopLevelDecl t in resolvedProgram.DefaultModuleDef.TopLevelDecls)
             {
-                if (refactoringFormals())
-                {
+                ClassDecl classDecl = t as ClassDecl;
 
-                    if (member.Name == finder.CurrentMemberName && member.Name != null && finder.CurrentMemberName != null)
+                foreach (MemberDecl member in classDecl.Members)
+                {
+                    if (refactoringFormals())
+                    {
+                        //only if memeber.name is equals to current member name
+                        if (member.Name == finder.CurrentMemberName && member.Name != null && finder.CurrentMemberName != null)
+                        {
+                            CloneMember(member);
+                        }
+
+                    }
+                    else
                     {
                         CloneMember(member);
                     }
-                    
-                }
-                else
-                {
-                    CloneMember(member);
                 }
             }
-
             return this.tokMap;
         }
 
-        public Predicate collectPredicate(int line)
+        public Predicate collectPredicate(String newName, int line)
         {
             //Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
             Predicate newPredicate = null;
@@ -71,7 +74,7 @@ namespace Microsoft.Dafny.refactoring
 
             if(memberName != null)
             {
-                newPredicate = createNewPredicate(memberName, line);
+                newPredicate = createNewPredicate(newName, memberName, line);
                 createPredicateCaller(memberName, line);
             }
 
@@ -316,7 +319,7 @@ namespace Microsoft.Dafny.refactoring
             return base.CloneFunction(f);
         }
 
-        public Predicate createNewPredicate(String memberName, int line)
+        public Predicate createNewPredicate(String predicateName, String memberName, int line)
         {
             myPredicate = new myPredicate();
 
@@ -421,7 +424,7 @@ namespace Microsoft.Dafny.refactoring
                     }
                 }
             }
-            return predicate = new Predicate(Tok(end), "nuovo", false, false, true,myPredicate.TypeArgs, myPredicate.Formals,
+            return predicate = new Predicate(Tok(end), predicateName, false, false, true,myPredicate.TypeArgs, myPredicate.Formals,
                       myPredicate.Req, myPredicate.Reads, myPredicate.Ens, myPredicate.Decreases, myPredicate.Body, Predicate.BodyOriginKind.OriginalOrInherited, myPredicate.Attributes, null, null);
 
         }

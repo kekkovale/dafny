@@ -117,8 +117,8 @@ namespace Microsoft.Dafny {
             if (resolved == null)
             {
                 Refactoring refactoring = new Refactoring(program,resolvedProgram);
-                newProgram = refactoring.renameRefactoring("bruno",72,21);
-                //newProgram = refactoring.FoldPredicate(72);
+                newProgram = refactoring.renameRefactoring("bruno",90,9);
+                //newProgram = refactoring.postCondToPredicate("newPredicate", 72);
                 printer.PrintProgram(newProgram, false);
                 
             }

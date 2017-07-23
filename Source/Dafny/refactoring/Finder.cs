@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.refactoring
         public Finder(Program program)
         {
             this.program = program;
-            this.classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
+            //this.classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
             currentMemberName = null;
             exprFound = false;
             predicateVariables = new Dictionary<string, Type>();
@@ -36,20 +36,25 @@ namespace Microsoft.Dafny.refactoring
             currentMemberName = null;
             this.line = line;
             this.column = column;
-            
-            foreach (MemberDecl member in classDecl.Members)
+
+            foreach (TopLevelDecl t in program.DefaultModuleDef.TopLevelDecls)
             {
-                CloneMember(member);
-
-                if (displayedName == compiledName && displayedName != null && compiledName != null)
+                classDecl = t as ClassDecl;
+                foreach (MemberDecl member in classDecl.Members)
                 {
-                    currentMemberName = member.Name;
-                }
+                    CloneMember(member);
 
+                    if (displayedName == compiledName && displayedName != null && compiledName != null)
+                    {
+                        currentMemberName = member.Name;
+                    }
+
+                    if (exprFound)
+                        break;
+                }
                 if (exprFound)
                     break;
             }
-
             return this.compiledName;
 
         }

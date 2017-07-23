@@ -23,12 +23,12 @@ namespace Microsoft.Dafny.refactoring
             this.resolvedProgram = resolvedProgram;
         }
 
-        public Program FoldPredicate(int line)
+        public Program postCondToPredicate(String newName, int line)
         {
             ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
 
             Collector collector = new Collector(program,resolvedProgram);
-            Predicate predicate = collector.collectPredicate(line);
+            Predicate predicate = collector.collectPredicate(newName,line);
 
 
             classDecl.Members.Add(predicate);
@@ -42,20 +42,26 @@ namespace Microsoft.Dafny.refactoring
 
             this.newName = newName;
             
-            ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
-
+            //ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
+            
             Collector collector = new Collector(program,resolvedProgram);
             tokMap = collector.collectVariables(line, column);
 
-            foreach (MemberDecl member in classDecl.Members)
+            foreach (TopLevelDecl t in program.DefaultModuleDef.TopLevelDecls)
             {
-                MemberDecl newMember = CloneMember(member);
-                int index = classDecl.Members.IndexOf(member);
-                updates.Add(index, newMember);
+                ClassDecl classDecl = t as ClassDecl;
+
+                foreach (MemberDecl member in classDecl.Members)
+                {
+                    MemberDecl newMember = CloneMember(member);
+                    int index = classDecl.Members.IndexOf(member);
+                    
+                    updates.Add(index, newMember);
+                }
+
+                this.updateProgram(classDecl);
+                updates.Clear();
             }
-
-            this.updateProgram(classDecl);
-
             return program;
         }      
 
