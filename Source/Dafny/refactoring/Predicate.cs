@@ -8,7 +8,7 @@ namespace Microsoft.Dafny.refactoring
 {
     class myPredicate
     {
-        public Boogie.IToken tok;
+        //public Boogie.IToken tok;
         private List<TypeParameter> typeArgs;
         private List<Formal> formals;
         private List<Expression> req;

@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.refactoring
         {
             ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
 
-            Collector collector = new Collector(program);
+            Collector collector = new Collector(program,resolvedProgram);
             Predicate predicate = collector.collectPredicate(line);
 
 
@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.refactoring
             
             ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
 
-            Collector collector = new Collector(resolvedProgram);
+            Collector collector = new Collector(program,resolvedProgram);
             tokMap = collector.collectVariables(line, column);
 
             foreach (MemberDecl member in classDecl.Members)

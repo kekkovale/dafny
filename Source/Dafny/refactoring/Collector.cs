@@ -14,6 +14,7 @@ namespace Microsoft.Dafny.refactoring
         private String compiledName;
         private Dictionary<int, MemberDecl> updates;
         private Program resolvedProgram;
+        private Program program;
         private Finder finder;
         private Predicate predicate = null;
         private myPredicate myPredicate;
@@ -26,12 +27,13 @@ namespace Microsoft.Dafny.refactoring
             }
         }
 
-        public Collector(Program program)
+        public Collector(Program program, Program resolvedProgram)
         {
             tokMap = new HashSet<int>();
-            this.resolvedProgram = program;
+            this.program = program;
+            this.resolvedProgram = resolvedProgram;
             updates = new Dictionary<int, MemberDecl>();
-            finder = new Finder(program);
+            finder = new Finder(resolvedProgram);
         }
 
         public HashSet<int> collectVariables(int line, int column)
@@ -64,38 +66,119 @@ namespace Microsoft.Dafny.refactoring
         public Predicate collectPredicate(int line)
         {
             //Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
-            MemberDecl member = finder.findFoldPredicate(line);
+            Predicate newPredicate = null;
+            String memberName = finder.findFoldPredicate(line);
 
-            Predicate newPredicate = createNewPredicate(member,line);
-            createPredicateCaller(member, line);
+            if(memberName != null)
+            {
+                newPredicate = createNewPredicate(memberName, line);
+                createPredicateCaller(memberName, line);
+            }
 
             return newPredicate;
         }
 
-        private void createPredicateCaller(MemberDecl member,int line)
+        private void createPredicateCaller(String memberName,int line)
         {
             int index = -1;
-            MaybeFreeExpression mfe =null;
-            if(member is Method)
+            MaybeFreeExpression mfe = null;
+            ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
+
+            foreach (MemberDecl member in classDecl.Members)
             {
-                Method m = member as Method;
-
-                foreach(MaybeFreeExpression e in m.Ens)
+                if (member.Name == memberName)
                 {
-                    if (e.E.tok.line == line && predicate != null)
+                    if (member is Method)
                     {
-                        index = m.Ens.IndexOf(e);
-                        NameSegment lhs = new NameSegment(Tok(predicate.tok), predicate.Name, null);
-                        ApplySuffix a = new ApplySuffix(Tok(predicate.tok), lhs, myPredicate.Args.ConvertAll(CloneExpr));
+                        Method m = member as Method;
 
-                        mfe = new MaybeFreeExpression(CloneExpr(a), e.IsFree);
+                        foreach (MaybeFreeExpression e in m.Ens)
+                        {
+                            if (e.E.tok.line == line && predicate != null)
+                            {
+                                index = m.Ens.IndexOf(e);
+                                NameSegment lhs = new NameSegment(Tok(predicate.tok), predicate.Name, null);
+                                ApplySuffix a = new ApplySuffix(Tok(predicate.tok), lhs, myPredicate.Args.ConvertAll(CloneExpr));
+
+                                mfe = new MaybeFreeExpression(CloneExpr(a), e.IsFree);
+                            }
+
+                        }
+
+                        if (mfe != null && index != -1)
+                        {
+                            m.Ens[index] = mfe;
+                        }
+
+                        mfe = null;
+
+                        foreach (Statement s in m.Body.Body)
+                        {
+                            if (s is WhileStmt)
+                            {
+                                var stmt = (WhileStmt)s;
+                                foreach (MaybeFreeExpression e1 in stmt.Invariants)
+                                {
+                                    if (e1.E.tok.line == line && predicate != null)
+                                    {
+                                        index = stmt.Invariants.IndexOf(e1);
+                                        NameSegment lhs = new NameSegment(Tok(predicate.tok), predicate.Name, null);
+                                        ApplySuffix a = new ApplySuffix(Tok(predicate.tok), lhs, myPredicate.Args.ConvertAll(CloneExpr));
+
+                                        mfe = new MaybeFreeExpression(CloneExpr(a), e1.IsFree);
+                                    }
+                                }
+
+                                if (mfe != null && index != -1)
+                                {
+                                    stmt.Invariants[index] = mfe;
+                                }
+                                mfe = null;
+                            }
+                            else if (s is AlternativeLoopStmt)
+                            {
+                                var stmt = (AlternativeLoopStmt)s;
+                                foreach (MaybeFreeExpression e2 in stmt.Invariants)
+                                {
+                                    if (e2.E.tok.line == line)
+                                    {
+                                        index = stmt.Invariants.IndexOf(e2);
+                                        NameSegment lhs = new NameSegment(Tok(predicate.tok), predicate.Name, null);
+                                        ApplySuffix a = new ApplySuffix(Tok(predicate.tok), lhs, myPredicate.Args.ConvertAll(CloneExpr));
+
+                                        mfe = new MaybeFreeExpression(CloneExpr(a), e2.IsFree);
+                                    }
+                                }
+
+                                if (mfe != null && index != -1)
+                                {
+                                    stmt.Invariants[index] = mfe;
+                                }
+                                mfe = null;
+                            }
+                            else if (s is ForallStmt)
+                            {
+                                var stmt = (ForallStmt)s;
+                                foreach (MaybeFreeExpression e3 in stmt.Ens)
+                                {
+                                    if (e3.E.tok.line == line)
+                                    {
+                                        index = stmt.Ens.IndexOf(e3);
+                                        NameSegment lhs = new NameSegment(Tok(predicate.tok), predicate.Name, null);
+                                        ApplySuffix a = new ApplySuffix(Tok(predicate.tok), lhs, myPredicate.Args.ConvertAll(CloneExpr));
+
+                                        mfe = new MaybeFreeExpression(CloneExpr(a), e3.IsFree);
+                                    }
+                                }
+
+                                if (mfe != null && index != -1)
+                                {
+                                    stmt.Ens[index] = mfe;
+                                }
+                                mfe = null;
+                            }
+                        }
                     }
-                    
-                }
-
-                if (mfe != null && index != -1)
-                {
-                    m.Ens[index] = mfe;
                 }
 
             }
@@ -233,53 +316,110 @@ namespace Microsoft.Dafny.refactoring
             return base.CloneFunction(f);
         }
 
-        public Predicate createNewPredicate(MemberDecl member, int line)
+        public Predicate createNewPredicate(String memberName, int line)
         {
             myPredicate = new myPredicate();
- 
-            Boogie.IToken start = TokenGenerator.NextToken(member.BodyStartTok, member.BodyStartTok);
-            Boogie.IToken end = TokenGenerator.NextToken(member.BodyEndTok, member.BodyEndTok);
 
-            if (member is Method)
+            Boogie.IToken start= null;
+            Boogie.IToken end = null;
+            ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
+
+            foreach (MemberDecl member in classDecl.Members)
             {
-                Method m = member as Method;
-
-                foreach (MaybeFreeExpression e in m.Ens)
+                if(member.Name == memberName)
                 {
-                    if (e.E.tok.line == line)
+                    start = TokenGenerator.NextToken(member.BodyStartTok, member.BodyStartTok);
+                    end = TokenGenerator.NextToken(member.BodyEndTok, member.BodyEndTok);
+
+                    if (member is Method)
                     {
-                        Expression prova = CloneExpr(e.E);
-                        myPredicate.Body = prova;
+                        Method m = member as Method;
+
+                        foreach (MaybeFreeExpression e in m.Ens)
+                        {
+                            if (e.E.tok.line == line)
+                            {
+                                Expression body = CloneExpr(e.E);
+                                myPredicate.Body = body;
+                            }
+                        }
+
+                        foreach (Statement s in m.Body.Body)
+                        {
+                            if (s is WhileStmt)
+                            {
+                                var stmt = (WhileStmt)s;
+                                foreach (MaybeFreeExpression e1 in stmt.Invariants)
+                                {
+                                    if (e1.E.tok.line == line)
+                                    {
+                                        Expression body = CloneExpr(e1.E);
+                                        myPredicate.Body = body;
+                                    }
+                                }
+                            }
+                            else if (s is AlternativeLoopStmt)
+                            {
+                                var stmt = (AlternativeLoopStmt)s;
+                                foreach (MaybeFreeExpression e2 in stmt.Invariants)
+                                {
+                                    if (e2.E.tok.line == line)
+                                    {
+                                        Expression body = CloneExpr(e2.E);
+                                        myPredicate.Body = body;
+                                    }
+                                }
+                            }
+                            else if (s is ForallStmt)
+                            {
+                                var stmt = (ForallStmt)s;
+                                foreach (MaybeFreeExpression e3 in stmt.Ens)
+                                {
+                                    if (e3.E.tok.line == line)
+                                    {
+                                        Expression body = CloneExpr(e3.E);
+                                        myPredicate.Body = body;
+                                    }
+                                }
+                            }
+                        }
+
+                        foreach (MaybeFreeExpression e4 in m.Req)
+                        {
+                            myPredicate.Req.Add(CloneExpr(e4.E));
+                        }
+
+                        foreach (KeyValuePair<String, Type> entry in Finder.PredicateVariables)
+                        {
+                            Formal f = new Formal(Tok(start), entry.Key, CloneType(entry.Value), true, false, false);
+                            myPredicate.Formals.Add(f);
+                        }
+
+                        /*
+                        foreach (Formal e5 in m.Ins)
+                        {
+                            
+                            myPredicate.Formals.Add(CloneFormal(e5));
+                        }
+
+                        foreach (Formal e6 in m.Outs)
+                        {
+                            myPredicate.Formals.Add(CloneFormal(e6));
+                        }
+                        */
+                        foreach (Formal e7 in myPredicate.Formals)
+                        {
+                            NameSegment nmsegm = new NameSegment(Tok(e7.tok), e7.DisplayName, null);
+                            myPredicate.Args.Add(nmsegm);
+                        }
+
+                        myPredicate.TypeArgs = m.TypeArgs;
+                        myPredicate.Attributes = m.Attributes;
+                        myPredicate.Decreases = m.Decreases;
+                        //FrameExpression reads = new FrameExpression(null, CloneExpr(frame.E), frame.FieldName);
+                        myPredicate.Reads = getReads(m.Ins);
                     }
                 }
-
-                foreach (MaybeFreeExpression e1 in m.Req)
-                {
-                    myPredicate.Req.Add(CloneExpr(e1.E));
-                }
-
-                foreach (Formal e2 in m.Ins)
-                {
-                    myPredicate.Formals.Add(CloneFormal(e2));
-                }
-
-                foreach (Formal e3 in m.Outs)
-                {
-                    myPredicate.Formals.Add(CloneFormal(e3));
-                }
-
-                foreach(Formal e4 in myPredicate.Formals)
-                {
-                    NameSegment nmsegm = new NameSegment(Tok(e4.tok), e4.DisplayName, null);
-                    myPredicate.Args.Add(nmsegm);
-                }
-
-                myPredicate.TypeArgs = m.TypeArgs;
-                myPredicate.Attributes = m.Attributes;
-                myPredicate.Decreases = m.Decreases;
-                //FrameExpression reads = new FrameExpression(null, CloneExpr(frame.E), frame.FieldName);
-                myPredicate.Reads = getReads(m.Ins);
-
             }
             return predicate = new Predicate(Tok(end), "nuovo", false, false, true,myPredicate.TypeArgs, myPredicate.Formals,
                       myPredicate.Req, myPredicate.Reads, myPredicate.Ens, myPredicate.Decreases, myPredicate.Body, Predicate.BodyOriginKind.OriginalOrInherited, myPredicate.Attributes, null, null);
@@ -289,7 +429,7 @@ namespace Microsoft.Dafny.refactoring
         private List<FrameExpression> getReads(List<Formal> formals)
         {
             List<FrameExpression> reads = new List<FrameExpression>();
-            foreach (Formal e2 in formals)
+            foreach (Formal e2 in myPredicate.Formals)
             {
                 if (e2.Type is UserDefinedType)
                 {

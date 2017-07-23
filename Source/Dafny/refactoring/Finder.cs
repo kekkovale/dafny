@@ -14,10 +14,12 @@ namespace Microsoft.Dafny.refactoring
         private String displayedName;
         private String currentMemberName;
         private bool exprFound;
+        private bool findingPredicateVar;
         private Program program;  
         private int line;
         private int column;
         private ClassDecl classDecl;
+        private Dictionary<String, Type> predicateVariables;
 
         public Finder(Program program)
         {
@@ -25,6 +27,8 @@ namespace Microsoft.Dafny.refactoring
             this.classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
             currentMemberName = null;
             exprFound = false;
+            predicateVariables = new Dictionary<string, Type>();
+            findingPredicateVar = false;
         }
 
         public String findExpression(int line, int column)
@@ -50,14 +54,13 @@ namespace Microsoft.Dafny.refactoring
 
         }
 
-        public MemberDecl findFoldPredicate(int line)
+        public String findFoldPredicate(int line)
         {
             
             this.classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
 
-            currentMemberName = null;
             this.line = line;
-
+            findingPredicateVar = true;
             foreach (MemberDecl member in classDecl.Members)
             {
                 if (member is Method)
@@ -68,15 +71,57 @@ namespace Microsoft.Dafny.refactoring
                     {
                         if (e.E.tok.line == this.line)
                         {
+                            CloneExpr(e.E);
                             exprFound = true;
+                        }
+                    }
+
+                    foreach (Statement s in m.Body.Body)
+                    {
+                        if (s is WhileStmt)
+                        {
+                            var stmt = (WhileStmt)s;
+                            foreach (MaybeFreeExpression e1 in stmt.Invariants)
+                            {
+                                if (e1.E.tok.line == this.line)
+                                {
+                                    CloneExpr(e1.E);
+                                    exprFound = true;
+                                }
+                            }
+                        }
+                        else if (s is AlternativeLoopStmt)
+                        {
+                            var stmt = (AlternativeLoopStmt)s;
+                            foreach (MaybeFreeExpression e2 in stmt.Invariants)
+                            {
+                                if (e2.E.tok.line == this.line)
+                                {
+                                    CloneExpr(e2.E);
+                                    exprFound = true;
+                                }
+                            }
+                        }
+                        else if (s is ForallStmt)
+                        {
+                            var stmt = (ForallStmt)s;
+                            foreach (MaybeFreeExpression e3 in stmt.Ens)
+                            {
+                                if (e3.E.tok.line == this.line)
+                                {
+                                    CloneExpr(e3.E);
+                                    exprFound = true;
+                                }
+                            }
                         }
                     }
                     
                 }
 
                 if (exprFound)
-                    return member;
+                    return member.Name;
             }
+            findingPredicateVar = false;
 
             return null;
 
@@ -169,6 +214,38 @@ namespace Microsoft.Dafny.refactoring
         {
             var nameSegment = expr as NameSegment;
 
+            if (findingPredicateVar)
+            {
+                if (nameSegment.ResolvedExpression is MemberSelectExpr)
+                {
+                    MemberSelectExpr matchExpr = nameSegment.ResolvedExpression as MemberSelectExpr;
+                    if (!(matchExpr.Member is Function) && !(matchExpr.Member is Field) && !(matchExpr.Member is Method))
+                    {
+                        if (!predicateVariables.ContainsKey(nameSegment.Name))
+                            predicateVariables.Add(nameSegment.Name, nameSegment.Type);
+                    }
+
+                }
+                else if (nameSegment.ResolvedExpression is IdentifierExpr)
+                {
+                    IdentifierExpr matchExpr = nameSegment.ResolvedExpression as IdentifierExpr;
+
+                    if(!(matchExpr.Var is BoundVar))
+                    {
+                        if (!predicateVariables.ContainsKey(nameSegment.Name))
+                            predicateVariables.Add(nameSegment.Name, matchExpr.Var.Type);
+                    }
+                    
+                    
+                }
+                else
+                {
+                    if (!predicateVariables.ContainsKey(nameSegment.Name))
+                        predicateVariables.Add(nameSegment.Name, nameSegment.Type);
+                }
+
+            }
+            
 
             if (nameSegment.tok.line == this.line && nameSegment.tok.col == this.column)
             {
@@ -199,8 +276,12 @@ namespace Microsoft.Dafny.refactoring
             if (expr is ExprDotName)
             {
                 var e = (ExprDotName)expr;
-
-
+                /*
+                if (findingPredicateVar)
+                {
+                    predicateVariables.Add(e.SuffixName, e.Type);
+                }
+                */
                 if (e.tok.line == this.line && e.tok.col == this.column)
                 {
                     this.compiledName = this.getCompileName(e.ResolvedExpression);
@@ -318,6 +399,17 @@ namespace Microsoft.Dafny.refactoring
 
         }
 
+        public Dictionary<string, Type> PredicateVariables
+        {
+            get
+            {
+                return predicateVariables;
+            }
 
+            set
+            {
+                predicateVariables = value;
+            }
+        }
     }
 }
