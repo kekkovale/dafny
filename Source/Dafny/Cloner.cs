@@ -142,24 +142,24 @@ namespace Microsoft.Dafny
       return new TypeParameter(Tok(tp.tok), tp.Name, tp.EqualitySupport, tp);
     }
 
-    public virtual MemberDecl CloneMember(MemberDecl member) {
-      if (member is Field) {
-        if (member is ConstantField) {
-          var c = (ConstantField) member;
-          return new ConstantField(Tok(c.tok), c.Name, CloneExpr(c.constValue), c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
-        } else {
-          Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
-          var f = (Field)member;
-          return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
-        }
-      } else if (member is Function) {
-        var f = (Function)member;
-        return CloneFunction(f);
-      } else {
-        var m = (Method)member;
-        return CloneMethod(m);
-      }
+public virtual MemberDecl CloneMember(MemberDecl member) {
+    if (member is Field) {
+    if (member is ConstantField) {
+        var c = (ConstantField) member;
+        return new ConstantField(Tok(c.tok), c.Name, CloneExpr(c.constValue), c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
+    } else {
+        Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
+        var f = (Field)member;
+        return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
     }
+    } else if (member is Function) {
+    var f = (Function)member;
+    return CloneFunction(f);
+    } else {
+    var m = (Method)member;
+    return CloneMethod(m);
+    }
+}
 
     public virtual Type CloneType(Type t) {
       if (t is BasicType) {

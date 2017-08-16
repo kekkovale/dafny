@@ -18,7 +18,7 @@ class C {
     x := new C.InitOther(x);  // since the parameter is evaluated before the LHS is set, the precondition is met
     assert x != c;
 
-	/*
+	
     // test evaluation order and modification
     if (*) {
       var k := this.x;
@@ -43,14 +43,14 @@ class C {
       b[2,14] := new C;
       b[3,11] := *;
     }
-	*/
+	
   }
 
   method Init() { }
   method InitOther(c: C)
     requires c == null;
   {
-    var d := new int[if c == null then 10 else -3];  // run-time error if c were non-null, but it ain't
+	  var d := new int[if c == null then 10 else -3];  // run-time error if c were non-null, but it ain't
   }
   method InitAndMutate(c: C)
     requires c != null;

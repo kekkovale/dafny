@@ -31,156 +31,176 @@ namespace Microsoft.Dafny.refactoring
             findingPredicateVar = false;
         }
 
-        public String findExpression(int line, int column)
+public String findDeclaration(int line, int column)
+{
+    currentMemberName = null;
+    this.line = line;
+    this.column = column;
+
+    foreach (TopLevelDecl t in program.DefaultModuleDef.TopLevelDecls)
+    {
+        classDecl = t as ClassDecl;
+
+        foreach (MemberDecl member in classDecl.Members)
         {
-            currentMemberName = null;
-            this.line = line;
-            this.column = column;
+            CloneMember(member);
 
-            foreach (TopLevelDecl t in program.DefaultModuleDef.TopLevelDecls)
+            if (displayedName == compiledName && displayedName != null && compiledName != null)
             {
-                classDecl = t as ClassDecl;
-                foreach (MemberDecl member in classDecl.Members)
-                {
-                    CloneMember(member);
-
-                    if (displayedName == compiledName && displayedName != null && compiledName != null)
-                    {
-                        currentMemberName = member.Name;
-                    }
-
-                    if (exprFound)
-                        break;
-                }
-                if (exprFound)
-                    break;
+                currentMemberName = member.Name;
             }
-            return this.compiledName;
 
+            if (exprFound)
+                break;
         }
+        if (exprFound)
+            break;
+    }
+    return this.compiledName;
 
-        public String findFoldPredicate(int line)
-        {
+}
+
+public String findFoldPredicate(int line)
+{
             
-            this.classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
+    this.classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
 
-            this.line = line;
-            findingPredicateVar = true;
-            foreach (MemberDecl member in classDecl.Members)
+    this.line = line;
+    findingPredicateVar = true;
+    foreach (MemberDecl member in classDecl.Members)
+    {
+        if (member is Method)
+        {
+            Method m = member as Method;
+
+            foreach (MaybeFreeExpression e in m.Ens)
             {
-                if (member is Method)
+                if (e.E.tok.line == this.line)
                 {
-                    Method m = member as Method;
+                    CloneExpr(e.E);
+                    exprFound = true;
+                }
+            }
 
-                    foreach (MaybeFreeExpression e in m.Ens)
+            foreach (MaybeFreeExpression e in m.Req)
+            {
+                if (e.E.tok.line == this.line)
+                {
+                    CloneExpr(e.E);
+                    exprFound = true;
+                }
+            }
+
+            foreach (Statement s in m.Body.Body)
+            {
+                if (s is WhileStmt)
+                {
+                    var stmt = (WhileStmt)s;
+                    foreach (MaybeFreeExpression e1 in stmt.Invariants)
                     {
-                        if (e.E.tok.line == this.line)
+                        if (e1.E.tok.line == this.line)
                         {
-                            CloneExpr(e.E);
+                            CloneExpr(e1.E);
                             exprFound = true;
                         }
                     }
-
-                    foreach (Statement s in m.Body.Body)
+                }
+                else if (s is AlternativeLoopStmt)
+                {
+                    var stmt = (AlternativeLoopStmt)s;
+                    foreach (MaybeFreeExpression e2 in stmt.Invariants)
                     {
-                        if (s is WhileStmt)
+                        if (e2.E.tok.line == this.line)
                         {
-                            var stmt = (WhileStmt)s;
-                            foreach (MaybeFreeExpression e1 in stmt.Invariants)
-                            {
-                                if (e1.E.tok.line == this.line)
-                                {
-                                    CloneExpr(e1.E);
-                                    exprFound = true;
-                                }
-                            }
-                        }
-                        else if (s is AlternativeLoopStmt)
-                        {
-                            var stmt = (AlternativeLoopStmt)s;
-                            foreach (MaybeFreeExpression e2 in stmt.Invariants)
-                            {
-                                if (e2.E.tok.line == this.line)
-                                {
-                                    CloneExpr(e2.E);
-                                    exprFound = true;
-                                }
-                            }
-                        }
-                        else if (s is ForallStmt)
-                        {
-                            var stmt = (ForallStmt)s;
-                            foreach (MaybeFreeExpression e3 in stmt.Ens)
-                            {
-                                if (e3.E.tok.line == this.line)
-                                {
-                                    CloneExpr(e3.E);
-                                    exprFound = true;
-                                }
-                            }
+                            CloneExpr(e2.E);
+                            exprFound = true;
                         }
                     }
-                    
                 }
-
-                if (exprFound)
-                    return member.Name;
+                else if (s is ForallStmt)
+                {
+                    var stmt = (ForallStmt)s;
+                    foreach (MaybeFreeExpression e3 in stmt.Ens)
+                    {
+                        if (e3.E.tok.line == this.line)
+                        {
+                            CloneExpr(e3.E);
+                            exprFound = true;
+                        }
+                    }
+                }
             }
-            findingPredicateVar = false;
-
-            return null;
-
+                    
         }
 
+        if (exprFound)
+            return member.Name;
+    }
+    findingPredicateVar = false;
 
-        public String getCompileName<T>(T expr)
-        {
-            String compileName = null;
+    return null;
 
-            if (expr is IdentifierExpr)
-            {
-                IdentifierExpr matchExpr = expr as IdentifierExpr;
-                compileName = matchExpr.Var.CompileName;
+}
 
-            }
-            else if (expr is Formal)
-            {
-                Formal matchExpr = expr as Formal;
-                compileName = matchExpr.CompileName;
-            }
-            else if (expr is LocalVariable)
-            {
-                LocalVariable matchExpr = expr as LocalVariable;
-                compileName = matchExpr.CompileName;
-            }
-            else if (expr is MemberSelectExpr)
-            {
-                MemberSelectExpr matchExpr = expr as MemberSelectExpr;
-                compileName = matchExpr.Member.FullCompileName;
-            }
-            else if (expr is ConstantField)
-            {
-                ConstantField matchExpr = expr as ConstantField;
-                compileName = matchExpr.FullCompileName;
-            }
-            else if (expr is Field)
-            {
-                Field matchExpr = expr as Field;
-                compileName = matchExpr.FullCompileName;
-            }
-            else if (expr is Method)
-            {
-                Method matchExpr = expr as Method;
-                compileName = matchExpr.FullCompileName;
-            }
-            else if (expr is Predicate)
-            {
-                Predicate matchExpr = expr as Predicate;
-                compileName = matchExpr.FullCompileName;
-            }
+
+public String getCompileName<T>(T expr)
+{
+    String compileName = null;
+
+    if (expr is IdentifierExpr)
+    {
+        IdentifierExpr matchExpr = expr as IdentifierExpr;
+        compileName = matchExpr.Var.CompileName;
+
+    }
+    else if (expr is Formal)
+    {
+        Formal matchExpr = expr as Formal;
+        compileName = matchExpr.CompileName;
+    }
+    else if (expr is LocalVariable)
+    {
+        LocalVariable matchExpr = expr as LocalVariable;
+        compileName = matchExpr.CompileName;
+    }
+    else if (expr is MemberSelectExpr)
+    {
+        MemberSelectExpr matchExpr = expr as MemberSelectExpr;
+        compileName = matchExpr.Member.FullCompileName;
+    }
+    else if (expr is ConstantField)
+    {
+        ConstantField matchExpr = expr as ConstantField;
+        compileName = matchExpr.FullCompileName;
+    }
+    else if (expr is Field)
+    {
+        Field matchExpr = expr as Field;
+        compileName = matchExpr.FullCompileName;
+    }
+    else if (expr is Method)
+    {
+        Method matchExpr = expr as Method;
+        compileName = matchExpr.FullCompileName;
+    }
+    else if (expr is Predicate)
+    {
+        Predicate matchExpr = expr as Predicate;
+        compileName = matchExpr.FullCompileName;
+    }
+    else if (expr is Function)
+    {
+        Function matchExpr = expr as Function;
+        compileName = matchExpr.FullCompileName;
+    }
+    else if (expr is Lemma)
+    {
+        Lemma matchExpr = expr as Lemma;
+        compileName = matchExpr.FullCompileName;
+    }
 
             return compileName;
-        }
+}
 
         public List<LocalVariable> cloneLocalVariables(VarDeclStmt s)
         {
@@ -298,41 +318,41 @@ namespace Microsoft.Dafny.refactoring
         }
 
 
-        public override MemberDecl CloneMember(MemberDecl member)
+public override MemberDecl CloneMember(MemberDecl member)
+{
+
+    if (member is Field)
+    {
+        if (member is ConstantField)
         {
+            var c = (ConstantField)member;
 
-            if (member is Field)
+            if (c.tok.line == this.line && c.tok.col == this.column)
             {
-                if (member is ConstantField)
-                {
-                    var c = (ConstantField)member;
+                this.compiledName = this.getCompileName(c);
+                this.displayedName = c.Name;
+                this.exprFound = true;
+            }
+        }
+        else
+        {
+            Contract.Assert(!(member is SpecialField));
+            var f = (Field)member;
 
-                    if (c.tok.line == this.line && c.tok.col == this.column)
-                    {
-                        this.compiledName = this.getCompileName(c);
-                        this.displayedName = c.Name;
-                        this.exprFound = true;
-                    }
-                }
-                else
-                {
-                    Contract.Assert(!(member is SpecialField));
-                    var f = (Field)member;
-
-                    if (f.tok.line == this.line && f.tok.col == this.column)
-                    {
-                        this.compiledName = this.getCompileName(f);
-                        this.displayedName = f.Name;
-                        this.exprFound = true;
-                    }
-
-
-                }
+            if (f.tok.line == this.line && f.tok.col == this.column)
+            {
+                this.compiledName = this.getCompileName(f);
+                this.displayedName = f.Name;
+                this.exprFound = true;
             }
 
-            return base.CloneMember(member);
 
         }
+    }
+
+    return base.CloneMember(member);
+
+}
 
         public override Function CloneFunction(Function f, string newName = null)
         {

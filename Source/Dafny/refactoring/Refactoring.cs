@@ -36,34 +36,37 @@ namespace Microsoft.Dafny.refactoring
             return program;
         }
 
-        public Program renameRefactoring(String newName, int line, int column)
+public Program renameRefactoring(String newName, int line, int column)
+{
+    //Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
+
+    this.newName = newName;
+            
+    //ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
+            
+    Collector collector = new Collector(program,resolvedProgram);
+    tokMap = collector.collectDeclarationInstances(line, column);
+    if (tokMap != null)
+    {
+        foreach (TopLevelDecl t in program.DefaultModuleDef.TopLevelDecls)
         {
-            //Contract.Assert((newName != null && newName != "") && (oldName != null && oldName != ""));
+            ClassDecl classDecl = t as ClassDecl;
 
-            this.newName = newName;
-            
-            //ClassDecl classDecl = program.DefaultModuleDef.TopLevelDecls.FirstOrDefault() as ClassDecl;
-            
-            Collector collector = new Collector(program,resolvedProgram);
-            tokMap = collector.collectVariables(line, column);
-
-            foreach (TopLevelDecl t in program.DefaultModuleDef.TopLevelDecls)
+            foreach (MemberDecl member in classDecl.Members)
             {
-                ClassDecl classDecl = t as ClassDecl;
+                MemberDecl newMember = CloneMember(member);
+                int index = classDecl.Members.IndexOf(member);
 
-                foreach (MemberDecl member in classDecl.Members)
-                {
-                    MemberDecl newMember = CloneMember(member);
-                    int index = classDecl.Members.IndexOf(member);
-                    
-                    updates.Add(index, newMember);
-                }
-
-                this.updateProgram(classDecl);
-                updates.Clear();
+                updates.Add(index, newMember);
             }
-            return program;
-        }      
+
+            this.updateProgram(classDecl);
+            updates.Clear();
+        }
+    }
+
+    return program;
+}      
 
         private void updateProgram(ClassDecl classDecl)
         {
@@ -114,17 +117,17 @@ namespace Microsoft.Dafny.refactoring
                 return base.CloneStmt(stmt);
         }
 
-        public override Expression CloneNameSegment(Expression expr)
-        {
-            var nameSegment = expr as NameSegment;        
+public override Expression CloneNameSegment(Expression expr)
+{
+    var nameSegment = expr as NameSegment;        
 
-            if (tokMap.Contains(nameSegment.tok.pos))
-            {
-                return new NameSegment(Tok(nameSegment.tok), this.newName, nameSegment.OptTypeArguments == null ? null : nameSegment.OptTypeArguments.ConvertAll(CloneType));
-            }               
+    if (tokMap.Contains(nameSegment.tok.pos))
+    {
+        return new NameSegment(Tok(nameSegment.tok), this.newName, nameSegment.OptTypeArguments == null ? null : nameSegment.OptTypeArguments.ConvertAll(CloneType));
+    }               
             
-            return base.CloneNameSegment(expr);
-        }
+    return base.CloneNameSegment(expr);
+}
 
         public override Formal CloneFormal(Formal formal)
         {            
