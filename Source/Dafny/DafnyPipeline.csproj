@@ -171,7 +171,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cloner.cs" />
-    <Compile Include="refactoring\Class1.cs" />
     <Compile Include="refactoring\Collector.cs" />
     <Compile Include="refactoring\Finder.cs" />
     <Compile Include="refactoring\Predicate.cs" />

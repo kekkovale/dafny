@@ -92,6 +92,71 @@ namespace Microsoft.Dafny {
             return new Program(program.FullName, moduleDecl, program.BuiltIns, new InvisibleErrorReporter());
         }
 
+        private static void refactoringFromCommandLine(Refactoring refactoring, ref Program newProgram)
+        {
+            String line;
+            String col;
+            String newName;
+            int l;
+            bool allData = false;
+
+            while (!allData)
+            {
+                Console.WriteLine("");
+                Console.WriteLine("");
+                Console.WriteLine("*************REFACTORING*************");
+                Console.WriteLine("1) Rename 2) Fold to Predicate");
+                String refactor = Console.ReadLine();
+
+                switch (refactor)
+                {
+                    case "1":
+                        Console.WriteLine("Insert declaration line:");
+                        line = Console.ReadLine();
+                        Console.WriteLine("Insert declaration column:");
+                        col = Console.ReadLine();
+                        Console.WriteLine("Insert new name:");
+                        newName = Console.ReadLine();
+
+                        
+                        try
+                        {
+                            int c = Int32.Parse(col);
+                            l = Int32.Parse(line);
+                            newProgram = refactoring.renameRefactoring(newName, l, c);
+                            allData = true;
+                        }
+                        catch (FormatException e)
+                        {
+                            Console.WriteLine("You have to insert the line and column number");
+                        }
+                        
+
+                        
+                        break;
+
+                    case "2":
+                        Console.WriteLine("Insert declaration line:");
+                        line = Console.ReadLine();
+                        Console.WriteLine("Insert new name:");
+                        newName = Console.ReadLine();
+
+                        try
+                        {
+                            l = Int32.Parse(line);
+                            newProgram = refactoring.postCondToPredicate(newName, l);
+                            allData = true;
+                        }
+                        catch (FormatException e)
+                        {
+                            Console.WriteLine("You have to insert the line number ");
+                        }
+
+                        break;
+                }
+            }
+        }
+
         /// <summary>
         /// Returns null on success, or an error string otherwise.
         /// </summary>
@@ -105,9 +170,6 @@ namespace Microsoft.Dafny {
       }
 
             var printer = new Printer(Console.Out);
-
-            //SomeRefactoring refactoring = new SomeRefactoring();
-            //refactoring.renameMethod(program);
             
             Program resolvedProgram = Main.cloneProgram(program);
 
@@ -117,13 +179,9 @@ namespace Microsoft.Dafny {
             if (resolved == null)
             {
                 Refactoring refactoring = new Refactoring(program,resolvedProgram);
-                //Console.WriteLine("prova");
-                //String prova = Console.ReadLine();
-                //Console.WriteLine("Prova? -> {0} ", prova);
-                
-  
-                //newProgram = refactoring.renameRefactoring("new_method",32,20);
-                newProgram = refactoring.postCondToPredicate("newPredicate", 32);
+
+                refactoringFromCommandLine(refactoring, ref newProgram);
+
                 printer.PrintProgram(newProgram, false);
                 
             }
